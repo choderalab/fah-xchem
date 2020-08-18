@@ -1,16 +1,16 @@
-from dataclasses import dataclass
-from dataclasses_json import dataclass_json
 import functools
 from glob import glob
-import joblib
 import json
 import logging
 import multiprocessing
-import numpy as np
 import os
+import re
+from dataclasses import dataclass
+from dataclasses_json import dataclass_json
+import joblib
+import numpy as np
 import pandas as pd
 import pymbar
-import re
 from tqdm.auto import tqdm
 from typing import List, Optional
 
@@ -29,10 +29,9 @@ def _get_last_header_line(path: str) -> int:
     with open(path, "r") as f:
         lines = f.readlines()
     header_lines = [i for i, line in enumerate(lines) if _is_header_line(line)]
-    if header_lines:
-        return header_lines[-1]
-    else:
+    if not header_lines:
         raise ValueError(f"Missing header in {path}")
+    return header_lines[-1]
 
 
 def _get_num_steps(df: pd.DataFrame) -> int:
@@ -95,18 +94,23 @@ def list_results(project_path: str, run: int) -> List[ResultPath]:
     paths = glob(glob_pattern)
 
     regex = (
-        get_result_path(project_path, run, clone="(?P<clone>\d+)", gen="(?P<gen>\d+)")
+        get_result_path(project_path, run, clone=r"(?P<clone>\d+)", gen=r"(?P<gen>\d+)")
         + "$"
     )
 
     def result_path(path: str) -> Optional[ResultPath]:
         match = re.match(regex, path)
-        if match is not None:
-            return ResultPath(path, clone=int(match["clone"]), gen=int(match["gen"]))
-        else:
+
+        if match is None:
             logging.warning(
-                f"Path '{path}' matched glob '{glob_pattern}' but not regex '{regex}'"
+                "Path '%s' matched glob '%s' but not regex '%s'",
+                path,
+                glob_pattern,
+                regex,
             )
+            return None
+
+        return ResultPath(path, clone=int(match["clone"]), gen=int(match["gen"]))
 
     results = [result_path(path) for path in paths]
     return [r for r in results if r is not None]
@@ -147,16 +151,9 @@ def analyze_phase(
                 num_steps_expected=num_steps_expected,
             )
         except ValueError as e:
-            logging.warning(f"Failed to extract works from '{path}': {e}")
+            logging.warning("Failed to extract works from '%s': %s", path, e)
 
-    works = [
-        try_extract_work(
-            p.path,
-            num_works_expected=num_works_expected,
-            num_steps_expected=num_steps_expected,
-        )
-        for p in paths
-    ]
+    works = [try_extract_work(p.path) for p in paths]
 
     f_works = np.array([w.forward_work for w in works])
     r_works = np.array([w.reverse_work for w in works])
@@ -255,7 +252,7 @@ def _try_process_run(details: RunDetails, **kwargs) -> Optional[RunAnalysis]:
     try:
         return Run(details=details, analysis=analyze_run(details.run_id(), **kwargs),)
     except ValueError as e:
-        logging.warning(f"Failed to process run {run}: {e}")
+        logging.warning("Failed to process run %d: %s", details.run_id(), e)
 
 
 def analyze_runs(
