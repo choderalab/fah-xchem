@@ -343,7 +343,7 @@ def analyze_runs(
     )
 
     with multiprocessing.Pool() as pool:
-        results_iter = pool.imap(try_process_run, runs)
+        results_iter = pool.imap_unordered(try_process_run, runs)
         results = list(tqdm(results_iter, total=len(runs)))
 
     valid = [r for r in results if r is not None]
