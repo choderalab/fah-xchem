@@ -90,18 +90,25 @@ class ResultPath:
 
 
 def list_results(project_path: str, run: int) -> List[ResultPath]:
-    glob_pattern = get_result_path(project_path, run, "*", "*")
+    glob_pattern = get_result_path(project_path, run, clone="*", gen="*")
     paths = glob(glob_pattern)
 
-    regex = get_result_path(
-        project_path, run, clone="(?P<clone>\d+)", gen="(?P<gen>\d+)"
+    regex = (
+        get_result_path(project_path, run, clone="(?P<clone>\d+)", gen="(?P<gen>\d+)")
+        + "$"
     )
 
-    def result_path(path: str) -> ResultPath:
+    def result_path(path: str) -> Optional[ResultPath]:
         match = re.match(regex, path)
-        return ResultPath(path, clone=int(match["clone"]), gen=int(match["gen"]))
+        if match is not None:
+            return ResultPath(path, clone=int(match["clone"]), gen=int(match["gen"]))
+        else:
+            logging.warning(
+                f"Path '{path}' matched glob '{glob_pattern}' but not regex '{regex}'"
+            )
 
-    return [result_path(path) for path in paths]
+    results = [result_path(path) for path in paths]
+    return [r for r in results if r is not None]
 
 
 @dataclass_json
