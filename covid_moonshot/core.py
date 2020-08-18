@@ -215,7 +215,7 @@ def analyze_phase(
     both_good = f_good & r_good
     f_works_good = f_works[both_good]
     r_works_good = r_works[both_good]
-    num_work_values = both_good.sum()
+    num_work_values = both_good.astype(int).sum().item()
 
     if num_work_values < min_num_work_values:
         raise ValueError(
