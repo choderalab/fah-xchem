@@ -1,13 +1,16 @@
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
+import functools
 from glob import glob
 import json
 import logging
+import multiprocessing
 import numpy as np
 import os
 import pandas as pd
 import pymbar
 import re
+from tqdm.auto import tqdm
 from typing import List, Optional
 
 
@@ -221,6 +224,14 @@ class Run:
     analysis: RunAnalysis
 
 
+def _process_run(details: RunDetails, **kwargs) -> Optional[RunAnalysis]:
+    try:
+        return Run(details=details, analysis=analyze_run(details.run_id(), **kwargs),)
+    except ValueError as e:
+        # logging.warning(f"Failed to process run {run}: {e}")
+        pass
+
+
 def analyze_runs(
     run_details_json_file: str,
     complex_project_path: str,
@@ -231,24 +242,22 @@ def analyze_runs(
 
     runs = read_run_details(run_details_json_file)
 
-    def maybe_process_run(details: RunDetails) -> Optional[RunAnalysis]:
-        try:
-            return Run(
-                details=details,
-                analysis=analyze_run(
-                    details.run_id(),
-                    complex_project_path,
-                    solvent_project_path,
-                    num_works_expected,
-                    num_steps_expected,
-                ),
-            )
-        except ValueError as e:
-            # logging.warning(f"Failed to process run {run}: {e}")
-            pass
+    process_run = functools.partial(
+        _process_run,
+        complex_project_path=complex_project_path,
+        solvent_project_path=solvent_project_path,
+        num_works_expected=num_works_expected,
+        num_steps_expected=num_steps_expected,
+    )
 
-    results = [maybe_process_run(run) for run in runs]
+    with multiprocessing.Pool() as pool:
+        results_iter = pool.imap(process_run, runs)
+        results = list(tqdm(results_iter, total=len(runs)))
+
     valid = [r for r in results if r is not None]
     num_failed = len(results) - len(valid)
-    logging.info("Failed to process %d runs out of %d", num_failed, len(results))
+
+    if num_failed > 0:
+        logging.warning("Failed to process %d runs out of %d", num_failed, len(results))
+
     return valid

@@ -24,4 +24,7 @@ def analyze_runs_cli(
 
 
 def main():
+    import logging
+
+    logging.basicConfig(level=logging.INFO)
     fire.Fire({"analyze_runs": analyze_runs_cli})
