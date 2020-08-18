@@ -81,7 +81,7 @@ def extract_work(path: str, num_works_expected: int, num_steps_expected: int,) -
             reverse_final_potential=Enew_nodims[40],
            )
     except KeyError as e:
-        raise ValueError(f"Input dataframe doesn't have the expected number of rows: {e}")
+        raise ValueError(f"Failed to index into dataframe at row {e}")
 
 
 @dataclass_json
@@ -156,7 +156,8 @@ def analyze_phase(
         except ValueError as e:
             logging.warning("Failed to extract works from '%s': %s", path, e)
 
-    works = [try_extract_work(p.path) for p in paths]
+    results = [try_extract_work(p.path) for p in paths]
+    works = [r for r in results if r is not None]
 
     f_works = np.array([w.forward_work for w in works])
     r_works = np.array([w.reverse_work for w in works])
