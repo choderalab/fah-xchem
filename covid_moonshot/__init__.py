@@ -59,8 +59,12 @@ def extract_work(path: str, num_works_expected: int, num_steps_expected: int,) -
     df.drop_duplicates(inplace=True)
 
     kT = df["kT"].astype(float)[0]
-    protocol_work_nodims = df["protocol_work"].astype(float) / kT
-    Enew_nodims = df["Enew"].astype(float) / kT
+
+    protocol_work = df["protocol_work"].astype(float).values
+    protocol_work_nodims = protocol_work / kT
+
+    Enew = df["Enew"].astype(float).values
+    Enew_nodims = Enew / kT
 
     if len(protocol_work_nodims) != num_works_expected:
         raise ValueError(
