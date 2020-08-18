@@ -13,5 +13,5 @@ def analyze_runs_cli(*args, **kwargs):
 def main():
     import logging
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.WARNING)
     fire.Fire({"analyze_runs": analyze_runs_cli})
