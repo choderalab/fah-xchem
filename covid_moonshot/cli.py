@@ -1,6 +1,7 @@
-import fire
 import functools
 import json
+import logging
+import fire
 from . import analyze_runs
 
 
@@ -11,7 +12,5 @@ def analyze_runs_cli(*args, **kwargs):
 
 
 def main():
-    import logging
-
     logging.basicConfig(level=logging.WARNING)
     fire.Fire({"analyze_runs": analyze_runs_cli})

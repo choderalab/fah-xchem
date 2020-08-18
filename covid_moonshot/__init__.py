@@ -5,6 +5,7 @@ import logging
 import multiprocessing
 import os
 import re
+from typing import List, Optional
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 import joblib
@@ -12,7 +13,6 @@ import numpy as np
 import pandas as pd
 import pymbar
 from tqdm.auto import tqdm
-from typing import List, Optional
 
 
 def get_result_path(project_path, run, clone, gen):
