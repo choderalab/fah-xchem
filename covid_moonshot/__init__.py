@@ -103,9 +103,8 @@ def list_results(project_path: str, run: int) -> List[ResultPath]:
     glob_pattern = get_result_path(project_path, run, clone="*", gen="*")
     paths = glob(glob_pattern)
 
-    regex = (
-        get_result_path(project_path, run, clone=r"(?P<clone>\d+)", gen=r"(?P<gen>\d+)")
-        + "$"
+    regex = get_result_path(
+        project_path, run, clone=r"(?P<clone>\d+)", gen=r"(?P<gen>\d+)"
     )
 
     def result_path(path: str) -> Optional[ResultPath]:
@@ -134,19 +133,12 @@ class PhaseAnalysis:
     num_work_values: int
 
 
-def analyze_phase(
-    project_path: str,
-    run: int,
+def extract_works(
+    paths: List[ResultPath],
     num_works_expected: int,
     num_steps_expected: int,
     cache_dir: Optional[str],
-) -> PhaseAnalysis:
-
-    paths = list_results(project_path, run)
-
-    if not paths:
-        raise ValueError(f"Empty result set for project path {project_path}, run {run}")
-
+):
     _extract_work = (
         extract_work
         if cache_dir is None
@@ -164,7 +156,28 @@ def analyze_phase(
             logging.warning("Failed to extract works from '%s': %s", path, e)
 
     results = [try_extract_work(p.path) for p in paths]
-    works = [r for r in results if r is not None]
+    return [r for r in results if r is not None]
+
+
+def analyze_phase(
+    project_path: str,
+    run: int,
+    num_works_expected: int,
+    num_steps_expected: int,
+    cache_dir: Optional[str],
+) -> PhaseAnalysis:
+
+    paths = list_results(project_path, run)
+
+    if not paths:
+        raise ValueError(f"Empty result set for project path {project_path}, run {run}")
+
+    works = extract_works(
+        paths,
+        num_works_expected=num_works_expected,
+        num_steps_expected=num_steps_expected,
+        cache_dir=cache_dir,
+    )
 
     f_works = np.array([w.forward_work for w in works])
     r_works = np.array([w.reverse_work for w in works])
