@@ -50,7 +50,7 @@ class Work:
     reverse_final_potential: float
 
 
-def extract_work(path: str, num_works_expected: int, num_steps_expected: int,) -> Work:
+def extract_work(path: str, num_works_expected: int, num_steps_expected: int) -> Work:
 
     header_line_number = _get_last_header_line(path)
     df = pd.read_csv(path, header=header_line_number)
@@ -261,8 +261,15 @@ def analyze_run(
         cache_dir=cache_dir,
     )
 
-    complex_phase = _analyze_phase(complex_project_path)
-    solvent_phase = _analyze_phase(solvent_project_path)
+    try:
+        complex_phase = _analyze_phase(complex_project_path)
+    except ValueError as e:
+        raise ValueError("Failed to process complex phase: {e}")
+
+    try:
+        solvent_phase = _analyze_phase(solvent_project_path)
+    except ValueError as e:
+        raise ValueError("Failed to process solvent phase: {e}")
 
     binding = Binding(
         delta_f=complex_phase.delta_f - solvent_phase.delta_f,
