@@ -50,7 +50,10 @@ class Work:
     reverse_final_potential: float
 
 
-def extract_work(path: str, num_works_expected: int, num_steps_expected: int) -> Work:
+def extract_work(path: str) -> Work:
+
+    NUM_WORKS_EXPECTED = 41
+    NUM_STEPS_EXPECTED = 1000000
 
     header_line_number = _get_last_header_line(path)
     df = pd.read_csv(path, header=header_line_number)
@@ -66,15 +69,15 @@ def extract_work(path: str, num_works_expected: int, num_steps_expected: int) ->
     Enew = df["Enew"].astype(float).values
     Enew_nodims = Enew / kT
 
-    if len(protocol_work_nodims) != num_works_expected:
+    if len(protocol_work_nodims) != NUM_WORKS_EXPECTED:
         raise ValueError(
-            f"Expected {num_works_expected} work values, "
+            f"Expected {NUM_WORKS_EXPECTED} work values, "
             f"but found {len(protocol_work_nodims)}"
         )
 
     num_steps = _get_num_steps(df)
-    if num_steps != num_steps_expected:
-        raise ValueError(f"Expected {num_steps_expected} steps, but found {num_steps}")
+    if num_steps != NUM_STEPS_EXPECTED:
+        raise ValueError(f"Expected {NUM_STEPS_EXPECTED} steps, but found {num_steps}")
 
     # TODO: magic numbers
     try:
@@ -133,12 +136,7 @@ class PhaseAnalysis:
     num_work_values: int
 
 
-def extract_works(
-    paths: List[ResultPath],
-    num_works_expected: int,
-    num_steps_expected: int,
-    cache_dir: Optional[str],
-):
+def extract_works(paths: List[ResultPath], cache_dir: Optional[str]):
     _extract_work = (
         extract_work
         if cache_dir is None
@@ -147,11 +145,7 @@ def extract_works(
 
     def try_extract_work(path: str) -> Optional[Work]:
         try:
-            return _extract_work(
-                path,
-                num_works_expected=num_works_expected,
-                num_steps_expected=num_steps_expected,
-            )
+            return _extract_work(path)
         except ValueError as e:
             logging.warning("Failed to extract works from '%s': %s", path, e)
             return None
@@ -186,8 +180,6 @@ def _mask_outliers(a: np.array, max_value: float, n_devs: float):
 def analyze_phase(
     project_path: str,
     run: int,
-    num_works_expected: int,
-    num_steps_expected: int,
     cache_dir: Optional[str],
     max_work_value=1e4,
     max_n_devs=5,
@@ -199,12 +191,7 @@ def analyze_phase(
     if not paths:
         raise ValueError(f"Empty result set for project path {project_path}, run {run}")
 
-    works = extract_works(
-        paths,
-        num_works_expected=num_works_expected,
-        num_steps_expected=num_steps_expected,
-        cache_dir=cache_dir,
-    )
+    works = extract_works(paths, cache_dir=cache_dir)
 
     f_works = np.array([w.forward_work for w in works])
     r_works = np.array([w.reverse_work for w in works])
@@ -249,18 +236,10 @@ def analyze_run(
     run: int,
     complex_project_path: str,
     solvent_project_path: str,
-    num_works_expected: int,
-    num_steps_expected: int,
     cache_dir: Optional[str],
 ) -> RunAnalysis:
 
-    _analyze_phase = functools.partial(
-        analyze_phase,
-        run=run,
-        num_works_expected=num_works_expected,
-        num_steps_expected=num_steps_expected,
-        cache_dir=cache_dir,
-    )
+    _analyze_phase = functools.partial(analyze_phase, run=run, cache_dir=cache_dir)
 
     try:
         complex_phase = _analyze_phase(complex_project_path)
@@ -328,8 +307,6 @@ def analyze_runs(
     run_details_json_file: str,
     complex_project_path: str,
     solvent_project_path: str,
-    num_works_expected: int,
-    num_steps_expected: int,
     cache_dir: Optional[str] = None,
 ) -> List[Run]:
 
@@ -339,8 +316,6 @@ def analyze_runs(
         _try_process_run,
         complex_project_path=complex_project_path,
         solvent_project_path=solvent_project_path,
-        num_works_expected=num_works_expected,
-        num_steps_expected=num_steps_expected,
         cache_dir=cache_dir,
     )
 
