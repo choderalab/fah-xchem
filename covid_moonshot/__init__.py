@@ -264,12 +264,12 @@ def analyze_run(
     try:
         complex_phase = _analyze_phase(complex_project_path)
     except ValueError as e:
-        raise ValueError("Failed to process complex phase: {e}")
+        raise ValueError(f"Failed to process complex phase: {e}")
 
     try:
         solvent_phase = _analyze_phase(solvent_project_path)
     except ValueError as e:
-        raise ValueError("Failed to process solvent phase: {e}")
+        raise ValueError(f"Failed to process solvent phase: {e}")
 
     binding = Binding(
         delta_f=complex_phase.delta_f - solvent_phase.delta_f,
