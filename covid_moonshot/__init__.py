@@ -146,7 +146,7 @@ def analyze_phase(
     def try_extract_work(path: str) -> Optional[Work]:
         try:
             return _extract_work(
-                path.path,
+                path,
                 num_works_expected=num_works_expected,
                 num_steps_expected=num_steps_expected,
             )
