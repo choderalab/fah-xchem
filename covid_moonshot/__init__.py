@@ -36,7 +36,7 @@ def _get_last_header_line(path: str) -> int:
 
 def _get_num_steps(df: pd.DataFrame) -> int:
     if df.empty:
-        raise ValueError("empty dataframe")
+        raise ValueError("Empty dataframe")
     step = df["Step"]
     return step.iloc[-1] - step.iloc[0]
 
@@ -59,18 +59,18 @@ def extract_work(path: str, num_works_expected: int, num_steps_expected: int,) -
     df.drop_duplicates(inplace=True)
 
     kT = df["kT"].astype(float)[0]
-    protocol_work_nodims = df["protocol_work"] / kT
-    Enew_nodims = df["Enew"] / kT
+    protocol_work_nodims = df["protocol_work"].astype(float) / kT
+    Enew_nodims = df["Enew"].astype(float) / kT
 
     if len(protocol_work_nodims) != num_works_expected:
         raise ValueError(
-            f"expected {num_works_expected} work values, "
+            f"Expected {num_works_expected} work values, "
             f"but found {len(protocol_work_nodims)}"
         )
 
     num_steps = _get_num_steps(df)
     if num_steps != num_steps_expected:
-        raise ValueError(f"expected {num_steps_expected} steps, but found {num_steps}")
+        raise ValueError(f"Expected {num_steps_expected} steps, but found {num_steps}")
 
     # TODO: magic numbers
     try:
@@ -79,9 +79,12 @@ def extract_work(path: str, num_works_expected: int, num_steps_expected: int,) -
             reverse_work=protocol_work_nodims[40] - protocol_work_nodims[30],
             forward_final_potential=Enew_nodims[20],
             reverse_final_potential=Enew_nodims[40],
-           )
+        )
     except KeyError as e:
-        raise ValueError(f"Failed to index into dataframe at row {e}")
+        raise ValueError(
+            f"Tried to index into dataframe at row {e}, "
+            f"but dataframe has {len(df)} rows"
+        )
 
 
 @dataclass_json
