@@ -111,7 +111,7 @@ def list_results(project_path: str, run: int) -> List[ResultPath]:
         match = re.match(regex, path)
 
         if match is None:
-            logging.warning(
+            logging.info(
                 "Path '%s' matched glob '%s' but not regex '%s'",
                 path,
                 glob_pattern,
