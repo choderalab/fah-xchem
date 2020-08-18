@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 import functools
 from glob import glob
+import joblib
 import json
 import logging
 import multiprocessing
@@ -112,7 +113,11 @@ class PhaseAnalysis:
 
 
 def analyze_phase(
-    project_path: str, run: int, num_works_expected: int, num_steps_expected: int
+    project_path: str,
+    run: int,
+    num_works_expected: int,
+    num_steps_expected: int,
+    cache_dir: Optional[str],
 ) -> PhaseAnalysis:
 
     paths = list_results(project_path, run)
@@ -120,8 +125,14 @@ def analyze_phase(
     if not paths:
         raise ValueError(f"empty result set for project path {project_path}, run {run}")
 
+    _extract_work = (
+        extract_work
+        if cache_dir is None
+        else joblib.Memory(cachedir=cache_dir).cache(extract_work)
+    )
+
     works = [
-        extract_work(
+        _extract_work(
             p.path,
             num_works_expected=num_works_expected,
             num_steps_expected=num_steps_expected,
@@ -164,21 +175,19 @@ def analyze_run(
     solvent_project_path: str,
     num_works_expected: int,
     num_steps_expected: int,
+    cache_dir: Optional[str],
 ) -> RunAnalysis:
 
-    complex_phase = analyze_phase(
-        complex_project_path,
-        run,
+    _analyze_phase = functools.partial(
+        analyze_phase,
+        run=run,
         num_works_expected=num_works_expected,
         num_steps_expected=num_steps_expected,
+        cache_dir=cache_dir,
     )
 
-    solvent_phase = analyze_phase(
-        solvent_project_path,
-        run,
-        num_works_expected=num_works_expected,
-        num_steps_expected=num_steps_expected,
-    )
+    complex_phase = _analyze_phase(complex_project_path)
+    solvent_phase = _analyze_phase(solvent_project_path)
 
     binding = Binding(
         delta_f=complex_phase.delta_f - solvent_phase.delta_f,
@@ -238,6 +247,7 @@ def analyze_runs(
     solvent_project_path: str,
     num_works_expected: int,
     num_steps_expected: int,
+    cache_dir: Optional[str] = None,
 ) -> List[Run]:
 
     runs = read_run_details(run_details_json_file)
@@ -248,6 +258,7 @@ def analyze_runs(
         solvent_project_path=solvent_project_path,
         num_works_expected=num_works_expected,
         num_steps_expected=num_steps_expected,
+        cache_dir=cache_dir,
     )
 
     with multiprocessing.Pool() as pool:

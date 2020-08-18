@@ -9,6 +9,7 @@ setup(
         "dataclasses-json>=0.5",
         "pymbar>=3.0",
         "fire>=0.3",
+        "joblib>=0.16",
     ],
     entry_points={"console_scripts": ["covid-moonshot = covid_moonshot.cli:main"]},
     author="Matt Wittmann",

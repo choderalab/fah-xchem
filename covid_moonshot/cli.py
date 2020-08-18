@@ -5,21 +5,8 @@ from . import analyze_runs
 
 
 @functools.wraps(analyze_runs)
-def analyze_runs_cli(
-    run_details_json_file,
-    complex_project_path,
-    solvent_project_path,
-    num_works_expected,
-    num_steps_expected,
-):
-    results = analyze_runs(
-        run_details_json_file=run_details_json_file,
-        complex_project_path=complex_project_path,
-        solvent_project_path=solvent_project_path,
-        num_works_expected=num_works_expected,
-        num_steps_expected=num_steps_expected,
-    )
-
+def analyze_runs_cli(*args, **kwargs):
+    results = analyze_runs(*args, **kwargs)
     return json.dumps([r.to_dict() for r in results])
 
 
