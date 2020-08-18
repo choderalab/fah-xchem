@@ -72,6 +72,7 @@ def extract_work(path: str, num_works_expected: int, num_steps_expected: int,) -
     num_steps = _get_num_steps(df)
     if num_steps != num_steps_expected:
         raise ValueError(f"expected {num_steps_expected} steps, but found {num_steps}")
+
     # TODO: magic numbers
     return Work(
         forward_work=protocol_work_nodims[20] - protocol_work_nodims[10],
@@ -130,7 +131,7 @@ def analyze_phase(
     paths = list_results(project_path, run)
 
     if not paths:
-        raise ValueError(f"empty result set for project path {project_path}, run {run}")
+        raise ValueError(f"Empty result set for project path {project_path}, run {run}")
 
     _extract_work = (
         extract_work
@@ -138,8 +139,18 @@ def analyze_phase(
         else joblib.Memory(cachedir=cache_dir).cache(extract_work)
     )
 
+    def try_extract_work(path: str) -> Optional[Work]:
+        try:
+            return _extract_work(
+                path.path,
+                num_works_expected=num_works_expected,
+                num_steps_expected=num_steps_expected,
+            )
+        except ValueError as e:
+            logging.warning(f"Failed to extract works from '{path}': {e}")
+
     works = [
-        _extract_work(
+        try_extract_work(
             p.path,
             num_works_expected=num_works_expected,
             num_steps_expected=num_steps_expected,
@@ -240,12 +251,11 @@ class Run:
     analysis: RunAnalysis
 
 
-def _process_run(details: RunDetails, **kwargs) -> Optional[RunAnalysis]:
+def _try_process_run(details: RunDetails, **kwargs) -> Optional[RunAnalysis]:
     try:
         return Run(details=details, analysis=analyze_run(details.run_id(), **kwargs),)
     except ValueError as e:
-        # logging.warning(f"Failed to process run {run}: {e}")
-        pass
+        logging.warning(f"Failed to process run {run}: {e}")
 
 
 def analyze_runs(
@@ -259,8 +269,8 @@ def analyze_runs(
 
     runs = read_run_details(run_details_json_file)
 
-    process_run = functools.partial(
-        _process_run,
+    try_process_run = functools.partial(
+        _try_process_run,
         complex_project_path=complex_project_path,
         solvent_project_path=solvent_project_path,
         num_works_expected=num_works_expected,
@@ -269,7 +279,7 @@ def analyze_runs(
     )
 
     with multiprocessing.Pool() as pool:
-        results_iter = pool.imap(process_run, runs)
+        results_iter = pool.imap(try_process_run, runs)
         results = list(tqdm(results_iter, total=len(runs)))
 
     valid = [r for r in results if r is not None]
