@@ -73,12 +73,15 @@ def extract_work(path: str, num_works_expected: int, num_steps_expected: int,) -
         raise ValueError(f"expected {num_steps_expected} steps, but found {num_steps}")
 
     # TODO: magic numbers
-    return Work(
-        forward_work=protocol_work_nodims[20] - protocol_work_nodims[10],
-        reverse_work=protocol_work_nodims[40] - protocol_work_nodims[30],
-        forward_final_potential=Enew_nodims[20],
-        reverse_final_potential=Enew_nodims[40],
-    )
+    try:
+        return Work(
+            forward_work=protocol_work_nodims[20] - protocol_work_nodims[10],
+            reverse_work=protocol_work_nodims[40] - protocol_work_nodims[30],
+            forward_final_potential=Enew_nodims[20],
+            reverse_final_potential=Enew_nodims[40],
+           )
+    except KeyError as e:
+        raise ValueError(f"Input dataframe doesn't have the expected number of rows: {e}")
 
 
 @dataclass_json
