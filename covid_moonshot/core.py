@@ -154,6 +154,7 @@ def extract_works(
             )
         except ValueError as e:
             logging.warning("Failed to extract works from '%s': %s", path, e)
+            return None
 
     results = [try_extract_work(p.path) for p in paths]
     return [r for r in results if r is not None]
@@ -315,11 +316,12 @@ class Run:
     analysis: RunAnalysis
 
 
-def _try_process_run(details: RunDetails, **kwargs) -> Optional[RunAnalysis]:
+def _try_process_run(details: RunDetails, **kwargs) -> Optional[Run]:
     try:
-        return Run(details=details, analysis=analyze_run(details.run_id(), **kwargs),)
+        return Run(details=details, analysis=analyze_run(details.run_id(), **kwargs))
     except ValueError as e:
         logging.warning("Failed to process run %d: %s", details.run_id(), e)
+        return None
 
 
 def analyze_runs(
