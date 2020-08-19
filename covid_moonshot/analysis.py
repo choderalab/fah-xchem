@@ -73,7 +73,7 @@ def get_bar_overlap(f_works: np.array, r_works: np.array) -> float:
     """
 
     u_kn = np.block(
-        [f_works, np.zeros_like(r_works)], [np.zeros_like(f_works), r_works]
+        [[f_works, np.zeros_like(r_works)], [np.zeros_like(f_works), r_works]]
     )
 
     N_k = np.array([len(f_works), len(r_works)])
