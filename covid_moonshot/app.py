@@ -2,7 +2,7 @@ import functools
 import json
 import logging
 import fire
-from .core import analyze_runs
+from .lib import analyze_runs
 
 
 @functools.wraps(analyze_runs)

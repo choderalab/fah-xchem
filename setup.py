@@ -11,7 +11,7 @@ setup(
         "fire>=0.3",
         "joblib>=0.16",
     ],
-    entry_points={"console_scripts": ["covid-moonshot = covid_moonshot.cli:main"]},
+    entry_points={"console_scripts": ["covid-moonshot = covid_moonshot.app:main"]},
     author="Matt Wittmann",
     author_email="matt.wittmann@choderalab.org",
     description="Tools and infrastructure for automating COVID Moonshot analysis",
