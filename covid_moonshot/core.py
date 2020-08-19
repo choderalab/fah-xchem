@@ -183,7 +183,7 @@ def analyze_phase(
     cache_dir: Optional[str],
     max_work_value=1e4,
     max_n_devs=5,
-    min_num_work_values=10,
+    min_num_work_values=50,
 ) -> PhaseAnalysis:
 
     paths = list_results(project_path, run)
