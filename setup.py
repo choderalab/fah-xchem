@@ -10,6 +10,7 @@ setup(
         "pymbar>=3.0",
         "fire>=0.3",
         "joblib>=0.16",
+        "simplejson>=3.17"
     ],
     entry_points={"console_scripts": ["covid-moonshot = covid_moonshot.app:main"]},
     author="Matt Wittmann",

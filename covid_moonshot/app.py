@@ -1,5 +1,5 @@
 import functools
-import json
+import simplejson as json
 import logging
 import fire
 from .lib import analyze_runs
@@ -8,7 +8,10 @@ from .lib import analyze_runs
 @functools.wraps(analyze_runs)
 def analyze_runs_cli(*args, **kwargs):
     results = analyze_runs(*args, **kwargs)
-    return json.dumps([r.to_dict() for r in results])
+
+    # NOTE: ignore_nan=True encodes NaN as null, ensuring we produce
+    # valid json even if there are NaNs in the output
+    return json.dumps([r.to_dict() for r in results], ignore_nan=True)
 
 
 def main():
