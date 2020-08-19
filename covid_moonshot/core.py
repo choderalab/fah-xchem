@@ -309,6 +309,31 @@ def analyze_runs(
     solvent_project_path: str,
     cache_dir: Optional[str] = None,
 ) -> List[Run]:
+    """
+    Run free energy analysis and return input augmented with analysis
+    results for all runs.
+
+
+    Parameters
+    ----------
+    run_details_json_file : str
+        json file containing run metadata. The file should contain a
+        json object with values deserializable to `RunDetails`
+    complex_project_path: str
+        root path of the FAH project containing simulations of the
+        complex, e.g. "PROJ13420"
+    solvent_project_path: str
+        root path of the FAH project containing simulations of the solvent
+    cache_dir: str, optional
+        if given, cache work values extracted from simulation data in
+        local directory of this name
+
+    Returns
+    -------
+    list of Run
+        run metadata with analysis results for each run
+
+    """
 
     runs = read_run_details(run_details_json_file)
 
