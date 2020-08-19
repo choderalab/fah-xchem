@@ -62,12 +62,12 @@ def get_run_analysis(
     try:
         complex_phase = get_phase_analysis(complex_works)
     except ValueError as e:
-        raise ValueError(f"Failed to analyze complex phase: {e}")
+        raise ValueError(f"Failed to analyze complex: {e}")
 
     try:
         solvent_phase = get_phase_analysis(solvent_works)
     except ValueError as e:
-        raise ValueError(f"Failed to analyze solvent phase: {e}")
+        raise ValueError(f"Failed to analyze solvent: {e}")
 
     binding = Binding(
         delta_f=complex_phase.delta_f - solvent_phase.delta_f,
