@@ -41,8 +41,8 @@ def filter_work_values(
 
     Returns
     -------
-    tuple
-        tuple of forward works, reverse_works, and number of remaining work values
+    array
+        filtered works
     """
 
     mask_work_outliers = functools.partial(
