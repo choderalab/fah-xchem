@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List
 import numpy as np
 from pymbar import BAR
 from pymbar.mbar import MBAR
@@ -29,42 +29,39 @@ def mask_outliers(a: np.array, max_value: float, n_devs: float):
 
 
 def filter_work_values(
-    f_works: np.array,
-    r_works: np.array,
-    max_work_value: float = 1e4,
-    max_n_devs: float = 5,
-) -> Tuple[np.array, np.array, int]:
+    works: np.array, max_work_value: float = 1e4, max_n_devs: float = 5,
+) -> np.array:
     """Remove pairs of works when either is determined to be an outlier.
 
     Parameters
     ----------
-    f_works: array
-        forward works
-    r_works: array
-        reverse works
+    works: array
+        1-d structured array with names "forward" and "reverse"
 
     Returns
     -------
     tuple
         tuple of forward works, reverse_works, and number of remaining work values
     """
-    f_good = mask_outliers(f_works, max_value=max_work_value, n_devs=max_n_devs)
-    r_good = mask_outliers(r_works, max_value=max_work_value, n_devs=max_n_devs)
+
+    f_good = mask_outliers(
+        works["forward"], max_value=max_work_value, n_devs=max_n_devs
+    )
+    r_good = mask_outliers(
+        works["reverse"], max_value=max_work_value, n_devs=max_n_devs
+    )
     both_good = f_good & r_good
-    num_work_values = both_good.astype(int).sum().item()
-    return f_works[both_good], r_works[both_good], num_work_values
+    return works[both_good]
 
 
-def get_bar_overlap(f_works: np.array, r_works: np.array) -> float:
+def get_bar_overlap(works: np.array) -> float:
     """
     Compute the overlap (should be in [0, 1] where close to 1 is good, close to 0 bad).
 
     Parameters
     ----------
-    f_works: array
-        forward works
-    r_works: array
-        reverse works
+    works: array
+        1-d structured array with names "forward" and "reverse"
 
     Returns
     -------
@@ -72,38 +69,36 @@ def get_bar_overlap(f_works: np.array, r_works: np.array) -> float:
         overlap
     """
 
-    u_kn = np.block(
-        [[f_works, np.zeros_like(r_works)], [np.zeros_like(f_works), r_works]]
-    )
-
-    N_k = np.array([len(f_works), len(r_works)])
-
+    n = len(works)
+    u_kn = np.block([[works["forward"], np.zeros(n)], [np.zeros(n), works["reverse"]]])
+    N_k = np.array([n, n])
     mbar = MBAR(u_kn, N_k)
-
     return mbar.computeOverlap()["scalar"]
 
 
 def get_phase_analysis(works: List[Work], min_num_work_values=10):
 
-    f_works_all = np.array([w.forward_work for w in works])
-    r_works_all = np.array([w.reverse_work for w in works])
+    works = np.array(
+        [(w.forward_work, w.reverse_work) for w in works],
+        dtype=[("forward", float), ("reverse", float)],
+    )
 
-    f_works, r_works, num_work_values = filter_work_values(f_works_all, r_works_all)
+    works = filter_work_values(works)
 
-    if num_work_values < min_num_work_values:
+    if len(works) < min_num_work_values:
         raise ValueError(
             f"Need at least {min_num_work_values} good work values for analysis, "
             f"but got {num_work_values}"
         )
 
-    delta_f, ddelta_f = BAR(f_works, r_works)
-    bar_overlap = get_bar_overlap(f_works, r_works)
+    delta_f, ddelta_f = BAR(works["forward"], works["reverse"])
+    bar_overlap = get_bar_overlap(works)
 
     return PhaseAnalysis(
         delta_f=delta_f,
         ddelta_f=ddelta_f,
         bar_overlap=bar_overlap,
-        num_work_values=num_work_values,
+        num_work_values=len(works),
     )
 
 
