@@ -78,20 +78,20 @@ def get_bar_overlap(works: np.array) -> float:
 
 def get_phase_analysis(works: List[Work], min_num_work_values=10):
 
-    works = np.array(
+    ws = np.array(
         [(w.forward_work, w.reverse_work) for w in works],
         dtype=[("forward", float), ("reverse", float)],
     )
 
-    works = filter_work_values(works)
+    ws = filter_work_values(works)
 
     if len(works) < min_num_work_values:
         raise ValueError(
             f"Need at least {min_num_work_values} good work values for analysis, "
-            f"but got {num_work_values}"
+            f"but got {len(works)}"
         )
 
-    delta_f, ddelta_f = BAR(works["forward"], works["reverse"])
+    delta_f, ddelta_f = BAR(ws["forward"], ws["reverse"])
     bar_overlap = get_bar_overlap(works)
 
     return PhaseAnalysis(
