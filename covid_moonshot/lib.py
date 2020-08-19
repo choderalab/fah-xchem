@@ -96,7 +96,7 @@ def analyze_run(
         raise ValueError(f"Failed to extract work values for complex: {e}")
 
     try:
-        solvent_works = extract_works(complex_project_path, run, cache_dir=cache_dir)
+        solvent_works = extract_works(solvent_project_path, run, cache_dir=cache_dir)
     except ValueError as e:
         raise ValueError(f"Failed to extract work values for solvent: {e}")
 
