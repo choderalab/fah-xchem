@@ -28,7 +28,7 @@ def mask_outliers(a: np.array, max_value: float, n_devs: float):
 
 
 def get_phase_analysis(
-    works: List[Work], max_work_value=1e4, max_n_devs=5, min_num_work_values=50
+    works: List[Work], max_work_value=1e4, max_n_devs=5, min_num_work_values=10
 ):
 
     f_works = np.array([w.forward_work for w in works])
