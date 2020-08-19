@@ -75,7 +75,9 @@ def get_bar_overlap(works: np.array) -> float:
     n = len(works)
     u_kn = np.block([[works["forward"], np.zeros(n)], [np.zeros(n), works["reverse"]]])
     N_k = np.array([n, n])
+
     mbar = MBAR(u_kn, N_k)
+
     return mbar.computeOverlap()["scalar"]
 
 
