@@ -24,6 +24,7 @@ class ResultPath:
 class PhaseAnalysis:
     delta_f: float
     ddelta_f: float
+    bar_overlap: float
     num_work_values: int
 
 
