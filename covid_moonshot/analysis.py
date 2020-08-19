@@ -1,3 +1,4 @@
+import functools
 from typing import List
 import numpy as np
 from pymbar import BAR
@@ -44,13 +45,15 @@ def filter_work_values(
         tuple of forward works, reverse_works, and number of remaining work values
     """
 
-    f_good = mask_outliers(
-        works["forward"], max_value=max_work_value, n_devs=max_n_devs
+    mask_work_outliers = functools.partial(
+        mask_outliers, max_value=max_work_value, n_devs=max_n_devs
     )
-    r_good = mask_outliers(
-        works["reverse"], max_value=max_work_value, n_devs=max_n_devs
-    )
+
+    f_good = mask_work_outliers(works["forward"])
+    r_good = mask_work_outliers(works["reverse"])
+
     both_good = f_good & r_good
+
     return works[both_good]
 
 
