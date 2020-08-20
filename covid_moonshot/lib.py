@@ -116,6 +116,7 @@ def analyze_run(
             works=complex_works,
             frame=3,
             fragment_id="x10789",
+            cache_dir=cache_dir,
         )
     except ValueError as e:
         raise ValueError(f"Failed to save structures for complex: {e}")

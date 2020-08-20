@@ -115,7 +115,8 @@ def extract_snapshot(
     clone: int,
     gen: int,
     frame: int,
-    fragment_id: str = "x10789",
+    fragment_id: str,
+    cache_dir: Optional[str],
 ):
     """
     Extract the specified snapshot, align it to the reference fragment, and write protein and ligands to separate PDB files
@@ -133,6 +134,8 @@ def extract_snapshot(
     frame : int
     fragment_id : str
       Fragment ID (e.g. 'x10789')
+    cache_dir : str or None
+       If specified, cache relevant parts of "htf.npz" file in a local directory of this name
 
     Returns
     -------
@@ -155,7 +158,7 @@ def extract_snapshot(
     snapshot = trajectory[frame]
 
     # Slice out old or new state
-    sliced_snapshot = slice_snapshot(snapshot, project_path, run)
+    sliced_snapshot = slice_snapshot(snapshot, project_path, run, cache_dir)
 
     # Convert to OEMol
     # NOTE: This uses heuristics, and should be replaced once we start storing actual chemical information
@@ -221,10 +224,7 @@ def get_stored_atom_indices(path):
 
 
 def slice_snapshot(
-    snapshot: md.Trajectory,
-    project_path: str,
-    run: int,
-    cache_dir: Optional[str] = None,
+    snapshot: md.Trajectory, project_path: str, run: int, cache_dir: Optional[str],
 ) -> Dict[str, md.Trajectory]:
     """
     Slice snapshot to specified state in-place
@@ -242,7 +242,7 @@ def slice_snapshot(
        Path to project directory (e.g. '/home/server/server2/projects/13422')
     run : int
        Run (e.g. '0')
-    cache_dir : str, optional
+    cache_dir : str or None
        If specified, cache relevant parts of "htf.npz" file in a local directory of this name
 
     Returns
@@ -254,7 +254,6 @@ def slice_snapshot(
 
     # Prepare sliced snapshots
     import mdtraj as md
-    import copy
     import joblib
 
     path = f"{project_path}/RUNS/RUN{run}"
@@ -284,6 +283,7 @@ def save_snapshots(
     works: List[Work],
     frame: int,
     fragment_id: str,
+    cache_dir: Optional[str] = None,
 ) -> None:
 
     """
@@ -301,6 +301,9 @@ def save_snapshots(
        work values extracted from simulation results
     frame : int
     fragment_id : str
+      Fragment ID (e.g. 'x10789')
+    cache_dir : str or None, optional
+       If specified, cache relevant parts of "htf.npz" file in a local directory of this name
 
     Returns
     -------
@@ -317,6 +320,7 @@ def save_snapshots(
         gen=lrw.path.gen,
         frame=frame,
         fragment_id=fragment_id,
+        cache_dir=cache_dir,
     )
 
     # Write protein PDB
