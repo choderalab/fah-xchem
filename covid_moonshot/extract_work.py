@@ -1,5 +1,5 @@
 import pandas as pd
-from .core import Work
+from .core import ResultPath, Work
 
 
 def _is_header_line(line: str) -> bool:
@@ -22,13 +22,13 @@ def _get_num_steps(df: pd.DataFrame) -> int:
     return step.iloc[-1] - step.iloc[0]
 
 
-def extract_work(path: str) -> Work:
+def extract_work(path: ResultPath) -> Work:
 
     NUM_WORKS_EXPECTED = 41
     NUM_STEPS_EXPECTED = 1000000
 
-    header_line_number = _get_last_header_line(path)
-    df = pd.read_csv(path, header=header_line_number)
+    header_line_number = _get_last_header_line(path.path)
+    df = pd.read_csv(path.path, header=header_line_number)
 
     # TODO: explanation for duplicates?
     df.drop_duplicates(inplace=True)
@@ -54,6 +54,7 @@ def extract_work(path: str) -> Work:
     # TODO: magic numbers
     try:
         return Work(
+            path=path,
             forward_work=protocol_work_nodims[20] - protocol_work_nodims[10],
             reverse_work=protocol_work_nodims[40] - protocol_work_nodims[30],
             forward_final_potential=Enew_nodims[20],

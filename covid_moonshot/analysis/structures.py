@@ -10,6 +10,9 @@ Dependencies:
 
 """
 
+from typing import List
+from covid_moonshot.core import Work
+
 DEFAULT_SERVER_ID = "SVR314342810"
 
 
@@ -262,78 +265,26 @@ def slice_snapshot(snapshot, project, run, cache_dir=None):
     return sliced_snapshot
 
 
-def find_lowest_reverse_work(project, run):
-    import glob
-    import re
-    import pandas as pd
+def save_structures_with_least_reverse_work(
+    project, run, works: List[Work], fragment_id="x10789", frame=3
+):
 
-    clone = None
-    gen = None
-    lowest_work_value = 1e6
-    all_results_files = glob.glob(
-        f"/home/server/server2/data/SVR314342810/PROJ13422/RUN{run}/CLO*/res*/*csv"
+    lrw = min(works, key=lambda w: w.reverse_work)
+
+    sliced_snapshots, components = extract_snapshot(
+        project, run, lrw.path.clone, lrw.path.gen, frame, fragment_id=fragment_id
     )
-    for res in all_results_files:
-        with open(res, "rt") as infile:
-            df = pd.read_csv(infile)
-        # Drop duplicates
-        df.drop_duplicates(inplace=True)
-        protocol_work = df["protocol_work"].to_numpy()
-        if len(protocol_work) != 41:
-            break
-        r_work = protocol_work[40] - protocol_work[30]
-        ## get the reverse work
-        if r_work < lowest_work_value:
-            lowest_work_value = r_work
-            match = re.search(
-                "(?P<PROJ>PROJ\d+)/(?P<RUN>RUN\d+)/(?P<CLONE>CLONE\d+)/results(?P<GEN>\d+)/globals.csv$",
-                res,
-            )
-            clone = match.group("CLONE")
-            gen = match.group("GEN")
-    if clone is None or gen is None:
-        return None, None
-    return int(clone[5:]), int(gen)
 
+    # Write protein PDB
+    sliced_snapshots["protein"].save(f"structures/RUN{run}-protein.pdb")
 
-if __name__ == "__main__":
-    # Example:
+    # Write old and new complex PDBs
+    for name in ["old_complex", "new_complex"]:
+        sliced_snapshots[name].save(f"structures/RUN{run}-{name}.pdb")
 
-    # Define the snapshot to be extracted
-    # frame 0 - old after EQ
-    # old -> new NEQ
-    # frame 1 - new after NEQ
-    # new EQ
-    # frame 2 - new after EQ
-    # new -> old NEQ
-    # frame 3 - old after NEQ
-    for run in range(352, 1000):
-        print(f"RUN: {run}")
-        project = 13422
-        fragment_id = "x10789"
-        frame = 3
+    # Write ligand SDFs
+    from openeye import oechem
 
-        clone, gen = find_lowest_reverse_work(project, run)
-        print(clone, gen)
-        if clone is None or gen is None:
-            continue
-
-        # Extract the snapshots
-        # this could be looped over and the ligand positions clustered instead
-        sliced_snapshots, components = extract_snapshot(
-            project, run, clone, gen, frame, fragment_id=fragment_id
-        )
-
-        # Write protein PDB
-        sliced_snapshots["protein"].save(f"structures/RUN{run}-protein.pdb")
-
-        # Write old and new complex PDBs
-        for name in ["old_complex", "new_complex"]:
-            sliced_snapshots[name].save(f"structures/RUN{run}-{name}.pdb")
-
-        # Write ligand SDFs
-        from openeye import oechem
-
-        for name in ["old_ligand", "new_ligand"]:
-            with oechem.oemolostream(f"structures/RUN{run}-{name}.sdf") as ofs:
-                oechem.OEWriteMolecule(ofs, components[name])
+    for name in ["old_ligand", "new_ligand"]:
+        with oechem.oemolostream(f"structures/RUN{run}-{name}.sdf") as ofs:
+            oechem.OEWriteMolecule(ofs, components[name])
