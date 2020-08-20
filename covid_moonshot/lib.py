@@ -26,9 +26,7 @@ def get_result_path(project_data_path, run, clone, gen) -> str:
     )
 
 
-def extract_works(
-    project_data_path: str, run: int, cache_dir: Optional[str]
-) -> List[Work]:
+def extract_works(project_data_path: str, run: int) -> List[Work]:
 
     paths = list_results(project_data_path, run)
 
@@ -37,15 +35,9 @@ def extract_works(
             f"Empty result set for project path '{project_data_path}', run {run}"
         )
 
-    _extract_work = (
-        extract_work
-        if cache_dir is None
-        else joblib.Memory(cachedir=cache_dir).cache(extract_work)
-    )
-
     def try_extract_work(path: ResultPath) -> Optional[Work]:
         try:
-            return _extract_work(path)
+            return extract_work(path)
         except ValueError as e:
             logging.warning("Failed to extract works from '%s': %s", path, e)
             return None
@@ -95,16 +87,12 @@ def analyze_run(
 ) -> RunAnalysis:
 
     try:
-        complex_works = extract_works(
-            complex_project_data_path, run, cache_dir=cache_dir
-        )
+        complex_works = extract_works(complex_project_data_path, run)
     except ValueError as e:
         raise ValueError(f"Failed to extract work values for complex: {e}")
 
     try:
-        solvent_works = extract_works(
-            solvent_project_data_path, run, cache_dir=cache_dir
-        )
+        solvent_works = extract_works(solvent_project_data_path, run)
     except ValueError as e:
         raise ValueError(f"Failed to extract work values for solvent: {e}")
 
@@ -155,8 +143,8 @@ def analyze_runs(
     solvent_project_data_path: str
         root path of the FAH project containing simulations of the solvent
     cache_dir: str, optional
-        if given, cache work values extracted from simulation data in
-        local directory of this name
+        if given, cache intermediate analysis results in local
+        directory of this name
 
     Returns
     -------
