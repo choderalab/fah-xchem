@@ -10,28 +10,29 @@ Dependencies:
 
 """
 
-from typing import List
+from typing import Dict, List, Optional
+import mdtraj as md
 from covid_moonshot.core import Work
 
-DEFAULT_SERVER_ID = "SVR314342810"
 
-
-def load_trajectory(project, run, clone, gen, server_id=DEFAULT_SERVER_ID):
+def load_trajectory(
+    project_path: str, project_data_path: str, run: int, clone: int, gen: int
+) -> md.Trajectory:
     """
     Load the trajectory from the specified PRCG.
 
     Parameters
     ----------
-    project : str or int
-       Project (e.g. '13422')
-    run : str or int
-       Run (e.g. '0')
-    clone : str or int
-       Clone (e.g. '0')
-    gen : str or int
-       Gen (e.g. '0')
-    server_id : str, optional, default='SVR314342810'
-       Server ID
+    project_path : str
+       Path to project directory (e.g. '/home/server/server2/projects/13422')
+    project_data_path : str
+       Path to project data directory (e.g. '/home/server/server2/data/SVR314342810/PROJ13422')
+    run : int
+       Run (e.g. 0)
+    clone : int
+       Clone (e.g. 0)
+    gen : int
+       Gen (e.g. 0)
 
     Returns
     -------
@@ -39,20 +40,21 @@ def load_trajectory(project, run, clone, gen, server_id=DEFAULT_SERVER_ID):
       The trajectory
 
     """
-    import mdtraj as md
 
     # Load trajectory
-    pdbfile_path = (
-        f"/home/server/server2/projects/{project}/RUNS/RUN{run}/hybrid_complex.pdb"
+    pdbfile_path = f"{project_path}/RUNS/RUN{run}/hybrid_complex.pdb"
+
+    # TODO: Reuse path logic from covid_moonshot.lib
+    trajectory_path = (
+        f"{project_data_path}/RUN{run}/CLONE{clone}/results{gen}/positions.xtc"
     )
-    trajectory_path = f"/home/server/server2/data/{server_id}/PROJ{project}/RUN{run}/CLONE{clone}/results{gen}/positions.xtc"
     pdbfile = md.load(pdbfile_path)
     trajectory = md.load(trajectory_path, top=pdbfile.top)
 
     return trajectory
 
 
-def load_fragment(fragment_id):
+def load_fragment(fragment_id: str) -> md.Trajectory:
     """
     Load the reference fragment structure
 
@@ -75,7 +77,7 @@ def load_fragment(fragment_id):
     return fragment
 
 
-def mdtraj_to_oemol(snapshot):
+def mdtraj_to_oemol(snapshot: md.Trajectory):
     """
     Create an OEMol from an MDTraj file by writing and reading
 
@@ -107,15 +109,20 @@ def mdtraj_to_oemol(snapshot):
 
 
 def extract_snapshot(
-    project, run, clone, gen, frame, fragment_id="x10789", server_id=DEFAULT_SERVER_ID
+    project_path: str,
+    run: int,
+    clone: int,
+    gen: int,
+    frame: int,
+    fragment_id: str = "x10789",
 ):
     """
     Extract the specified snapshot, align it to the reference fragment, and write protein and ligands to separate PDB files
 
     Parameters
     ----------
-    project : str or int
-       Project (e.g. '13422')
+    project_path : str
+       Path to project directory (e.g. '/home/server/server2/projects/13422')
     run : str or int
        Run (e.g. '0')
     clone : str or int
@@ -124,8 +131,6 @@ def extract_snapshot(
        Gen (e.g. '0')
     fragment_id : str
       Fragment ID (e.g. 'x10789')
-    server_id : str, optional, default=DEFAULT_SERVER_ID
-      Server ID to use in constructing path to data
 
     Returns
     -------
@@ -136,7 +141,7 @@ def extract_snapshot(
 
     """
     # Load the trajectory
-    trajectory = load_trajectory(project, run, clone, gen, server_id=server_id)
+    trajectory = load_trajectory(project_path, run, clone, gen)
 
     # Load the fragment
     fragment = load_fragment(fragment_id)
@@ -148,7 +153,7 @@ def extract_snapshot(
     snapshot = trajectory[frame]
 
     # Slice out old or new state
-    sliced_snapshot = slice_snapshot(snapshot, project, run)
+    sliced_snapshot = slice_snapshot(snapshot, project_path, run)
 
     # Convert to OEMol
     # NOTE: This uses heuristics, and should be replaced once we start storing actual chemical information
@@ -213,7 +218,12 @@ def get_stored_atom_indices(path):
     return stored_atom_indices
 
 
-def slice_snapshot(snapshot, project, run, cache_dir=None):
+def slice_snapshot(
+    snapshot: md.Trajectory,
+    project_path: str,
+    run: int,
+    cache_dir: Optional[str] = None,
+) -> Dict[str, md.Trajectory]:
     """
     Slice snapshot to specified state in-place
 
@@ -226,11 +236,11 @@ def slice_snapshot(snapshot, project, run, cache_dir=None):
     ----------
     snapshot : mdtraj.Trajectory
        Snapshot to slice
-    project : str or int
-       Project (e.g. '13422')
-    run : str or int
+    project_path : str
+       Path to project directory (e.g. '/home/server/server2/projects/13422')
+    run : int
        Run (e.g. '0')
-    cache_dir : str
+    cache_dir : str, optional
        If specified, cache relevant parts of "htf.npz" file in a local directory of this name
 
     Returns
@@ -245,7 +255,7 @@ def slice_snapshot(snapshot, project, run, cache_dir=None):
     import copy
     import joblib
 
-    path = f"/home/server/server2/projects/{project}/RUNS/RUN{run}"
+    path = f"{project_path}/RUNS/RUN{run}"
 
     _get_stored_atom_indices = (
         get_stored_atom_indices
@@ -267,12 +277,17 @@ def slice_snapshot(snapshot, project, run, cache_dir=None):
 
 def save_structures_with_least_reverse_work(
     project, run, works: List[Work], fragment_id="x10789", frame=3
-):
+) -> None:
 
     lrw = min(works, key=lambda w: w.reverse_work)
 
     sliced_snapshots, components = extract_snapshot(
-        project, run, lrw.path.clone, lrw.path.gen, frame, fragment_id=fragment_id
+        project=project,
+        run=run,
+        clone=lrw.path.clone,
+        gen=lrw.path.gen,
+        frame=frame,
+        fragment_id=fragment_id,
     )
 
     # Write protein PDB

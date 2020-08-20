@@ -19,19 +19,21 @@ from .core import (
 from .extract_work import extract_work
 
 
-def get_result_path(project_path, run, clone, gen) -> str:
+def get_result_path(project_data_path, run, clone, gen) -> str:
     return os.path.join(
-        project_path, f"RUN{run}", f"CLONE{clone}", f"results{gen}", "globals.csv"
+        project_data_path, f"RUN{run}", f"CLONE{clone}", f"results{gen}", "globals.csv"
     )
 
 
-def extract_works(project_path: str, run: int, cache_dir: Optional[str]) -> List[Work]:
+def extract_works(
+    project_data_path: str, run: int, cache_dir: Optional[str]
+) -> List[Work]:
 
-    paths = list_results(project_path, run)
+    paths = list_results(project_data_path, run)
 
     if not paths:
         raise ValueError(
-            f"Empty result set for project path '{project_path}', run {run}"
+            f"Empty result set for project path '{project_data_path}', run {run}"
         )
 
     _extract_work = (
@@ -51,12 +53,12 @@ def extract_works(project_path: str, run: int, cache_dir: Optional[str]) -> List
     return [r for r in results if r is not None]
 
 
-def list_results(project_path: str, run: int) -> List[ResultPath]:
-    glob_pattern = get_result_path(project_path, run, clone="*", gen="*")
+def list_results(project_data_path: str, run: int) -> List[ResultPath]:
+    glob_pattern = get_result_path(project_data_path, run, clone="*", gen="*")
     paths = glob(glob_pattern)
 
     regex = get_result_path(
-        project_path, run, clone=r"(?P<clone>\d+)", gen=r"(?P<gen>\d+)"
+        project_data_path, run, clone=r"(?P<clone>\d+)", gen=r"(?P<gen>\d+)"
     )
 
     def result_path(path: str) -> Optional[ResultPath]:
@@ -85,18 +87,22 @@ def read_run_details(run_details_json_file: str) -> List[RunDetails]:
 
 def analyze_run(
     run: int,
-    complex_project_path: str,
-    solvent_project_path: str,
+    complex_project_data_path: str,
+    solvent_project_data_path: str,
     cache_dir: Optional[str],
 ) -> RunAnalysis:
 
     try:
-        complex_works = extract_works(complex_project_path, run, cache_dir=cache_dir)
+        complex_works = extract_works(
+            complex_project_data_path, run, cache_dir=cache_dir
+        )
     except ValueError as e:
         raise ValueError(f"Failed to extract work values for complex: {e}")
 
     try:
-        solvent_works = extract_works(solvent_project_path, run, cache_dir=cache_dir)
+        solvent_works = extract_works(
+            solvent_project_data_path, run, cache_dir=cache_dir
+        )
     except ValueError as e:
         raise ValueError(f"Failed to extract work values for solvent: {e}")
 
@@ -113,8 +119,8 @@ def _try_process_run(details: RunDetails, **kwargs) -> Optional[Run]:
 
 def analyze_runs(
     run_details_json_file: str,
-    complex_project_path: str,
-    solvent_project_path: str,
+    complex_project_data_path: str,
+    solvent_project_data_path: str,
     cache_dir: Optional[str] = None,
 ) -> List[Run]:
     """
@@ -127,10 +133,10 @@ def analyze_runs(
     run_details_json_file : str
         json file containing run metadata. The file should contain a
         json object with values deserializable to `RunDetails`
-    complex_project_path: str
+    complex_project_data_path: str
         root path of the FAH project containing simulations of the
         complex, e.g. "PROJ13420"
-    solvent_project_path: str
+    solvent_project_data_path: str
         root path of the FAH project containing simulations of the solvent
     cache_dir: str, optional
         if given, cache work values extracted from simulation data in
@@ -147,8 +153,8 @@ def analyze_runs(
 
     try_process_run = functools.partial(
         _try_process_run,
-        complex_project_path=complex_project_path,
-        solvent_project_path=solvent_project_path,
+        complex_project_data_path=complex_project_data_path,
+        solvent_project_data_path=solvent_project_data_path,
         cache_dir=cache_dir,
     )
 
