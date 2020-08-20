@@ -15,7 +15,6 @@ import tempfile
 from typing import Dict, List, Optional
 import joblib
 import mdtraj as md
-from openeye import oechem
 from covid_moonshot.core import Work
 
 
@@ -91,7 +90,7 @@ def load_fragment(fragment_id: str) -> md.Trajectory:
     return fragment
 
 
-def mdtraj_to_oemol(snapshot: md.Trajectory) -> oechem.OEMol:
+def mdtraj_to_oemol(snapshot: md.Trajectory):
     """
     Create an OEMol from an MDTraj file by writing and reading
 
@@ -108,6 +107,8 @@ def mdtraj_to_oemol(snapshot: md.Trajectory) -> oechem.OEMol:
         The OEMol
 
     """
+    from openeye import oechem
+
     with tempfile.TemporaryDirectory() as tmpdir:
         filename = os.path.join(tmpdir, "tmp.pdb")
         # Write the PDB file
