@@ -156,7 +156,61 @@ def extract_snapshot(
     return sliced_snapshot, components
 
 
-def slice_snapshot(snapshot, project, run):
+def get_stored_atom_indices(path):
+    """
+    Load hybrid topology file and return relevant atom indices.
+    """
+
+    import numpy as np
+
+    htf = np.load(f"{path}/htf.npz", allow_pickle=True)["arr_0"].tolist()
+    # Determine mapping between hybrid topology and stored atoms in the positions.xtc
+    # <xtcAtoms v="solute"/> eliminates waters
+    nonwater_atom_indices = htf.hybrid_topology.select("not water")
+    hybrid_to_stored_map = {
+        nonwater_atom_indices[index]: index
+        for index in range(len(nonwater_atom_indices))
+    }
+
+    # Get all atom indices from the hybrid system
+    protein_atom_indices = htf.hybrid_topology.select("protein")
+    hybrid_ligand_atom_indices = htf.hybrid_topology.select("resn MOL")
+    # Identify atom index subsets for the old and new ligands from the hybrid system
+    old_ligand_atom_indices = [
+        index
+        for index in hybrid_ligand_atom_indices
+        if index in htf._old_to_hybrid_map.values()
+    ]
+    new_ligand_atom_indices = [
+        index
+        for index in hybrid_ligand_atom_indices
+        if index in htf._new_to_hybrid_map.values()
+    ]
+
+    # Compute sliced atom indices using atom indices within positions.xtc
+    stored_atom_indices = dict()
+    stored_atom_indices["protein"] = [
+        hybrid_to_stored_map[index] for index in protein_atom_indices
+    ]
+    stored_atom_indices["old_ligand"] = [
+        hybrid_to_stored_map[index] for index in old_ligand_atom_indices
+    ]
+    stored_atom_indices["new_ligand"] = [
+        hybrid_to_stored_map[index] for index in new_ligand_atom_indices
+    ]
+    stored_atom_indices["old_complex"] = [
+        hybrid_to_stored_map[index]
+        for index in list(protein_atom_indices) + list(old_ligand_atom_indices)
+    ]
+    stored_atom_indices["new_complex"] = [
+        hybrid_to_stored_map[index]
+        for index in list(protein_atom_indices) + list(new_ligand_atom_indices)
+    ]
+
+    return stored_atom_indices
+
+
+def slice_snapshot(snapshot, project, run, cache_dir=None):
     """
     Slice snapshot to specified state in-place
 
@@ -173,6 +227,8 @@ def slice_snapshot(snapshot, project, run):
        Project (e.g. '13422')
     run : str or int
        Run (e.g. '0')
+    cache_dir : str
+       If specified, cache relevant parts of "htf.npz" file in a local directory of this name
 
     Returns
     -------
@@ -180,66 +236,21 @@ def slice_snapshot(snapshot, project, run):
       sliced_snapshot[x] where x is one of ['protein', 'old_ligand', 'new_ligand', 'old_complex', 'new_complex']
 
     """
-    # Load hybrid topology file
-    import numpy as np
-    import os
-
-    path = f"/home/server/server2/projects/{project}/RUNS/RUN{run}"
-    if not os.path.exists(f"{path}/extracted_atomids.pi"):
-        htf = np.load(f"{path}/htf.npz", allow_pickle=True)["arr_0"].tolist()
-        # Determine mapping between hybrid topology and stored atoms in the positions.xtc
-        # <xtcAtoms v="solute"/> eliminates waters
-        nonwater_atom_indices = htf.hybrid_topology.select("not water")
-        hybrid_to_stored_map = {
-            nonwater_atom_indices[index]: index
-            for index in range(len(nonwater_atom_indices))
-        }
-
-        # Get all atom indices from the hybrid system
-        protein_atom_indices = htf.hybrid_topology.select("protein")
-        hybrid_ligand_atom_indices = htf.hybrid_topology.select("resn MOL")
-        # Identify atom index subsets for the old and new ligands from the hybrid system
-        old_ligand_atom_indices = [
-            index
-            for index in hybrid_ligand_atom_indices
-            if index in htf._old_to_hybrid_map.values()
-        ]
-        new_ligand_atom_indices = [
-            index
-            for index in hybrid_ligand_atom_indices
-            if index in htf._new_to_hybrid_map.values()
-        ]
-
-        # Compute sliced atom indices using atom indices within positions.xtc
-        stored_atom_indices = dict()
-        stored_atom_indices["protein"] = [
-            hybrid_to_stored_map[index] for index in protein_atom_indices
-        ]
-        stored_atom_indices["old_ligand"] = [
-            hybrid_to_stored_map[index] for index in old_ligand_atom_indices
-        ]
-        stored_atom_indices["new_ligand"] = [
-            hybrid_to_stored_map[index] for index in new_ligand_atom_indices
-        ]
-        stored_atom_indices["old_complex"] = [
-            hybrid_to_stored_map[index]
-            for index in list(protein_atom_indices) + list(old_ligand_atom_indices)
-        ]
-        stored_atom_indices["new_complex"] = [
-            hybrid_to_stored_map[index]
-            for index in list(protein_atom_indices) + list(new_ligand_atom_indices)
-        ]
-
-        import pickle
-
-        with open(f"{path}/extracted_atomids.pi", "wb") as f:
-            pickle.dump(stored_atom_indices, f)
-    else:
-        stored_atom_indices = np.load(f"{path}/extracted_atomids.pi", allow_pickle=True)
 
     # Prepare sliced snapshots
     import mdtraj as md
     import copy
+    import joblib
+
+    path = f"/home/server/server2/projects/{project}/RUNS/RUN{run}"
+
+    _get_stored_atom_indices = (
+        get_stored_atom_indices
+        if cache_dir is None
+        else joblib.Memory(cache_dir=cache_dir).cache(get_stored_atom_indices)
+    )
+
+    stored_atom_indices = _get_stored_atom_indices(path)
 
     sliced_snapshot = dict()
     for key in stored_atom_indices.keys():
