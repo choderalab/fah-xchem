@@ -130,6 +130,7 @@ def extract_snapshot(
        Clone (e.g. '0')
     gen : str or int
        Gen (e.g. '0')
+    frame : int
     fragment_id : str
       Fragment ID (e.g. 'x10789')
 
@@ -281,12 +282,29 @@ def save_snapshots(
     project_data_path: str,
     run: int,
     works: List[Work],
-    fragment_id: str,
     frame: int,
+    fragment_id: str,
 ) -> None:
 
     """
     Saves structure snapshots for the gen and clone with the least reverse work.
+
+    Parameters
+    ----------
+    project_path : str
+       Path to project directory (e.g. '/home/server/server2/projects/13422')
+    project_data_path : str
+       Path to project data directory (e.g. '/home/server/server2/data/SVR314342810/PROJ13422')
+    run : int
+       Run (e.g. '0')
+    works : list of Work
+       work values extracted from simulation results
+    frame : int
+    fragment_id : str
+
+    Returns
+    -------
+    None
     """
 
     lrw = min(works, key=lambda w: w.reverse_work)
