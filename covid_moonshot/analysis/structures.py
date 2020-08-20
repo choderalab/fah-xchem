@@ -28,15 +28,15 @@ def load_trajectory(
     Parameters
     ----------
     project_path : str
-       Path to project directory (e.g. '/home/server/server2/projects/13422')
+        Path to project directory (e.g. '/home/server/server2/projects/13422')
     project_data_path : str
-       Path to project data directory (e.g. '/home/server/server2/data/SVR314342810/PROJ13422')
+        Path to project data directory (e.g. '/home/server/server2/data/SVR314342810/PROJ13422')
     run : int
-       Run (e.g. 0)
+        Run (e.g. 0)
     clone : int
-       Clone (e.g. 0)
+        Clone (e.g. 0)
     gen : int
-       Gen (e.g. 0)
+        Gen (e.g. 0)
 
     Returns
     -------
@@ -76,15 +76,14 @@ def load_fragment(fragment_id: str) -> md.Trajectory:
     Parameters
     ----------
     fragment_id : str
-      Fragment ID (e.g. 'x10789')
+        Fragment ID (e.g. 'x10789')
 
     Returns
     -------
     fragment : mdtraj.Trajectory
-      The fragment structure
+        The fragment structure
 
     """
-    import mdtraj as md
 
     # TODO: Put this in the covid-moonshot path, or generalize to an arbitrary file
     fragment = md.load(f"/home/server/Mpro-{fragment_id}_0_bound-protein-thiolate.pdb")
@@ -101,12 +100,12 @@ def mdtraj_to_oemol(snapshot: md.Trajectory) -> oechem.OEMol:
     Parameters
     ----------
     snapshot : mdtraj.Trajectory
-       MDTraj Trajectory with a single snapshot
+        MDTraj Trajectory with a single snapshot
 
     Returns
     -------
     oemol : openeye.oechem.OEMol
-       The OEMol
+        The OEMol
 
     """
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -298,20 +297,20 @@ def save_snapshots(
     Parameters
     ----------
     project_path : str
-       Path to project directory (e.g. '/home/server/server2/projects/13422')
+        Path to project directory (e.g. '/home/server/server2/projects/13422')
     project_data_path : str
-       Path to project data directory (e.g. '/home/server/server2/data/SVR314342810/PROJ13422')
+        Path to project data directory (e.g. '/home/server/server2/data/SVR314342810/PROJ13422')
     run : int
-       Run (e.g. '0')
+        Run (e.g. '0')
     works : list of Work
-       work values extracted from simulation results
+        Work values extracted from simulation results
     frame : int
     fragment_id : str
-      Fragment ID (e.g. 'x10789')
+        Fragment ID (e.g. 'x10789')
     snapshot_output_path: str
-      Path where snapshots will be written
+        Path where snapshots will be written
     cache_dir : str or None, optional
-       If specified, cache relevant parts of "htf.npz" file in a local directory of this name
+        If specified, cache relevant parts of "htf.npz" file in a local directory of this name
 
     Returns
     -------
