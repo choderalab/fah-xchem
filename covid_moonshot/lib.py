@@ -126,6 +126,7 @@ def analyze_runs(
     complex_project_data_path: str,
     solvent_project_data_path: str,
     cache_dir: Optional[str] = None,
+    num_procs: int = 8
 ) -> List[Run]:
     """
     Run free energy analysis and return input augmented with analysis
@@ -163,7 +164,7 @@ def analyze_runs(
         cache_dir=cache_dir,
     )
 
-    with multiprocessing.Pool() as pool:
+    with multiprocessing.Pool(num_procs) as pool:
         results_iter = pool.imap_unordered(try_process_run, runs)
         results = list(tqdm(results_iter, total=len(runs)))
 
