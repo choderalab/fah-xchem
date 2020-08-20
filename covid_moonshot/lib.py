@@ -192,6 +192,7 @@ def analyze_runs(
         complex_project_path=complex_project_path,
         complex_project_data_path=complex_project_data_path,
         solvent_project_data_path=solvent_project_data_path,
+        snapshot_output_path=snapshot_output_path,
         max_binding_delta_f=max_binding_delta_f,
         cache_dir=cache_dir,
     )
