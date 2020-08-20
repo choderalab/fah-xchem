@@ -10,6 +10,7 @@ Dependencies:
 
 """
 
+import os
 from typing import Dict, List, Optional
 import mdtraj as md
 from covid_moonshot.core import Work
@@ -42,11 +43,15 @@ def load_trajectory(
     """
 
     # Load trajectory
-    pdbfile_path = f"{project_path}/RUNS/RUN{run}/hybrid_complex.pdb"
+    pdbfile_path = os.path.join(project_path, "RUNS", f"RUN{run}", "hybrid_complex.pdb")
 
     # TODO: Reuse path logic from covid_moonshot.lib
-    trajectory_path = (
-        f"{project_data_path}/RUN{run}/CLONE{clone}/results{gen}/positions.xtc"
+    trajectory_path = os.path.join(
+        project_data_path,
+        f"RUN{run}",
+        f"CLONE{clone}",
+        f"results{gen}",
+        "positions.xtc",
     )
     try:
         pdbfile = md.load(pdbfile_path)
@@ -184,7 +189,9 @@ def get_stored_atom_indices(path):
 
     import numpy as np
 
-    htf = np.load(f"{path}/htf.npz", allow_pickle=True)["arr_0"].tolist()
+    htf = np.load(os.path.join(path, "htf.npz"), allow_pickle=True)[
+        "arr_0"
+    ].tolist()
     # Determine mapping between hybrid topology and stored atoms in the positions.xtc
     # <xtcAtoms v="solute"/> eliminates waters
     nonwater_atom_indices = htf.hybrid_topology.select("not water")
@@ -264,7 +271,7 @@ def slice_snapshot(
     import mdtraj as md
     import joblib
 
-    path = f"{project_path}/RUNS/RUN{run}"
+    path = os.path.join(project_path, "RUNS", f"RUN{run}")
 
     _get_stored_atom_indices = (
         get_stored_atom_indices
@@ -332,15 +339,19 @@ def save_snapshots(
     )
 
     # Write protein PDB
-    sliced_snapshots["protein"].save(f"structures/RUN{run}-protein.pdb")
+    sliced_snapshots["protein"].save(
+        os.path.join("structures", f"RUN{run}-protein.pdb")
+    )
 
     # Write old and new complex PDBs
     for name in ["old_complex", "new_complex"]:
-        sliced_snapshots[name].save(f"structures/RUN{run}-{name}.pdb")
+        sliced_snapshots[name].save(os.path.join("structures", f"RUN{run}-{name}.pdb"))
 
     # Write ligand SDFs
     from openeye import oechem
 
     for name in ["old_ligand", "new_ligand"]:
-        with oechem.oemolostream(f"structures/RUN{run}-{name}.sdf") as ofs:
+        with oechem.oemolostream(
+            os.path.join("structures", f"RUN{run}-{name}.sdf")
+        ) as ofs:
             oechem.OEWriteMolecule(ofs, components[name])
