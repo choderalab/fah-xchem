@@ -42,14 +42,14 @@ def extract_works(
         else joblib.Memory(cachedir=cache_dir).cache(extract_work)
     )
 
-    def try_extract_work(path: str) -> Optional[Work]:
+    def try_extract_work(path: ResultPath) -> Optional[Work]:
         try:
             return _extract_work(path)
         except ValueError as e:
             logging.warning("Failed to extract works from '%s': %s", path, e)
             return None
 
-    results = [try_extract_work(p.path) for p in paths]
+    results = [try_extract_work(path) for path in paths]
     return [r for r in results if r is not None]
 
 

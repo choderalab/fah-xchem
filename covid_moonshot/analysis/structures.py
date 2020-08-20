@@ -110,6 +110,7 @@ def mdtraj_to_oemol(snapshot: md.Trajectory):
 
 def extract_snapshot(
     project_path: str,
+    project_data_path: str,
     run: int,
     clone: int,
     gen: int,
@@ -141,7 +142,7 @@ def extract_snapshot(
 
     """
     # Load the trajectory
-    trajectory = load_trajectory(project_path, run, clone, gen)
+    trajectory = load_trajectory(project_path, project_data_path, run, clone, gen)
 
     # Load the fragment
     fragment = load_fragment(fragment_id)
@@ -275,14 +276,24 @@ def slice_snapshot(
     return sliced_snapshot
 
 
-def save_structures_with_least_reverse_work(
-    project, run, works: List[Work], fragment_id="x10789", frame=3
+def save_snapshots(
+    project_path: str,
+    project_data_path: str,
+    run: int,
+    works: List[Work],
+    fragment_id: str,
+    frame: int,
 ) -> None:
+
+    """
+    Saves structure snapshots for the gen and clone with the least reverse work.
+    """
 
     lrw = min(works, key=lambda w: w.reverse_work)
 
     sliced_snapshots, components = extract_snapshot(
-        project=project,
+        project_path=project_path,
+        project_data_path=project_data_path,
         run=run,
         clone=lrw.path.clone,
         gen=lrw.path.gen,
