@@ -189,9 +189,8 @@ def get_stored_atom_indices(path):
 
     import numpy as np
 
-    htf = np.load(os.path.join(path, "htf.npz"), allow_pickle=True)[
-        "arr_0"
-    ].tolist()
+    htf = np.load(os.path.join(path, "htf.npz"), allow_pickle=True)["arr_0"].tolist()
+
     # Determine mapping between hybrid topology and stored atoms in the positions.xtc
     # <xtcAtoms v="solute"/> eliminates waters
     nonwater_atom_indices = htf.hybrid_topology.select("not water")
@@ -203,6 +202,7 @@ def get_stored_atom_indices(path):
     # Get all atom indices from the hybrid system
     protein_atom_indices = htf.hybrid_topology.select("protein")
     hybrid_ligand_atom_indices = htf.hybrid_topology.select("resn MOL")
+
     # Identify atom index subsets for the old and new ligands from the hybrid system
     old_ligand_atom_indices = [
         index
@@ -216,26 +216,23 @@ def get_stored_atom_indices(path):
     ]
 
     # Compute sliced atom indices using atom indices within positions.xtc
-    stored_atom_indices = dict()
-    stored_atom_indices["protein"] = [
-        hybrid_to_stored_map[index] for index in protein_atom_indices
-    ]
-    stored_atom_indices["old_ligand"] = [
-        hybrid_to_stored_map[index] for index in old_ligand_atom_indices
-    ]
-    stored_atom_indices["new_ligand"] = [
-        hybrid_to_stored_map[index] for index in new_ligand_atom_indices
-    ]
-    stored_atom_indices["old_complex"] = [
-        hybrid_to_stored_map[index]
-        for index in list(protein_atom_indices) + list(old_ligand_atom_indices)
-    ]
-    stored_atom_indices["new_complex"] = [
-        hybrid_to_stored_map[index]
-        for index in list(protein_atom_indices) + list(new_ligand_atom_indices)
-    ]
-
-    return stored_atom_indices
+    return {
+        "protein": [hybrid_to_stored_map[index] for index in protein_atom_indices],
+        "old_ligand": [
+            hybrid_to_stored_map[index] for index in old_ligand_atom_indices
+        ],
+        "new_ligand": [
+            hybrid_to_stored_map[index] for index in new_ligand_atom_indices
+        ],
+        "old_complex": [
+            hybrid_to_stored_map[index]
+            for index in list(protein_atom_indices) + list(old_ligand_atom_indices)
+        ],
+        "new_complex": [
+            hybrid_to_stored_map[index]
+            for index in list(protein_atom_indices) + list(new_ligand_atom_indices)
+        ],
+    }
 
 
 def slice_snapshot(
