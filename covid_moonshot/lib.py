@@ -83,7 +83,7 @@ def analyze_run(
     complex_project_path: str,
     complex_project_data_path: str,
     solvent_project_data_path: str,
-    max_binding_delta_f: float,
+    max_binding_delta_f: Optional[float],
     cache_dir: Optional[str],
 ) -> RunAnalysis:
 
@@ -99,7 +99,10 @@ def analyze_run(
 
     analysis = get_run_analysis(complex_works, solvent_works)
 
-    if analysis.binding.delta_f >= max_binding_delta_f:
+    if (
+        max_binding_delta_f is not None
+        and analysis.binding.delta_f >= max_binding_delta_f
+    ):
         logging.warning(
             f"Skipping snapshot for run {run}. "
             f"Binding free energy estimate {analysis.binding.delta_f} "
@@ -135,7 +138,7 @@ def analyze_runs(
     complex_project_path: str,
     complex_project_data_path: str,
     solvent_project_data_path: str,
-    max_binding_delta_f: float,
+    max_binding_delta_f: Optional[float],
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = 8,
 ) -> List[Run]:
@@ -161,9 +164,9 @@ def analyze_runs(
         path to the FAH project data directory containing output data
         from simulations of the solvent,
         e.g. "/home/server/server2/data/SVR314342810/PROJ13423"
-    max_binding_delta_f : float
-        skip storing snapshot if dimensionless binding free energy
-        estimate exceeds this value
+    max_binding_delta_f : float, optional
+        if given, skip storing snapshot if dimensionless binding free
+        energy estimate exceeds this value
     cache_dir : str, optional
         if given, cache intermediate analysis results in local
         directory of this name
