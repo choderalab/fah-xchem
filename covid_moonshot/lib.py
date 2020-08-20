@@ -83,6 +83,7 @@ def analyze_run(
     complex_project_path: str,
     complex_project_data_path: str,
     solvent_project_data_path: str,
+    snapshot_output_path: str,
     max_binding_delta_f: Optional[float],
     cache_dir: Optional[str],
 ) -> RunAnalysis:
@@ -117,6 +118,7 @@ def analyze_run(
                 works=complex_works,
                 frame=3,
                 fragment_id="x10789",
+                snapshot_output_path=snapshot_output_path,
                 cache_dir=cache_dir,
             )
         except ValueError as e:
@@ -138,6 +140,7 @@ def analyze_runs(
     complex_project_path: str,
     complex_project_data_path: str,
     solvent_project_data_path: str,
+    snapshot_output_path: str,
     max_binding_delta_f: Optional[float] = None,
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = 8,
@@ -164,6 +167,8 @@ def analyze_runs(
         path to the FAH project data directory containing output data
         from simulations of the solvent,
         e.g. "/home/server/server2/data/SVR314342810/PROJ13423"
+    snapshot_output_path : str
+        path where snapshots will be written
     max_binding_delta_f : float, optional
         if given, skip storing snapshot if dimensionless binding free
         energy estimate exceeds this value

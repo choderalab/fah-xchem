@@ -288,6 +288,7 @@ def save_snapshots(
     works: List[Work],
     frame: int,
     fragment_id: str,
+    snapshot_output_path: str,
     cache_dir: Optional[str] = None,
 ) -> None:
 
@@ -307,6 +308,8 @@ def save_snapshots(
     frame : int
     fragment_id : str
       Fragment ID (e.g. 'x10789')
+    snapshot_output_path: str
+      Path where snapshots will be written
     cache_dir : str or None, optional
        If specified, cache relevant parts of "htf.npz" file in a local directory of this name
 
@@ -330,18 +333,20 @@ def save_snapshots(
 
     # Write protein PDB
     sliced_snapshots["protein"].save(
-        os.path.join("structures", f"RUN{run}-protein.pdb")
+        os.path.join(snapshot_output_path, f"RUN{run}-protein.pdb")
     )
 
     # Write old and new complex PDBs
     for name in ["old_complex", "new_complex"]:
-        sliced_snapshots[name].save(os.path.join("structures", f"RUN{run}-{name}.pdb"))
+        sliced_snapshots[name].save(
+            os.path.join(snapshot_output_path, f"RUN{run}-{name}.pdb")
+        )
 
     # Write ligand SDFs
     from openeye import oechem
 
     for name in ["old_ligand", "new_ligand"]:
         with oechem.oemolostream(
-            os.path.join("structures", f"RUN{run}-{name}.sdf")
+            os.path.join(snapshot_output_path, f"RUN{run}-{name}.sdf")
         ) as ofs:
             oechem.OEWriteMolecule(ofs, components[name])
