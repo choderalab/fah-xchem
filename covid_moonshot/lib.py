@@ -83,6 +83,7 @@ def analyze_run(
     complex_project_path: str,
     complex_project_data_path: str,
     solvent_project_data_path: str,
+    max_binding_delta_f: float,
     cache_dir: Optional[str],
 ) -> RunAnalysis:
 
@@ -96,20 +97,29 @@ def analyze_run(
     except ValueError as e:
         raise ValueError(f"Failed to extract work values for solvent: {e}")
 
-    try:
-        save_snapshots(
-            project_path=complex_project_path,
-            project_data_path=complex_project_data_path,
-            run=run,
-            works=complex_works,
-            frame=3,
-            fragment_id="x10789",
-            cache_dir=cache_dir,
-        )
-    except ValueError as e:
-        raise ValueError(f"Failed to save structures for complex: {e}")
+    analysis = get_run_analysis(complex_works, solvent_works)
 
-    return get_run_analysis(complex_works, solvent_works)
+    if analysis.binding.delta_f >= max_binding_delta_f:
+        logging.warning(
+            f"Skipping snapshot for run {run}. "
+            f"Binding free energy estimate {analysis.binding.delta_f} "
+            f"exceeds threshold {max_binding_delta_f}."
+        )
+    else:
+        try:
+            save_snapshots(
+                project_path=complex_project_path,
+                project_data_path=complex_project_data_path,
+                run=run,
+                works=complex_works,
+                frame=3,
+                fragment_id="x10789",
+                cache_dir=cache_dir,
+            )
+        except ValueError as e:
+            raise ValueError(f"Failed to save structures for complex: {e}")
+
+    return analysis
 
 
 def _try_process_run(details: RunDetails, **kwargs) -> Optional[Run]:
@@ -125,8 +135,9 @@ def analyze_runs(
     complex_project_path: str,
     complex_project_data_path: str,
     solvent_project_data_path: str,
+    max_binding_delta_f: float,
     cache_dir: Optional[str] = None,
-    num_procs: int = 8
+    num_procs: int = 8,
 ) -> List[Run]:
     """
     Run free energy analysis and return input augmented with analysis
@@ -143,6 +154,8 @@ def analyze_runs(
         complex, e.g. "PROJ13420"
     solvent_project_data_path: str
         root path of the FAH project containing simulations of the solvent
+    max_binding_delta_f: float
+        skip storing snapshot if binding free energy estimate exceeds this value
     cache_dir: str, optional
         if given, cache intermediate analysis results in local
         directory of this name
@@ -161,6 +174,7 @@ def analyze_runs(
         complex_project_path=complex_project_path,
         complex_project_data_path=complex_project_data_path,
         solvent_project_data_path=solvent_project_data_path,
+        max_binding_delta_f=max_binding_delta_f,
         cache_dir=cache_dir,
     )
 
