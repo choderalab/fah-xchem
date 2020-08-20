@@ -19,13 +19,13 @@ from .core import (
 from .extract_work import extract_work
 
 
-def get_result_path(project_path, run, clone, gen):
+def get_result_path(project_path, run, clone, gen) -> str:
     return os.path.join(
         project_path, f"RUN{run}", f"CLONE{clone}", f"results{gen}", "globals.csv"
     )
 
 
-def extract_works(project_path: str, run: int, cache_dir: Optional[str]):
+def extract_works(project_path: str, run: int, cache_dir: Optional[str]) -> List[Work]:
 
     paths = list_results(project_path, run)
 
@@ -77,7 +77,7 @@ def list_results(project_path: str, run: int) -> List[ResultPath]:
     return [r for r in results if r is not None]
 
 
-def read_run_details(run_details_json_file: str):
+def read_run_details(run_details_json_file: str) -> List[RunDetails]:
     with open(run_details_json_file, "r") as f:
         runs = json.load(f)
     return [RunDetails.from_dict(r) for r in runs.values()]

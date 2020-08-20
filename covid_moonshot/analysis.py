@@ -6,7 +6,7 @@ from pymbar.mbar import MBAR
 from .core import Binding, PhaseAnalysis, RunAnalysis, Work
 
 
-def mask_outliers(a: np.array, max_value: float, n_devs: float):
+def mask_outliers(a: np.array, max_value: float, n_devs: float) -> np.array:
     """Returns a boolean array masking values that are more than
     `n_devs` standard deviations from the mean or larger in magnitude
     than `max_value`.
@@ -81,7 +81,7 @@ def get_bar_overlap(works: np.array) -> float:
     return mbar.computeOverlap()["scalar"]
 
 
-def get_phase_analysis(works: List[Work], min_num_work_values=10):
+def get_phase_analysis(works: List[Work], min_num_work_values=10) -> PhaseAnalysis:
 
     ws_all = np.array(
         [(w.forward_work, w.reverse_work) for w in works],

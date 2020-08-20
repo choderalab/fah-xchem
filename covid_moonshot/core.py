@@ -60,7 +60,7 @@ class RunDetails:
     start_title: str
     target: str
 
-    def run_id(self):
+    def run_id(self) -> int:
         return self.JOBID - 1
 
 

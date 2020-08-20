@@ -6,7 +6,7 @@ from .lib import analyze_runs
 
 
 @functools.wraps(analyze_runs)
-def analyze_runs_cli(*args, **kwargs):
+def analyze_runs_cli(*args, **kwargs) -> str:
     results = analyze_runs(*args, **kwargs)
 
     # NOTE: ignore_nan=True encodes NaN as null, ensuring we produce
