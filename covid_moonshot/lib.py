@@ -9,6 +9,7 @@ from typing import List, Optional
 import joblib
 from tqdm.auto import tqdm
 from .analysis import get_run_analysis
+from .analysis.structures import save_snapshots
 from .core import (
     ResultPath,
     Run,
@@ -87,6 +88,7 @@ def read_run_details(run_details_json_file: str) -> List[RunDetails]:
 
 def analyze_run(
     run: int,
+    complex_project_path: str,
     complex_project_data_path: str,
     solvent_project_data_path: str,
     cache_dir: Optional[str],
@@ -106,6 +108,18 @@ def analyze_run(
     except ValueError as e:
         raise ValueError(f"Failed to extract work values for solvent: {e}")
 
+    try:
+        save_snapshots(
+            project_path=complex_project_path,
+            project_data_path=complex_project_data_path,
+            run=run,
+            works=complex_works,
+            fragment_id="x10789",
+            frame=3,
+        )
+    except ValueError as e:
+        raise ValueError(f"Failed to save structures for complex: {e}")
+
     return get_run_analysis(complex_works, solvent_works)
 
 
@@ -119,6 +133,7 @@ def _try_process_run(details: RunDetails, **kwargs) -> Optional[Run]:
 
 def analyze_runs(
     run_details_json_file: str,
+    complex_project_path: str,
     complex_project_data_path: str,
     solvent_project_data_path: str,
     cache_dir: Optional[str] = None,
@@ -153,6 +168,7 @@ def analyze_runs(
 
     try_process_run = functools.partial(
         _try_process_run,
+        complex_project_path=complex_project_path,
         complex_project_data_path=complex_project_data_path,
         solvent_project_data_path=solvent_project_data_path,
         cache_dir=cache_dir,
