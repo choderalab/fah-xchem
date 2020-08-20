@@ -48,8 +48,15 @@ def load_trajectory(
     trajectory_path = (
         f"{project_data_path}/RUN{run}/CLONE{clone}/results{gen}/positions.xtc"
     )
-    pdbfile = md.load(pdbfile_path)
-    trajectory = md.load(trajectory_path, top=pdbfile.top)
+    try:
+        pdbfile = md.load(pdbfile_path)
+    except OSError as e:
+        raise ValueError(f"Failed to load PDB file: {e}")
+
+    try:
+        trajectory = md.load(trajectory_path, top=pdbfile.top)
+    except OSError as e:
+        raise ValueError(f"Failed to load trajectory: {e}")
 
     return trajectory
 
