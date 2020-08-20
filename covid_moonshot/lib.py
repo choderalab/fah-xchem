@@ -137,7 +137,7 @@ def analyze_runs(
     solvent_project_data_path: str,
     max_binding_delta_f: float,
     cache_dir: Optional[str] = None,
-    num_procs: int = 8,
+    num_procs: Optional[int] = 8,
 ) -> List[Run]:
     """
     Run free energy analysis and return input augmented with analysis
@@ -149,16 +149,26 @@ def analyze_runs(
     run_details_json_file : str
         json file containing run metadata. The file should contain a
         json object with values deserializable to `RunDetails`
-    complex_project_data_path: str
-        root path of the FAH project containing simulations of the
-        complex, e.g. "PROJ13420"
-    solvent_project_data_path: str
-        root path of the FAH project containing simulations of the solvent
-    max_binding_delta_f: float
-        skip storing snapshot if binding free energy estimate exceeds this value
-    cache_dir: str, optional
+    complex_project_path : str
+        path to the FAH project directory containing configuration for
+        simulations of the complex,
+        e.g. '/home/server/server2/projects/13422'
+    complex_project_data_path : str
+        path to the FAH project data directory containing output data
+        from simulations of the complex,
+        e.g. "/home/server/server2/data/SVR314342810/PROJ13422"
+    solvent_project_data_path : str
+        path to the FAH project data directory containing output data
+        from simulations of the solvent,
+        e.g. "/home/server/server2/data/SVR314342810/PROJ13423"
+    max_binding_delta_f : float
+        skip storing snapshot if dimensionless binding free energy
+        estimate exceeds this value
+    cache_dir : str, optional
         if given, cache intermediate analysis results in local
         directory of this name
+    num_procs : int, optional
+        number of parallel processes to run
 
     Returns
     -------
