@@ -138,7 +138,7 @@ def analyze_runs(
     complex_project_path: str,
     complex_project_data_path: str,
     solvent_project_data_path: str,
-    max_binding_delta_f: Optional[float],
+    max_binding_delta_f: Optional[float] = None,
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = 8,
 ) -> List[Run]:
