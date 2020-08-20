@@ -270,17 +270,16 @@ def slice_snapshot(
 
     path = os.path.join(project_path, "RUNS", f"RUN{run}")
 
-    _get_stored_atom_indices = (
+    get_stored_atom_indices_cached = (
         get_stored_atom_indices
         if cache_dir is None
         else joblib.Memory(cachedir=cache_dir).cache(get_stored_atom_indices)
     )
 
-    stored_atom_indices = _get_stored_atom_indices(path)
+    stored_atom_indices = get_stored_atom_indices_cached(path)
 
     sliced_snapshot = dict()
-    for key in stored_atom_indices.keys():
-        atom_indices = stored_atom_indices[key]
+    for key, atom_indices in stored_atom_indices.items():
         sliced_snapshot[key] = md.Trajectory(
             snapshot.xyz[:, atom_indices, :], snapshot.topology.subset(atom_indices)
         )
