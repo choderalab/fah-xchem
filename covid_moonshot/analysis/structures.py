@@ -11,8 +11,11 @@ Dependencies:
 """
 
 import os
+import tempfile
 from typing import Dict, List, Optional
+import joblib
 import mdtraj as md
+from openeye import oechem
 from covid_moonshot.core import Work
 
 
@@ -89,7 +92,7 @@ def load_fragment(fragment_id: str) -> md.Trajectory:
     return fragment
 
 
-def mdtraj_to_oemol(snapshot: md.Trajectory):
+def mdtraj_to_oemol(snapshot: md.Trajectory) -> oechem.OEMol:
     """
     Create an OEMol from an MDTraj file by writing and reading
 
@@ -106,10 +109,6 @@ def mdtraj_to_oemol(snapshot: md.Trajectory):
        The OEMol
 
     """
-    from openeye import oechem
-    import tempfile
-    import os
-
     with tempfile.TemporaryDirectory() as tmpdir:
         filename = os.path.join(tmpdir, "tmp.pdb")
         # Write the PDB file
@@ -182,13 +181,14 @@ def extract_snapshot(
     return sliced_snapshot, components
 
 
-def get_stored_atom_indices(path):
+def get_stored_atom_indices(project_path: str, run: int):
     """
     Load hybrid topology file and return relevant atom indices.
     """
 
     import numpy as np
 
+    path = os.path.join(project_path, "RUNS", f"RUN{run}")
     htf = np.load(os.path.join(path, "htf.npz"), allow_pickle=True)["arr_0"].tolist()
 
     # Determine mapping between hybrid topology and stored atoms in the positions.xtc
@@ -264,19 +264,13 @@ def slice_snapshot(
 
     """
 
-    # Prepare sliced snapshots
-    import mdtraj as md
-    import joblib
-
-    path = os.path.join(project_path, "RUNS", f"RUN{run}")
-
     get_stored_atom_indices_cached = (
         get_stored_atom_indices
         if cache_dir is None
         else joblib.Memory(cachedir=cache_dir).cache(get_stored_atom_indices)
     )
 
-    stored_atom_indices = get_stored_atom_indices_cached(path)
+    stored_atom_indices = get_stored_atom_indices_cached(project_path, run)
 
     sliced_snapshot = dict()
     for key, atom_indices in stored_atom_indices.items():
