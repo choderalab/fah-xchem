@@ -159,6 +159,7 @@ def extract_snapshot(
     fragment = load_fragment(fragment_id)
 
     # Align the trajectory to the fragment (in place)
+    trajectory.image_molecules(inplace=True)
     trajectory.superpose(fragment, atom_indices=fragment.top.select("name CA"))
 
     # Extract the snapshot
