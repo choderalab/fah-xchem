@@ -269,7 +269,7 @@ def slice_snapshot(
     _get_stored_atom_indices = (
         get_stored_atom_indices
         if cache_dir is None
-        else joblib.Memory(cache_dir=cache_dir).cache(get_stored_atom_indices)
+        else joblib.Memory(cachedir=cache_dir).cache(get_stored_atom_indices)
     )
 
     stored_atom_indices = _get_stored_atom_indices(path)
