@@ -1,5 +1,5 @@
 import functools
-from typing import List
+from typing import List, Optional
 import numpy as np
 from pymbar import BAR
 from pymbar.mbar import MBAR
