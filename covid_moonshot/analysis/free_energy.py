@@ -81,7 +81,9 @@ def get_bar_overlap(works: np.array) -> float:
     return mbar.computeOverlap()["scalar"]
 
 
-def get_phase_analysis(works: List[Work], min_num_work_values=10) -> PhaseAnalysis:
+def get_phase_analysis(
+    works: List[Work], min_num_work_values: int = 10, work_precision_decimals: int = 3
+) -> PhaseAnalysis:
 
     ws_all = np.array(
         [(w.forward_work, w.reverse_work) for w in works],
@@ -103,5 +105,7 @@ def get_phase_analysis(works: List[Work], min_num_work_values=10) -> PhaseAnalys
         delta_f=delta_f,
         ddelta_f=ddelta_f,
         bar_overlap=bar_overlap,
+        forward_works=ws["forward"].round(work_precision_decimals),
+        reverse_works=ws["reverse"].round(work_precision_decimals),
         num_work_values=len(ws),
     )
