@@ -39,7 +39,7 @@ def extract_works(project_data_path: str, run: int) -> List[Work]:
         try:
             return extract_work(path)
         except ValueError as e:
-            logging.warning("Failed to extract works from '%s': %s", path, e)
+            logging.warning("Failed to extract works from '%s': %s", path.path, e)
             return None
 
     results = [try_extract_work(path) for path in paths]
