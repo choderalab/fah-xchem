@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 from dataclasses_json import dataclass_json
 
 
@@ -26,6 +27,8 @@ class PhaseAnalysis:
     delta_f: float
     ddelta_f: float
     bar_overlap: float
+    forward_works: List[float]
+    reverse_works: List[float]
     num_work_values: int
 
 
