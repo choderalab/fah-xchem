@@ -281,19 +281,24 @@ def slice_snapshot(
     return sliced_snapshot
 
 
-def save_snapshots(
+def save_representative_snapshots(
     project_path: str,
     project_data_path: str,
     run: int,
     works: List[Work],
-    frame: int,
     fragment_id: str,
     snapshot_output_path: str,
     cache_dir: Optional[str] = None,
 ) -> None:
 
     """
-    Saves structure snapshots for the gen and clone with the least reverse work.
+    Generate representative snapshots for old and new ligands.
+
+    Illustration of frames:
+
+    old ---[0]\             /[3]
+               \           /
+    new         \[1]---[2]/
 
     Parameters
     ----------
@@ -305,7 +310,6 @@ def save_snapshots(
         Run (e.g. '0')
     works : list of Work
         Work values extracted from simulation results
-    frame : int
     fragment_id : str
         Fragment ID (e.g. 'x10789')
     snapshot_output_path: str
@@ -317,35 +321,41 @@ def save_snapshots(
     -------
     None
     """
+    for ligand in ['old', 'new']:
+        if ligand == 'old':
+            work = min(works, key=lambda w: w.reverse_work)
+            frame = 3 # TODO: Magic numbers
+        else:
+            work = min(works, key=lambda w: w.forward_work)
+            frame = 1 # TODO: Magic numbers
 
-    lrw = min(works, key=lambda w: w.reverse_work)
+        # Extract representative snapshot
+        sliced_snapshots, components = extract_snapshot(
+            project_path=project_path,
+            project_data_path=project_data_path,
+            run=run,
+            clone=work.path.clone,
+            gen=work.path.gen,
+            frame=frame,
+            fragment_id=fragment_id,
+            cache_dir=cache_dir,
+        )
 
-    sliced_snapshots, components = extract_snapshot(
-        project_path=project_path,
-        project_data_path=project_data_path,
-        run=run,
-        clone=lrw.path.clone,
-        gen=lrw.path.gen,
-        frame=frame,
-        fragment_id=fragment_id,
-        cache_dir=cache_dir,
-    )
+        # Write protein PDB
+        name = f'{ligand}_protein'
+        sliced_snapshots["protein"].save(
+            os.path.join(snapshot_output_path, f"RUN{run}-{name}.pdb")
+        )
 
-    # Write protein PDB
-    sliced_snapshots["protein"].save(
-        os.path.join(snapshot_output_path, f"RUN{run}-protein.pdb")
-    )
-
-    # Write old and new complex PDBs
-    for name in ["old_complex", "new_complex"]:
+        # Write old and new complex PDBs
+        name = f'{ligand}_complex'
         sliced_snapshots[name].save(
             os.path.join(snapshot_output_path, f"RUN{run}-{name}.pdb")
         )
 
-    # Write ligand SDFs
-    from openeye import oechem
-
-    for name in ["old_ligand", "new_ligand"]:
+        # Write ligand SDFs
+        from openeye import oechem
+        name = f'{ligand}_ligand'
         with oechem.oemolostream(
             os.path.join(snapshot_output_path, f"RUN{run}-{name}.sdf")
         ) as ofs:
