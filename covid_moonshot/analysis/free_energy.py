@@ -138,7 +138,7 @@ def get_phase_analysis(
         delta_f=delta_f,
         ddelta_f=ddelta_f,
         bar_overlap=bar_overlap,
-        forward_works=maybe_round(ws["forward"]),
-        reverse_works=maybe_round(ws["reverse"]),
+        forward_works=maybe_round(ws["forward"]).tolist(),
+        reverse_works=maybe_round(ws["reverse"]).tolist(),
         num_work_values=len(ws),
     )
