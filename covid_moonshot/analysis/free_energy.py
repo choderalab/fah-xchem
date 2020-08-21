@@ -82,8 +82,34 @@ def get_bar_overlap(works: np.array) -> float:
 
 
 def get_phase_analysis(
-    works: List[Work], min_num_work_values: int = 10, work_precision_decimals: int = 3
+    works: List[Work],
+    min_num_work_values: Optional[int] = 10,
+    work_precision_decimals: Optional[int] = 3,
 ) -> PhaseAnalysis:
+    """
+    Parameters
+    ----------
+    works : list of Work
+        Work values for all clones and gens in a run/phase
+    min_num_work_values : int or None, optional
+        Minimum number of valid work values required for
+        analysis. Raises ValueError if not satisfied.
+    work_precision_decimals : int or None, optional
+        If given, round returned `forward_works` and `reverse_works`
+        to this number of decimal places
+
+    Returns
+    -------
+    PhaseAnalysis
+        Object containing analysis results for a run/phase
+
+    Raises
+    ------
+    ValueError
+        If `min_num_work_values` is given and the number of valid work
+        values after filtering by `filter_work_values` is less than
+        `min_num_work_values`
+    """
 
     ws_all = np.array(
         [(w.forward_work, w.reverse_work) for w in works],
@@ -92,7 +118,7 @@ def get_phase_analysis(
 
     ws = filter_work_values(ws_all)
 
-    if len(ws) < min_num_work_values:
+    if min_num_work_values is not None and len(ws) < min_num_work_values:
         raise ValueError(
             f"Need at least {min_num_work_values} good work values for analysis, "
             f"but got {len(ws)}"
@@ -101,11 +127,18 @@ def get_phase_analysis(
     delta_f, ddelta_f = BAR(ws["forward"], ws["reverse"])
     bar_overlap = get_bar_overlap(ws)
 
+    def maybe_round(works: np.ndarray) -> np.ndarray:
+        return (
+            works
+            if work_precision_decimals is None
+            else works.round(work_precision_decimals)
+        )
+
     return PhaseAnalysis(
         delta_f=delta_f,
         ddelta_f=ddelta_f,
         bar_overlap=bar_overlap,
-        forward_works=ws["forward"].round(work_precision_decimals),
-        reverse_works=ws["reverse"].round(work_precision_decimals),
+        forward_works=maybe_round(ws["forward"]),
+        reverse_works=maybe_round(ws["reverse"]),
         num_work_values=len(ws),
     )
