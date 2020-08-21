@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import functools
 import simplejson as json
 import logging
@@ -11,7 +12,7 @@ def analyze_runs_cli(*args, **kwargs) -> str:
 
     # NOTE: ignore_nan=True encodes NaN as null, ensuring we produce
     # valid json even if there are NaNs in the output
-    return json.dumps([r.to_dict() for r in results], ignore_nan=True)
+    return json.dumps([asdict(r) for r in results], ignore_nan=True)
 
 
 def main():

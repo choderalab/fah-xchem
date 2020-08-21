@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 from typing import List
-from dataclasses_json import dataclass_json
 
 
-@dataclass_json
 @dataclass
 class ResultPath:
     path: str
@@ -11,7 +9,6 @@ class ResultPath:
     gen: int
 
 
-@dataclass_json
 @dataclass
 class Work:
     path: ResultPath
@@ -21,7 +18,6 @@ class Work:
     reverse_final_potential: float
 
 
-@dataclass_json
 @dataclass
 class PhaseAnalysis:
     delta_f: float
@@ -32,14 +28,12 @@ class PhaseAnalysis:
     num_work_values: int
 
 
-@dataclass_json
 @dataclass
 class Binding:
     delta_f: float
     ddelta_f: float
 
 
-@dataclass_json
 @dataclass
 class RunAnalysis:
     complex_phase: PhaseAnalysis
@@ -47,7 +41,6 @@ class RunAnalysis:
     binding: Binding
 
 
-@dataclass_json
 @dataclass
 class RunDetails:
     JOBID: int
@@ -68,7 +61,6 @@ class RunDetails:
         return self.JOBID - 1
 
 
-@dataclass_json
 @dataclass
 class Run:
     details: RunDetails
