@@ -60,7 +60,7 @@ def _get_num_steps(df: pd.DataFrame) -> int:
     """
     if df.empty:
         raise ValueError("Empty dataframe")
-    step = df["Step"]
+    step = df["Step"].astype(int)
     return step.iloc[-1] - step.iloc[0]
 
 
@@ -77,7 +77,7 @@ def extract_work(path: ResultPath) -> Work:
     -------
     work : Work
         The forward and reverse dimensionless protocol work
-        
+
     """
 
     # TODO: magic numbers
@@ -94,7 +94,7 @@ def extract_work(path: ResultPath) -> Work:
     df = pd.read_csv(path.path, header=header_line_number)
 
     # Drop any dupliates we many encounter (due to aforementioned bug)
-    df.drop_duplicates(inplace=True)
+    df = df.drop_duplicates()
 
     # Extract the thermal energy in openmm units (kJ/mol, but could change)
     kT = df["kT"].astype(float)[0]
