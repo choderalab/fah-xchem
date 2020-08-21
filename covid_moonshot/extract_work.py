@@ -18,7 +18,7 @@ def _get_last_header_line(path: str) -> int:
 def _get_num_steps(df: pd.DataFrame) -> int:
     if df.empty:
         raise ValueError("Empty dataframe")
-    step = df["Step"]
+    step = df["Step"].astype(int)
     return step.iloc[-1] - step.iloc[0]
 
 
@@ -31,7 +31,7 @@ def extract_work(path: ResultPath) -> Work:
     df = pd.read_csv(path.path, header=header_line_number)
 
     # TODO: explanation for duplicates?
-    df.drop_duplicates(inplace=True)
+    df = df.drop_duplicates()
 
     kT = df["kT"].astype(float)[0]
 

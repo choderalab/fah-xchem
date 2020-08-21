@@ -3,10 +3,10 @@ from typing import List
 import numpy as np
 from pymbar import BAR
 from pymbar.mbar import MBAR
-from covid_moonshot.core import PhaseAnalysis, RunAnalysis, Work
+from covid_moonshot.core import PhaseAnalysis, Work
 
 
-def mask_outliers(a: np.array, max_value: float, n_devs: float) -> np.array:
+def mask_outliers(a: np.ndarray, max_value: float, n_devs: float) -> np.ndarray:
     """Returns a boolean array masking values that are more than
     `n_devs` standard deviations from the mean or larger in magnitude
     than `max_value`.
@@ -30,8 +30,8 @@ def mask_outliers(a: np.array, max_value: float, n_devs: float) -> np.array:
 
 
 def filter_work_values(
-    works: np.array, max_work_value: float = 1e4, max_n_devs: float = 5,
-) -> np.array:
+    works: np.ndarray, max_work_value: float = 1e4, max_n_devs: float = 5,
+) -> np.ndarray:
     """Remove pairs of works when either is determined to be an outlier.
 
     Parameters
@@ -57,7 +57,7 @@ def filter_work_values(
     return works[both_good]
 
 
-def get_bar_overlap(works: np.array) -> float:
+def get_bar_overlap(works: np.ndarray) -> float:
     """
     Compute the overlap (should be in [0, 1] where close to 1 is good, close to 0 bad).
 
