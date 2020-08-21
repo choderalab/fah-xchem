@@ -4,19 +4,20 @@ from dataclasses_json import dataclass_json
 
 @dataclass_json
 @dataclass
-class Work:
-    forward_work: float
-    reverse_work: float
-    forward_final_potential: float
-    reverse_final_potential: float
-
-
-@dataclass_json
-@dataclass
 class ResultPath:
     path: str
     clone: int
     gen: int
+
+
+@dataclass_json
+@dataclass
+class Work:
+    path: ResultPath
+    forward_work: float
+    reverse_work: float
+    forward_final_potential: float
+    reverse_final_potential: float
 
 
 @dataclass_json
