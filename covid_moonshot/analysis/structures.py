@@ -138,6 +138,11 @@ def _get_representative_snapshot(traj, cluster_dist=0.5):
     drmsd : float
         standard devation of rmsd in Angstrom
     '''
+    
+    from simtk import unit
+    from scipy.cluster.hierarchy import ward, fcluster
+    from scipy.spatial.distance import pdist
+    
     distances = np.empty((traj.n_frames, traj.n_frames))
     for i in range(traj.n_frames):
         distances[i] = md.rmsd(traj, traj, i)
@@ -194,9 +199,6 @@ def cluster_snaphots(
     """
     import random
     import numpy as np
-    from simtk import unit
-    from scipy.cluster.hierarchy import ward, fcluster
-    from scipy.spatial.distance import pdist
 
     # open n random snaphots for the RUN
     for i in range(0, n_snapshots):
