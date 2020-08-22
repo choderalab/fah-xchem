@@ -118,6 +118,45 @@ def mdtraj_to_oemol(snapshot: md.Trajectory):
             for mol in ifs.GetOEGraphMols():
                 return mol
 
+def _get_representative_snapshot(traj, cluster_dist=0.5):
+    '''
+    Find the structure closest to the centroid of the largest cluster in trajectory
+
+    Parameters
+    ---------
+    traj : md.Trajectory
+        trajectory to cluster with. Clustering will be all-atom
+    cluster_dist : float, default=0.5
+        threshold for clustering (see scipy.cluster.hierarchy.fcluster)
+
+    Returns
+    -------
+    i : int
+        index of best snapshot
+    rmsd : float
+        mean rmsd of trajectory in Angstrom
+    drmsd : float
+        standard devation of rmsd in Angstrom
+    '''
+    distances = np.empty((traj.n_frames, traj.n_frames))
+    for i in range(traj.n_frames):
+        distances[i] = md.rmsd(traj, traj, i)
+    ligand_rmsd = np.mean(distances)*unit.nanometer #this is the ligand to ITSELF in the trajectory, not to the scaffold
+    ligand_drmsd = np.std(distances)*unit.nanometer
+    linkage = ward(pdist(distances))
+    cluster_occupancies = fcluster(linkage, cluster_dist, criterion='distance')
+    n_clusts = max(cluster_occupancies)
+    counts = np.bincount(cluster_occupancies)
+    big_cluster = np.argmax(counts)
+    representative_snapshot = None
+
+    for i, (c, frame) in enumerate(zip(cluster_occupancies, distances)):
+        if c == big_cluster or i == 0:
+            dist_to_centroid = np.mean(frame)
+            if dist_to_centroid < best_distance:
+                best_distance = dist_to_centroid
+                representative_snapshot = i
+    return i, ligand_rmsd. / unit.angstrom , ligand_drmsd / unit.angstrom 
 
 def cluster_snaphots(
     project_path: str,
@@ -125,7 +164,7 @@ def cluster_snaphots(
     run: int,
     frame: int,
     fragment_id: str,
-    n_snapshots: Optional[int],
+    n_snapshots: Optional[int] = 20,
     cache_dir: Optional[str],
 ):
     """
@@ -155,6 +194,7 @@ def cluster_snaphots(
     """
     import random
     import numpy as np
+    from simtk import unit
     from scipy.cluster.hierarchy import ward, fcluster
     from scipy.spatial.distance import pdist
 
@@ -179,46 +219,6 @@ def cluster_snaphots(
 
     # Slice out old or new state
     sliced_snapshot = slice_snapshot(trajectory, project_path, run, cache_dir)
-
-    def _get_representative_snapshot(traj, cluster_dist=0.5):
-        '''
-        Find the structure closest to the centroid of the largest cluster in trajectory
-
-        Parameters
-        ---------
-        traj : md.Trajectory
-            trajectory to cluster with. Clustering will be all-atom
-        cluster_dist : float, default=0.5
-            threshold for clustering (see scipy.cluster.hierarchy.fcluster)
-
-        Returns
-        -------
-        i : int
-            index of best snapshot
-        rmsd : float
-            mean rmsd of trajectory
-        drmsd : float
-            standard devation of rmsd
-        '''
-        distances = np.empty((traj.n_frames, traj.n_frames))
-        for i in range(traj.n_frames):
-            distances[i] = md.rmsd(traj, traj, i)
-        ligand_rmsd = np.mean(distances)*10. #this is the ligand to ITSELF in the trajectory, not to the scaffold
-        ligand_drmsd = np.std(distances)*10.
-        linkage = ward(pdist(distances))
-        cluster_occupancies = fcluster(linkage, cluster_dist, criterion='distance')
-        n_clusts = max(cluster_occupancies)
-        counts = np.bincount(cluster_occupancies)
-        big_cluster = np.argmax(counts)
-        representative_snapshot = None
-        best_distance = 1E6
-        for i, (c, frame) in enumerate(zip(cluster_occupancies, distances)):
-            if c == big_cluster:
-                dist_to_centroid = np.mean(frame)
-                if dist_to_centroid < best_distance:
-                    best_distance = dist_to_centroid
-                    representative_snapshot = i
-        return i, ligand_rmsd, ligand_drmsd
 
     snap_id, ligand_rmsd, ligand_drmsd = _get_representative_snapshot(sliced_snapshot['old_ligand'], cluster_dist=0.5)
     # TODO - get ligand_rmsd and ligand_drmsd into .pdf file via SDFTag
