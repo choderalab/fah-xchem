@@ -9,7 +9,7 @@ from typing import List, Optional
 import joblib
 from tqdm.auto import tqdm
 from .analysis import get_run_analysis
-from .analysis.structures import save_snapshots
+from .analysis.structures import save_representative_snapshots
 from .core import (
     ResultPath,
     Run,
@@ -111,12 +111,11 @@ def analyze_run(
         )
     else:
         try:
-            save_snapshots(
+            save_representative_snapshots(
                 project_path=complex_project_path,
                 project_data_path=complex_project_data_path,
                 run=run,
                 works=complex_works,
-                frame=3,
                 fragment_id="x10789",
                 snapshot_output_path=snapshot_output_path,
                 cache_dir=cache_dir,
