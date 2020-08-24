@@ -51,11 +51,6 @@ def analyze_runs_cli(
         directory of this name
     num_procs : int, optional
         number of parallel processes to run
-
-    Returns
-    -------
-    list of Run
-        run metadata with analysis results for each run
     """
 
     results = analyze_runs(
