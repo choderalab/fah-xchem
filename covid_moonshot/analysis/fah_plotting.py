@@ -63,7 +63,7 @@ def plot_two_work_distribution(f1, r1, f2, r2, phases=(None, None), title=None):
     _produce_plot('title')
 
 
-def plot_relative_distribution(relative_fes, bins=100, title="rel_fe_hist"):
+def plot_relative_distribution(relative_fes, bins=100, title='Relative affinity', filename="rel_fe_hist"):
     """ Plots the distribution of relative free energies
 
     Parameters
@@ -87,7 +87,8 @@ def plot_relative_distribution(relative_fes, bins=100, title="rel_fe_hist"):
         label=f"N={len(relative_fes)}",
     )
     plt.xlabel("Relative free energy to ligand 0 / kcal/mol")
-    _produce_plot(title)
+    plt.title(title)
+    _produce_plot(filename)
 
 
 def plot_convergence(results, n_gens=3, title=None):
@@ -146,8 +147,8 @@ def plot_convergence(results, n_gens=3, title=None):
 
 
 def plot_cumulative_distributions(results, minimum=None, maximum=5, cmap='PiYG', n_bins=100,
-                                  markers=[-2, -1, 0, 1, 2],
-                                  title='Cumulative distribution'):
+                                  markers=[-2, -1, 0, 1, 2], title='Cumulative distribution',
+                                  filename='Cumulative distribution'):
     """Plots cumulative distribution of ligand affinities
 
     Parameters
@@ -193,4 +194,4 @@ def plot_cumulative_distributions(results, minimum=None, maximum=5, cmap='PiYG',
     plt.xlabel('Affinity relative to ligand 0 / '+r'kcal mol$^{-1}$')
     plt.ylabel('Cumulative $N$ ligands')
     plt.title(title)
-    _produce_plot(f"cumulative_{title}")
+    _produce_plot(f"{filename}")
