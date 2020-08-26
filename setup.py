@@ -6,6 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "pandas>=1.1",
+        "dataclasses-json>=0.5",
         "pymbar>=3.0",
         "fire>=0.3",
         "joblib>=0.16",

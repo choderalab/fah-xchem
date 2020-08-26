@@ -67,7 +67,7 @@ def analyze_runs_cli(
     # NOTE: ignore_nan=True encodes NaN as null, ensuring we produce
     # valid json even if there are NaNs in the output
     with open(output, "w") as output_file:
-        json.dump([asdict(r) for r in results], output_file, ignore_nan=True)
+        json.dump([r.to_dict() for r in results], output_file, ignore_nan=True)
 
 
 def main():

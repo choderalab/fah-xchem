@@ -75,7 +75,7 @@ def list_results(project_data_path: str, run: int) -> List[ResultPath]:
 def read_run_details(run_details_json_file: str) -> List[RunDetails]:
     with open(run_details_json_file, "r") as f:
         runs = json.load(f)
-    return [RunDetails(**r) for r in runs.values()]
+    return [RunDetails.from_dict(r) for r in runs.values()]
 
 
 def analyze_run(
