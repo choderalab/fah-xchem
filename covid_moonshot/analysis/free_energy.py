@@ -1,9 +1,10 @@
+from collections import defaultdict
 import functools
 from typing import List, Optional
 import numpy as np
 from pymbar import BAR
 from pymbar.mbar import MBAR
-from covid_moonshot.core import PhaseAnalysis, Work
+from covid_moonshot.core import FreeEnergy, GenAnalysis, PhaseAnalysis, Work
 
 
 def mask_outliers(a: np.ndarray, max_value: float, n_devs: float) -> np.ndarray:
@@ -81,6 +82,43 @@ def get_bar_overlap(works: np.ndarray) -> float:
     return mbar.computeOverlap()["scalar"]
 
 
+def get_free_energy(
+    works: List[Work],
+    min_num_work_values: Optional[int] = 10,
+    work_precision_decimals: Optional[int] = 3,
+) -> FreeEnergy:
+
+    ws_all = np.array(
+        [(w.forward_work, w.reverse_work) for w in works],
+        dtype=[("forward", float), ("reverse", float)],
+    )
+
+    ws = filter_work_values(ws_all)
+
+    if min_num_work_values is not None and len(ws) < min_num_work_values:
+        raise ValueError(
+            f"Need at least {min_num_work_values} good work values for analysis, "
+            f"but got {len(ws)}"
+        )
+
+    delta_f, ddelta_f = BAR(ws["forward"], ws["reverse"])
+    bar_overlap = get_bar_overlap(ws)
+
+    def maybe_round(works: np.ndarray) -> np.ndarray:
+        return (
+            works
+            if work_precision_decimals is None
+            else works.round(work_precision_decimals)
+        )
+
+    return FreeEnergy(
+        delta_f=delta_f,
+        ddelta_f=ddelta_f,
+        bar_overlap=bar_overlap,
+        num_work_values=len(ws),
+    )
+
+
 def get_phase_analysis(
     works: List[Work],
     min_num_work_values: Optional[int] = 10,
@@ -111,34 +149,21 @@ def get_phase_analysis(
         `min_num_work_values`
     """
 
-    ws_all = np.array(
-        [(w.forward_work, w.reverse_work) for w in works],
-        dtype=[("forward", float), ("reverse", float)],
-    )
+    # phase-level result
+    fe = get_free_energy(works, min_num_work_values, work_precision_decimals)
 
-    ws = filter_work_values(ws_all)
+    # gen-level results
+    works_by_gen = defaultdict(list)
+    for work in works:
+        works_by_gen[work.path.gen].append(work)
 
-    if min_num_work_values is not None and len(ws) < min_num_work_values:
-        raise ValueError(
-            f"Need at least {min_num_work_values} good work values for analysis, "
-            f"but got {len(ws)}"
+    gens = [
+        GenAnalysis(
+            fe=get_free_energy(gen_works),
+            forward_works=[w.forward_work for w in gen_works],
+            reverse_works=[w.reverse_work for w in gen_works],
         )
+        for _, gen_works in sorted(works_by_gen.items())
+    ]
 
-    delta_f, ddelta_f = BAR(ws["forward"], ws["reverse"])
-    bar_overlap = get_bar_overlap(ws)
-
-    def maybe_round(works: np.ndarray) -> np.ndarray:
-        return (
-            works
-            if work_precision_decimals is None
-            else works.round(work_precision_decimals)
-        )
-
-    return PhaseAnalysis(
-        delta_f=delta_f,
-        ddelta_f=ddelta_f,
-        bar_overlap=bar_overlap,
-        forward_works=maybe_round(ws["forward"]).tolist(),
-        reverse_works=maybe_round(ws["reverse"]).tolist(),
-        num_work_values=len(ws),
-    )
+    return PhaseAnalysis(fe=fe, gens=gens)

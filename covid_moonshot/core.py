@@ -23,13 +23,26 @@ class Work:
 
 @dataclass_json
 @dataclass
-class PhaseAnalysis:
+class FreeEnergy:
     delta_f: float
     ddelta_f: float
     bar_overlap: float
+    num_work_values: int
+
+
+@dataclass_json
+@dataclass
+class GenAnalysis:
+    fe: FreeEnergy
     forward_works: List[float]
     reverse_works: List[float]
-    num_work_values: int
+
+
+@dataclass_json
+@dataclass
+class PhaseAnalysis:
+    fe: FreeEnergy
+    gens: List[GenAnalysis]
 
 
 @dataclass_json
