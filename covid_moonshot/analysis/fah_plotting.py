@@ -5,19 +5,12 @@ import seaborn as sns
 import numpy as np
 from simtk.openmm import unit
 from openmmtools.constants import kB
+from typing import List
+from ..core import RunAnalysis, Work
 
 temperature_kelvin = 300.0
 temperature = temperature_kelvin * unit.kelvin
 kT = kB * temperature
-
-
-def _produce_plot(name, show_plots=False, plot_file_format="pdf"):
-    if show_plots:
-        plt.show()
-    else:
-        fname = os.extsep.join([name, plot_file_format])
-        logging.info(f"Writing {fname}")
-        plt.savefig(fname)
 
 
 def plot_single_work_distribution(f, r, ax=None, title=None):
@@ -53,12 +46,8 @@ def plot_two_work_distribution(f1, r1, f2, r2, phases=(None, None), title=None):
     ax1.legend()
     ax2.legend()
 
-    _produce_plot("title")
 
-
-def plot_relative_distribution(
-    relative_fes, bins=100, title="Relative affinity", filename="rel_fe_hist"
-):
+def plot_relative_distribution(relative_fes, bins=100, title="Relative affinity"):
     """ Plots the distribution of relative free energies
 
     Parameters
@@ -81,7 +70,6 @@ def plot_relative_distribution(
     )
     plt.xlabel("Relative free energy to ligand 0 / kcal/mol")
     plt.title(title)
-    _produce_plot(filename)
 
 
 def plot_convergence(results, n_gens=3, title=None):
@@ -178,7 +166,6 @@ def plot_convergence(results, n_gens=3, title=None):
         )
         plt.xticks([i for i in range(0, max_gen + 1)])
         plt.legend()
-        _produce_plot(f"fe_convergence_{title}")
 
 
 def plot_cumulative_distributions(
@@ -189,7 +176,6 @@ def plot_cumulative_distributions(
     n_bins=100,
     markers=[-2, -1, 0, 1, 2],
     title="Cumulative distribution",
-    filename="Cumulative distribution",
 ):
     """Plots cumulative distribution of ligand affinities
 
@@ -239,4 +225,39 @@ def plot_cumulative_distributions(
     plt.xlabel("Affinity relative to ligand 0 / " + r"kcal mol$^{-1}$")
     plt.ylabel("Cumulative $N$ ligands")
     plt.title(title)
-    _produce_plot(f"{filename}")
+
+
+def get_plot_filename(path: str, name: str, file_format: str) -> str:
+    return os.path.join(path, os.extsep.join([name, file_format]))
+
+
+def save_run_level_plots(
+    run: int,
+    complex_works: List[Work],
+    solvent_works: List[Work],
+    path: str = os.curdir,
+    file_format: str = "pdf",
+) -> None:
+
+    f1 = [w.forward_work for w in complex_works]
+    r1 = [w.reverse_work for w in complex_works]
+    f2 = [w.forward_work for w in solvent_works]
+    r2 = [w.reverse_work for w in solvent_works]
+    plot_two_work_distribution(f1, r1, f2, r2, phases=("complex", "solvent"))
+    plt.savefig(get_plot_filename(path, f"run{run}", file_format))
+
+
+def save_summary_plots(
+    runs: List[RunAnalysis], path: str = os.curdir, file_format: str = "pdf"
+) -> None:
+    binding_delta_fs = [run.binding.delta_f for run in runs]
+
+    plt.figure()
+    plot_relative_distribution(binding_delta_fs)
+    plt.savefig(get_plot_filename(path, "rel_fe_hist", file_format))
+
+    plt.figure()
+    plot_cumulative_distributions(binding_delta_fs)
+    plt.savefig(os.path.join(path, "cumulative_fe_hist", file_format))
+
+    # TODO plot convergence

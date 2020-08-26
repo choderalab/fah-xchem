@@ -8,6 +8,7 @@ import re
 from typing import List, Optional
 import joblib
 from tqdm.auto import tqdm
+from .analysis.fah_plotting import save_run_level_plots, save_summary_plots
 from .analysis import get_run_analysis
 from .analysis.structures import save_representative_snapshots
 from .core import (
@@ -84,6 +85,7 @@ def analyze_run(
     complex_project_data_path: str,
     solvent_project_data_path: str,
     snapshot_output_path: str,
+    plot_output_path: str,
     max_binding_delta_f: Optional[float],
     cache_dir: Optional[str],
 ) -> RunAnalysis:
@@ -123,6 +125,8 @@ def analyze_run(
         except ValueError as e:
             raise ValueError(f"Failed to save structures for complex: {e}")
 
+    save_run_level_plots(run, complex_works, solvent_works, plot_output_path)
+
     return analysis
 
 
@@ -140,6 +144,7 @@ def analyze_runs(
     complex_project_data_path: str,
     solvent_project_data_path: str,
     snapshot_output_path: str,
+    plot_output_path: str,
     max_binding_delta_f: Optional[float] = None,
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = 8,
@@ -168,6 +173,8 @@ def analyze_runs(
         e.g. "/home/server/server2/data/SVR314342810/PROJ13423"
     snapshot_output_path : str
         path where snapshots will be written
+    plot_output_path : str
+        path where plots will be written
     max_binding_delta_f : float, optional
         if given, skip storing snapshot if dimensionless binding free
         energy estimate exceeds this value
@@ -192,6 +199,7 @@ def analyze_runs(
         complex_project_data_path=complex_project_data_path,
         solvent_project_data_path=solvent_project_data_path,
         snapshot_output_path=snapshot_output_path,
+        plot_output_path=plot_output_path,
         max_binding_delta_f=max_binding_delta_f,
         cache_dir=cache_dir,
     )
@@ -200,10 +208,12 @@ def analyze_runs(
         results_iter = pool.imap_unordered(try_process_run, runs)
         results = list(tqdm(results_iter, total=len(runs)))
 
-    valid = [r for r in results if r is not None]
-    num_failed = len(results) - len(valid)
+    analyses = [r for r in results if r is not None]
+    num_failed = len(results) - len(analyses)
 
     if num_failed > 0:
         logging.warning("Failed to process %d runs out of %d", num_failed, len(results))
 
-    return valid
+    save_summary_plots(analyses, plot_output_path)
+
+    return analyses
