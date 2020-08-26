@@ -75,6 +75,9 @@ def plot_relative_distribution(relative_fes, bins=100, title="rel_fe_hist"):
 
 
     """
+    # first convertt kT to kcal/mol
+    
+    relative_fes = [(x*kT).value_in_unit(unit.kilocalories_per_mole) for x in relative_fes]
     sns.kdeplot(
         relative_fes, shade=True, color="hotpink")
     sns.rugplot(
@@ -163,6 +166,7 @@ def plot_cumulative_distributions(results, minimum=None, maximum=5, cmap='PiYG',
         Title to label plot
 
     """
+    results = [(x*kT).value_in_unit(unit.kilocalories_per_mole) for x in results]
     if minimum is None:
         results = [x for x in results if x < maximum]
     else:
