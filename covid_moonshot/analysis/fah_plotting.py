@@ -8,9 +8,8 @@ from openmmtools.constants import kB
 from typing import List
 from ..core import RunAnalysis, Work
 
-temperature_kelvin = 300.0
-temperature = temperature_kelvin * unit.kelvin
-kT = kB * temperature
+TEMPERATURE = 300.0 * unit.kelvin
+KT = kB * TEMPERATURE
 
 
 def plot_single_work_distribution(f, r, ax=None, title=None):
@@ -59,10 +58,10 @@ def plot_relative_distribution(relative_fes, bins=100, title="Relative affinity"
 
 
     """
-    # first convertt kT to kcal/mol
+    # first convert kT to kcal/mol
 
     relative_fes = [
-        (x * kT).value_in_unit(unit.kilocalories_per_mole) for x in relative_fes
+        (x * KT).value_in_unit(unit.kilocalories_per_mole) for x in relative_fes
     ]
     sns.kdeplot(relative_fes, shade=True, color="hotpink")
     sns.rugplot(
@@ -82,21 +81,21 @@ def plot_convergence(results, n_gens=3, title=None):
                         results[f"solvent_fes_GEN{i}"][0]
                         - results[f"complex_fes_GEN{i}"][0]
                     )
-                    * kT
+                    * KT
                 ).value_in_unit(unit.kilocalories_per_mole)
                 low = (
                     (
                         results[f"solvent_fes_GEN{i}"][1]
                         - results[f"complex_fes_GEN{i}"][2]
                     )
-                    * kT
+                    * KT
                 ).value_in_unit(unit.kilocalories_per_mole)
                 high = (
                     (
                         results[f"solvent_fes_GEN{i}"][2]
                         - results[f"complex_fes_GEN{i}"][1]
                     )
-                    * kT
+                    * KT
                 ).value_in_unit(unit.kilocalories_per_mole)
                 plt.scatter(i, DDG, color="green")
                 plt.vlines(i, low, high, color="green")
@@ -113,17 +112,17 @@ def plot_convergence(results, n_gens=3, title=None):
             for i in range(n_gens):
                 try:
                     y.append(
-                        (results[f"{phase}_fes_GEN{i}"][0] * kT).value_in_unit(
+                        (results[f"{phase}_fes_GEN{i}"][0] * KT).value_in_unit(
                             unit.kilocalories_per_mole
                         )
                     )
                     low.append(
-                        (results[f"{phase}_fes_GEN{i}"][1] * kT).value_in_unit(
+                        (results[f"{phase}_fes_GEN{i}"][1] * KT).value_in_unit(
                             unit.kilocalories_per_mole
                         )
                     )
                     high.append(
-                        (results[f"{phase}_fes_GEN{i}"][2] * kT).value_in_unit(
+                        (results[f"{phase}_fes_GEN{i}"][2] * KT).value_in_unit(
                             unit.kilocalories_per_mole
                         )
                     )
@@ -146,10 +145,10 @@ def plot_convergence(results, n_gens=3, title=None):
         plt.plot(
             [0, max_gen],
             [
-                (results["binding_fe"][0] * kT).value_in_unit(
+                (results["binding_fe"][0] * KT).value_in_unit(
                     unit.kilocalories_per_mole
                 ),
-                (results["binding_fe"][0] * kT).value_in_unit(
+                (results["binding_fe"][0] * KT).value_in_unit(
                     unit.kilocalories_per_mole
                 ),
             ],
@@ -159,8 +158,8 @@ def plot_convergence(results, n_gens=3, title=None):
         )
         plt.fill_between(
             [0, max_gen],
-            (results["binding_fe"][1] * kT).value_in_unit(unit.kilocalories_per_mole),
-            (results["binding_fe"][2] * kT).value_in_unit(unit.kilocalories_per_mole),
+            (results["binding_fe"][1] * KT).value_in_unit(unit.kilocalories_per_mole),
+            (results["binding_fe"][2] * KT).value_in_unit(unit.kilocalories_per_mole),
             alpha=0.2,
             color="green",
         )
@@ -195,7 +194,7 @@ def plot_cumulative_distributions(
         Title to label plot
 
     """
-    results = [(x * kT).value_in_unit(unit.kilocalories_per_mole) for x in results]
+    results = [(x * KT).value_in_unit(unit.kilocalories_per_mole) for x in results]
     if minimum is None:
         results = [x for x in results if x < maximum]
     else:
