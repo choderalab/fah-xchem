@@ -79,42 +79,32 @@ def get_bar_overlap(works: np.ndarray) -> float:
 
     mbar = MBAR(u_kn, N_k)
 
-    return mbar.computeOverlap()["scalar"]
+    return float(mbar.computeOverlap()["scalar"])
 
 
 def get_free_energy(
-    works: List[Work], min_num_work_values: Optional[int] = 10,
-) -> Tuple[FreeEnergy, np.ndarray]:
+    works: np.ndarray, min_num_work_values: Optional[int] = 10
+) -> FreeEnergy:
 
-    ws_all = np.array(
-        [(w.forward_work, w.reverse_work) for w in works],
-        dtype=[("forward", float), ("reverse", float)],
-    )
-
-    ws = filter_work_values(ws_all)
-
-    if min_num_work_values is not None and len(ws) < min_num_work_values:
+    if min_num_work_values is not None and len(works) < min_num_work_values:
         raise ValueError(
             f"Need at least {min_num_work_values} good work values for analysis, "
-            f"but got {len(ws)}"
+            f"but got {len(works)}"
         )
 
-    delta_f, ddelta_f = BAR(ws["forward"], ws["reverse"])
-    bar_overlap = get_bar_overlap(ws)
+    delta_f, ddelta_f = BAR(works["forward"], works["reverse"])
+    bar_overlap = get_bar_overlap(works)
 
-    return (
-        FreeEnergy(
-            delta_f=delta_f,
-            ddelta_f=ddelta_f,
-            bar_overlap=bar_overlap,
-            num_work_values=len(ws),
-        ),
-        ws,
+    return FreeEnergy(
+        delta_f=delta_f,
+        ddelta_f=ddelta_f,
+        bar_overlap=bar_overlap,
+        num_work_values=len(works),
     )
 
 
 def get_gen_analysis(
-    works: List[Work],
+    works: np.ndarray,
     min_num_work_values: Optional[int],
     work_precision_decimals: Optional[int],
 ) -> GenAnalysis:
@@ -125,12 +115,12 @@ def get_gen_analysis(
             else works.round(work_precision_decimals)
         )
 
-    free_energy, ws = get_free_energy(works, min_num_work_values=min_num_work_values)
+    free_energy = get_free_energy(works, min_num_work_values=min_num_work_values)
 
     return GenAnalysis(
         free_energy=free_energy,
-        forward_works=maybe_round(ws["forward"]).tolist(),
-        reverse_works=maybe_round(ws["reverse"]).tolist(),
+        forward_works=maybe_round(works["forward"]).tolist(),
+        reverse_works=maybe_round(works["reverse"]).tolist(),
     )
 
 
@@ -164,20 +154,22 @@ def get_phase_analysis(
         `min_num_work_values`
     """
 
-    # gen-level results
-    works_by_gen = defaultdict(list)
-    for work in works:
-        works_by_gen[work.path.gen].append(work)
+    ws_all = np.array(
+        [(w.path.gen, w.forward_work, w.reverse_work) for w in works],
+        dtype=[("gen", int), ("forward", float), ("reverse", float)],
+    )
+
+    ws = filter_work_values(ws_all)
 
     gens = {
         gen: get_gen_analysis(
-            gen_works,
+            ws[ws["gen"] == gen],
             min_num_work_values=min_num_work_values,
             work_precision_decimals=work_precision_decimals,
         )
-        for gen, gen_works in sorted(works_by_gen.items())
+        for gen in sorted(set(ws["gen"]))
     }
 
-    free_energy, _ = get_free_energy(works, min_num_work_values=min_num_work_values)
+    free_energy = get_free_energy(works, min_num_work_values=min_num_work_values)
 
     return PhaseAnalysis(free_energy=free_energy, gens=gens)
