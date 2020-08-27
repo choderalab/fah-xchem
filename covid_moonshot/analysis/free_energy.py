@@ -211,15 +211,15 @@ def get_phase_analysis(
 
     ws = filter_work_values(ws_all)
 
-    gens = {
+    gens = [
         get_gen_analysis(
             gen=gen,
-            ws[ws["gen"] == gen],
+            works=ws[ws["gen"] == gen],
             min_num_work_values=min_num_work_values,
             work_precision_decimals=work_precision_decimals,
         )
         for gen in sorted(set(ws["gen"]))
-    }
+    ]
 
     free_energy = get_free_energy(ws, min_num_work_values=min_num_work_values)
 
