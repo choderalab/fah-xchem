@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from typing import Optional
 import simplejson as json
 import logging
