@@ -7,47 +7,52 @@ from pymbar.mbar import MBAR
 from covid_moonshot.core import FreeEnergy, GenAnalysis, PhaseAnalysis, Work
 
 
-def mask_outliers(a: np.ndarray, max_value: float, n_devs: float) -> np.ndarray:
+def mask_outliers(a: np.ndarray, max_value: float, max_n_devs: float) -> np.ndarray:
     """Returns a boolean array masking values that are more than
     `n_devs` standard deviations from the mean or larger in magnitude
     than `max_value`.
 
     Parameters
     ----------
-    a : array
+    a : array_like
     max_value : float
-        Values larger (in magnitude) than this will be discarded
-    n_devs : float
-        Values farther than this number of standard deviations from
-        the mean will be discarded
+        Remove values with magnitudes greater than this
+    max_n_devs : float
+        Remove values farther than this number of standard deviations
+        from the mean
 
     Returns
     -------
-    array of bool
+    ndarray of bool
         Boolean array of same shape as `a`, with False elements
         marking outliers in `a` and all other elements True.
     """
-    return (np.abs(a) < max_value) & (np.abs(a - np.mean(a)) < n_devs * np.std(a))
+    return (np.abs(a) < max_value) & (np.abs(a - np.mean(a)) < max_n_devs * np.std(a))
 
 
 def filter_work_values(
-    works: np.ndarray, max_work_value: float = 1e4, max_n_devs: float = 5,
+    works: np.ndarray, max_value: float = 1e4, max_n_devs: float = 5,
 ) -> np.ndarray:
     """Remove pairs of works when either is determined to be an outlier.
 
     Parameters
     ----------
-    works: array
-        1-d structured array with names "forward" and "reverse"
+    works : ndarray
+        Array of records containing fields "forward" and "reverse"
+    max_value : float
+        Remove work values with magnitudes greater than this
+    max_n_devs : float
+        Remove work values farther than this number of standard
+        deviations from the mean
 
     Returns
     -------
-    array
-        filtered works
+    ndarray
+        Filtered works
     """
 
     mask_work_outliers = functools.partial(
-        mask_outliers, max_value=max_work_value, n_devs=max_n_devs
+        mask_outliers, max_value=max_value, max_n_devs=max_n_devs
     )
 
     f_good = mask_work_outliers(works["forward"])
@@ -64,8 +69,8 @@ def get_bar_overlap(works: np.ndarray) -> float:
 
     Parameters
     ----------
-    works: array
-        1-d structured array with names "forward" and "reverse"
+    works : ndarray
+        Array of records containing fields "forward" and "reverse"
 
     Returns
     -------
@@ -85,6 +90,26 @@ def get_bar_overlap(works: np.ndarray) -> float:
 def get_free_energy(
     works: np.ndarray, min_num_work_values: Optional[int] = 10
 ) -> FreeEnergy:
+    """
+    Parameters
+    ----------
+    works : ndarray
+        Array of records containing fields "forward" and "reverse"
+    min_num_work_values : int or None, optional
+        Minimum number of valid work values required for
+        analysis. Raises ValueError if not satisfied.
+
+    Returns
+    -------
+    FreeEnergy
+        Results of free energy compuation
+
+    Raises
+    ------
+    ValueError
+        If `min_num_work_values` is given and the number of work
+        values is less than this.
+    """
 
     if min_num_work_values is not None and len(works) < min_num_work_values:
         raise ValueError(
@@ -108,6 +133,30 @@ def get_gen_analysis(
     min_num_work_values: Optional[int],
     work_precision_decimals: Optional[int],
 ) -> GenAnalysis:
+    """
+    Parameters
+    ----------
+    works : list of Work
+        Work values for all clones and a run/phase/gen
+    min_num_work_values : int or None, optional
+        Minimum number of valid work values required for
+        analysis. Raises ValueError if not satisfied.
+    work_precision_decimals : int or None, optional
+        If given, round returned `forward_works` and `reverse_works`
+        to this number of decimal places
+
+    Returns
+    -------
+    GenAnalysis
+        Results of free energy computations for a run/phase/gen
+
+    Raises
+    ------
+    ValueError
+        If `min_num_work_values` is given and the number of work
+        values is less than this.
+    """
+
     def maybe_round(works: np.ndarray) -> np.ndarray:
         return (
             works
@@ -144,14 +193,13 @@ def get_phase_analysis(
     Returns
     -------
     PhaseAnalysis
-        Object containing analysis results for a run/phase
+        Results of free energy computations for a run/phase
 
     Raises
     ------
     ValueError
         If `min_num_work_values` is given and the number of valid work
-        values after filtering by `filter_work_values` is less than
-        `min_num_work_values`
+        values after filtering is less than this.
     """
 
     ws_all = np.array(
