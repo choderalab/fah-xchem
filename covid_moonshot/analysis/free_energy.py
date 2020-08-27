@@ -213,7 +213,7 @@ def get_phase_analysis(
 
     gens = [
         get_gen_analysis(
-            gen=gen.item(),
+            gen=int(gen),
             works=ws[ws["gen"] == gen],
             min_num_work_values=min_num_work_values,
             work_precision_decimals=work_precision_decimals,
