@@ -1,6 +1,6 @@
 from collections import defaultdict
 import functools
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import numpy as np
 from pymbar import BAR
 from pymbar.mbar import MBAR
@@ -86,7 +86,7 @@ def get_free_energy(
     works: List[Work],
     min_num_work_values: Optional[int] = 10,
     work_precision_decimals: Optional[int] = 3,
-) -> FreeEnergy:
+) -> Tuple[FreeEnergy, np.ndarray]:
 
     ws_all = np.array(
         [(w.forward_work, w.reverse_work) for w in works],
@@ -104,6 +104,22 @@ def get_free_energy(
     delta_f, ddelta_f = BAR(ws["forward"], ws["reverse"])
     bar_overlap = get_bar_overlap(ws)
 
+    return (
+        FreeEnergy(
+            delta_f=delta_f,
+            ddelta_f=ddelta_f,
+            bar_overlap=bar_overlap,
+            num_work_values=len(ws),
+        ),
+        ws,
+    )
+
+
+def get_gen_analysis(
+    works: List[Work],
+    min_num_work_values: Optional[int],
+    work_precision_decimals: Optional[int],
+) -> GenAnalysis:
     def maybe_round(works: np.ndarray) -> np.ndarray:
         return (
             works
@@ -111,11 +127,16 @@ def get_free_energy(
             else works.round(work_precision_decimals)
         )
 
-    return FreeEnergy(
-        delta_f=delta_f,
-        ddelta_f=ddelta_f,
-        bar_overlap=bar_overlap,
-        num_work_values=len(ws),
+    free_energy, ws = get_free_energy(
+        works,
+        min_num_work_values=min_num_work_values,
+        work_precision_decimals=work_precision_decimals,
+    )
+
+    return GenAnalysis(
+        free_energy=free_energy,
+        forward_works=maybe_round(ws["forward"]).tolist(),
+        reverse_works=maybe_round(ws["reverse"]).tolist(),
     )
 
 
@@ -154,24 +175,19 @@ def get_phase_analysis(
     for work in works:
         works_by_gen[work.path.gen].append(work)
 
-    gens = [
-        GenAnalysis(
-            free_energy=get_free_energy(
-                gen_works,
-                min_num_work_values=min_num_work_values,
-                work_precision_decimals=work_precision_decimals,
-            ),
-            forward_works=[w.forward_work for w in gen_works],
-            reverse_works=[w.reverse_work for w in gen_works],
-        )
-        for _, gen_works in sorted(works_by_gen.items())
-    ]
-
-    return PhaseAnalysis(
-        free_energy=get_free_energy(
-            works,
+    gens = {
+        gen: get_gen_analysis(
+            gen_works,
             min_num_work_values=min_num_work_values,
             work_precision_decimals=work_precision_decimals,
-        ),
-        gens=gens,
+        )
+        for gen, gen_works in sorted(works_by_gen.items())
+    }
+
+    free_energy, _ = get_free_energy(
+        works,
+        min_num_work_values=min_num_work_values,
+        work_precision_decimals=work_precision_decimals,
     )
+
+    return PhaseAnalysis(free_energy=free_energy, gens=gens)

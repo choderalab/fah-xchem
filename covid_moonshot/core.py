@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import Dict, List
 from dataclasses_json import dataclass_json
 
 
@@ -42,7 +42,7 @@ class GenAnalysis:
 @dataclass
 class PhaseAnalysis:
     free_energy: FreeEnergy
-    gens: List[GenAnalysis]
+    gens: Dict[int, GenAnalysis]
 
 
 @dataclass_json
