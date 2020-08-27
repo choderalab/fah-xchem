@@ -83,9 +83,7 @@ def get_bar_overlap(works: np.ndarray) -> float:
 
 
 def get_free_energy(
-    works: List[Work],
-    min_num_work_values: Optional[int] = 10,
-    work_precision_decimals: Optional[int] = 3,
+    works: List[Work], min_num_work_values: Optional[int] = 10,
 ) -> Tuple[FreeEnergy, np.ndarray]:
 
     ws_all = np.array(
@@ -127,11 +125,7 @@ def get_gen_analysis(
             else works.round(work_precision_decimals)
         )
 
-    free_energy, ws = get_free_energy(
-        works,
-        min_num_work_values=min_num_work_values,
-        work_precision_decimals=work_precision_decimals,
-    )
+    free_energy, ws = get_free_energy(works, min_num_work_values=min_num_work_values)
 
     return GenAnalysis(
         free_energy=free_energy,
@@ -184,10 +178,6 @@ def get_phase_analysis(
         for gen, gen_works in sorted(works_by_gen.items())
     }
 
-    free_energy, _ = get_free_energy(
-        works,
-        min_num_work_values=min_num_work_values,
-        work_precision_decimals=work_precision_decimals,
-    )
+    free_energy, _ = get_free_energy(works, min_num_work_values=min_num_work_values)
 
     return PhaseAnalysis(free_energy=free_energy, gens=gens)
