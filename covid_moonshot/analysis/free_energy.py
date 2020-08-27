@@ -170,6 +170,6 @@ def get_phase_analysis(
         for gen in sorted(set(ws["gen"]))
     }
 
-    free_energy = get_free_energy(works, min_num_work_values=min_num_work_values)
+    free_energy = get_free_energy(ws, min_num_work_values=min_num_work_values)
 
     return PhaseAnalysis(free_energy=free_energy, gens=gens)
