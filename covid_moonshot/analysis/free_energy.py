@@ -149,9 +149,6 @@ def get_phase_analysis(
         `min_num_work_values`
     """
 
-    # phase-level result
-    fe = get_free_energy(works, min_num_work_values, work_precision_decimals)
-
     # gen-level results
     works_by_gen = defaultdict(list)
     for work in works:
@@ -159,11 +156,22 @@ def get_phase_analysis(
 
     gens = [
         GenAnalysis(
-            fe=get_free_energy(gen_works),
+            free_energy=get_free_energy(
+                gen_works,
+                min_num_work_values=min_num_work_values,
+                work_precision_decimals=work_precision_decimals,
+            ),
             forward_works=[w.forward_work for w in gen_works],
             reverse_works=[w.reverse_work for w in gen_works],
         )
         for _, gen_works in sorted(works_by_gen.items())
     ]
 
-    return PhaseAnalysis(fe=fe, gens=gens)
+    return PhaseAnalysis(
+        free_energy=get_free_energy(
+            works,
+            min_num_work_values=min_num_work_values,
+            work_precision_decimals=work_precision_decimals,
+        ),
+        gens=gens,
+    )

@@ -33,7 +33,7 @@ class FreeEnergy:
 @dataclass_json
 @dataclass
 class GenAnalysis:
-    fe: FreeEnergy
+    free_energy: FreeEnergy
     forward_works: List[float]
     reverse_works: List[float]
 
@@ -41,7 +41,7 @@ class GenAnalysis:
 @dataclass_json
 @dataclass
 class PhaseAnalysis:
-    fe: FreeEnergy
+    free_energy: FreeEnergy
     gens: List[GenAnalysis]
 
 

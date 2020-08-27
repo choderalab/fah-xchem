@@ -18,8 +18,8 @@ def get_run_analysis(
         raise ValueError(f"Failed to analyze solvent: {e}")
 
     binding = Binding(
-        delta_f=solvent_phase.fe.delta_f - complex_phase.fe.delta_f,
-        ddelta_f=(complex_phase.fe.ddelta_f ** 2 + solvent_phase.fe.ddelta_f ** 2)
+        delta_f=solvent_phase.free_energy.delta_f - complex_phase.free_energy.delta_f,
+        ddelta_f=(complex_phase.free_energy.ddelta_f ** 2 + solvent_phase.free_energy.ddelta_f ** 2)
         ** 0.5,
     )
 
