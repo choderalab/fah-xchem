@@ -152,30 +152,30 @@ def analyze_runs(
     Parameters
     ----------
     run_details_json_file : str
-        json file containing run metadata. The file should contain a
-        json object with values deserializable to `RunDetails`
+        JSON file containing run metadata. The file should contain a
+        JSON object with values deserializable to `RunDetails`
     complex_project_path : str
-        path to the FAH project directory containing configuration for
+        Path to the FAH project directory containing configuration for
         simulations of the complex,
         e.g. '/home/server/server2/projects/13422'
     complex_project_data_path : str
-        path to the FAH project data directory containing output data
+        Path to the FAH project data directory containing output data
         from simulations of the complex,
         e.g. "/home/server/server2/data/SVR314342810/PROJ13422"
     solvent_project_data_path : str
-        path to the FAH project data directory containing output data
+        Path to the FAH project data directory containing output data
         from simulations of the solvent,
         e.g. "/home/server/server2/data/SVR314342810/PROJ13423"
     snapshot_output_path : str
-        path where snapshots will be written
+        Path where snapshots will be written
     max_binding_delta_f : float, optional
-        if given, skip storing snapshot if dimensionless binding free
+        If given, skip storing snapshot if dimensionless binding free
         energy estimate exceeds this value
     cache_dir : str, optional
-        if given, cache intermediate analysis results in local
+        If given, cache intermediate analysis results in local
         directory of this name
     num_procs : int, optional
-        number of parallel processes to run
+        Number of parallel processes to run
 
     Returns
     -------
