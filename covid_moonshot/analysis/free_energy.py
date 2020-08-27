@@ -129,6 +129,7 @@ def get_free_energy(
 
 
 def get_gen_analysis(
+    gen: int,
     works: np.ndarray,
     min_num_work_values: Optional[int],
     work_precision_decimals: Optional[int],
@@ -167,6 +168,7 @@ def get_gen_analysis(
     free_energy = get_free_energy(works, min_num_work_values=min_num_work_values)
 
     return GenAnalysis(
+        gen=gen,
         free_energy=free_energy,
         forward_works=maybe_round(works["forward"]).tolist(),
         reverse_works=maybe_round(works["reverse"]).tolist(),
@@ -210,7 +212,8 @@ def get_phase_analysis(
     ws = filter_work_values(ws_all)
 
     gens = {
-        gen: get_gen_analysis(
+        get_gen_analysis(
+            gen=gen,
             ws[ws["gen"] == gen],
             min_num_work_values=min_num_work_values,
             work_precision_decimals=work_precision_decimals,
