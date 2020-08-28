@@ -282,6 +282,25 @@ def plot_cumulative_distributions(
 
 @contextmanager
 def save_plot(path: str, name: str, file_format: str):
+    """
+    Context manager that creates a new figure on entry and saves the
+    figure using the specified name, format, and path on exit.
+
+    Parameters
+    ----------
+    path : str
+        Path prefix to use in constructing the result path
+    name : str
+        Basename to use in constructing the result path
+    file_format : str
+        File extension of the result. Must be accepted by ``plt.savefig``
+
+    Examples
+    --------
+    >>> with save_plot('example/plots', 'test_plot', 'png'):
+    >>>     plt.plot(np.cos(np.linspace(-np.pi, np.pi)))
+    >>>     plt.title("My cool plot")
+    """
     plt.figure()
     try:
         yield
