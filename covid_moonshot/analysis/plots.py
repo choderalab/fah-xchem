@@ -108,7 +108,7 @@ def plot_relative_distribution(
     x = np.array(relative_delta_fs)
     valid_relative_delta_fs = x[(min_bound <= x) & (x <= max_bound)]
 
-    valid_relative_delta_fs_kC = (np.array(valid_relative_delta_fs) * KT).value_in_unit(
+    valid_relative_delta_fs_kC = (valid_relative_delta_fs * KT).value_in_unit(
         unit.kilocalories_per_mole
     )
 
