@@ -14,6 +14,7 @@ def mask_outliers(a: np.ndarray, max_value: float, max_n_devs: float) -> np.ndar
     Parameters
     ----------
     a : array_like
+        Input array
     max_value : float
         Remove values with magnitudes greater than this
     max_n_devs : float
@@ -22,9 +23,11 @@ def mask_outliers(a: np.ndarray, max_value: float, max_n_devs: float) -> np.ndar
 
     Returns
     -------
-    ndarray of bool
-        Boolean array of same shape as `a`, with False elements
-        marking outliers in `a` and all other elements True.
+    out : ndarray of bool
+        Boolean array of same shape as the input array `a`, with
+        `False` elements marking outliers in `a` and all other
+        elements `True`.
+        ``out.shape == a.shape``
     """
     return (np.abs(a) < max_value) & (np.abs(a - np.mean(a)) < max_n_devs * np.std(a))
 
@@ -46,8 +49,9 @@ def filter_work_values(
 
     Returns
     -------
-    ndarray
-        Filtered works
+    out : ndarray
+        1-D array of filtered works.
+        ``out.shape == (works.size, 1)``
     """
 
     mask_work_outliers = functools.partial(
@@ -68,8 +72,8 @@ def get_bar_overlap(works: np.ndarray) -> float:
 
     Parameters
     ----------
-    works : ndarray
-        Array of records containing fields "forward" and "reverse"
+    works : (N,) ndarray
+        1-D array of records containing fields "forward" and "reverse"
 
     Returns
     -------
@@ -92,8 +96,9 @@ def get_free_energy(
     """
     Parameters
     ----------
-    works : ndarray
-        Array of records containing fields "forward" and "reverse"
+    works : (N,) ndarray
+        1-D array of records containing fields "forward" and "reverse"
+        representing forward and reverse works, respectively
     min_num_work_values : int or None, optional
         Minimum number of valid work values required for
         analysis. Raises ValueError if not satisfied.
