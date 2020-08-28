@@ -364,7 +364,7 @@ def save_summary_plots(
     plt.figure()
     plot_relative_distribution(binding_delta_fs)
     plt.title("Relative affinity")
-    plt.savefig(get_plot_filename(path, "rel_fe_hist", file_format))
+    plt.savefig(get_plot_filename(path, "relative_fe_hist", file_format))
 
     plt.figure()
     plot_cumulative_distributions(binding_delta_fs)
