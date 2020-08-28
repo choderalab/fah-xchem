@@ -104,14 +104,13 @@ def plot_relative_distribution(
     min_bound, max_bound : float
         Omit values less than `min_bound` or greater than `max_bound`
     """
-    relative_delta_fs_kC = [
-        (delta_f * KT).value_in_unit(unit.kilocalories_per_mole)
-        for delta_f in relative_delta_fs
-    ]
 
-    valid_relative_delta_fs_kC = [
-        delta_f for delta_f in relative_delta_fs_kC if min_bound <= delta_f <= max_bound
-    ]
+    x = np.array(relative_delta_fs)
+    valid_relative_delta_fs = x[(min_bound <= x) & (x <= max_bound)]
+
+    valid_relative_delta_fs_kC = (np.array(valid_relative_delta_fs) * KT).value_in_unit(
+        unit.kilocalories_per_mole
+    )
 
     sns.distplot(
         valid_relative_delta_fs_kC,
@@ -175,14 +174,12 @@ def plot_convergence(
         ("complex", (complex_delta_fs, complex_delta_f_errs), "red"),
     ]:
 
-        delta_fs_kC = [
-            (delta_f * KT).value_in_unit(unit.kilocalories_per_mole)
-            for delta_f in delta_fs
-        ]
-        delta_f_errs_kC = [
-            (delta_f_err * KT).value_in_unit(unit.kilocalories_per_mole)
-            for delta_f_err in delta_f_errs
-        ]
+        delta_fs_kC = (np.array(delta_fs) * KT).value_in_unit(
+            unit.kilocalories_per_mole
+        )
+        delta_f_errs_kC = (np.array(delta_f_errs) * KT).value_in_unit(
+            unit.kilocalories_per_mole
+        )
 
         shift = np.mean(delta_fs_kC)
         y = delta_fs_kC - shift
@@ -247,9 +244,9 @@ def plot_cumulative_distributions(
         Affinity values at which to label
 
     """
-    affinities_kC = [
-        (x * KT).value_in_unit(unit.kilocalories_per_mole) for x in affinities
-    ]
+    affinities_kC = (np.array(affinities) * KT).value_in_unit(
+        unit.kilocalories_per_mole
+    )
 
     if minimum is None:
         affinities_kC = [x for x in affinities if x < maximum]
