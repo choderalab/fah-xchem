@@ -214,12 +214,12 @@ def analyze_runs(
         results_iter = pool.imap_unordered(try_process_run, runs)
         results = list(tqdm(results_iter, total=len(runs)))
 
-    analyses = [r for r in results if r is not None]
-    num_failed = len(results) - len(analyses)
+    runs_output = [r for r in results if r is not None]
+    num_failed = len(results) - len(runs_output)
 
     if num_failed > 0:
         logging.warning("Failed to process %d runs out of %d", num_failed, len(results))
 
-    save_summary_plots(analyses, plot_output_path)
+    save_summary_plots([run.analysis for run in runs_output], plot_output_path)
 
-    return analyses
+    return runs_output
