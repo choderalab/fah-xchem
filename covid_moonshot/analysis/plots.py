@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from functools import partial
 import os
 import logging
 import seaborn as sns
@@ -29,22 +30,26 @@ def plot_work_distribution(
        Reverse work values
     """
 
-    sns.kdeplot(forward_works, shade=True, color="cornflowerblue", ax=ax)
-    sns.rugplot(
-        forward_works,
-        color="cornflowerblue",
-        alpha=0.5,
-        label=f"forward : N={len(forward_works)}",
+    distplot = partial(
+        sns.distplot,
+        hist=False,
+        kde=True,
+        rug=True,
         ax=ax,
+        kde_kws=dict(shade=True),
+        rug_kws=dict(alpha=0.5),
     )
 
-    sns.kdeplot([-x for x in reverse_works], shade=True, color="hotpink", ax=ax)
-    sns.rugplot(
-        [-x for x in reverse_works],
+    distplot(
+        forward_works,
+        color="cornflowerblue",
+        label=f"forward : N={len(forward_works)}",
+    )
+
+    distplot(
+        -np.array(reverse_works),
         color="hotpink",
-        alpha=0.5,
         label=f"reverse : N={len(reverse_works)}",
-        ax=ax,
     )
 
 
