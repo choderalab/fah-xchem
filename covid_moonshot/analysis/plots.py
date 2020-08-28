@@ -91,6 +91,16 @@ def plot_work_distributions(
     return fig
 
 
+def _filter_inclusive(
+    x: np.ndarray, min_value: Optional[float] = None, max_value: Optional[float] = None
+) -> np.ndarray:
+    if min_value is not None:
+        x = x[x >= min_value]
+    if max_value is not None:
+        x = x[x <= max_value]
+    return x
+
+
 def plot_relative_distribution(
     relative_delta_fs: List[float],
     bins: int = 100,
@@ -110,9 +120,9 @@ def plot_relative_distribution(
         Omit values less than `min_bound` or greater than `max_bound`
     """
 
-    x = np.array(relative_delta_fs)
-    valid_relative_delta_fs = x[(min_bound <= x) & (x <= max_bound)]
-
+    valid_relative_delta_fs = _filter_inclusive(
+        np.array(relative_delta_fs), min_bound, max_bound
+    )
     valid_relative_delta_fs_kC = (valid_relative_delta_fs * KT).value_in_unit(
         unit.kilocalories_per_mole
     )
@@ -249,19 +259,16 @@ def plot_cumulative_distributions(
         Affinity values at which to label
 
     """
+
     affinities_kC = (np.array(affinities) * KT).value_in_unit(
         unit.kilocalories_per_mole
     )
-
-    if minimum is None:
-        affinities_kC = [x for x in affinities if x < maximum]
-    else:
-        affinities_kC = [x for x in affinities if minimum < x < maximum]
+    valid_affinities_kC = _filter_inclusive(affinities_kC, minimum, maximum)
 
     cm = plt.cm.get_cmap(cmap)
 
     # Get the histogram
-    Y, X = np.histogram(affinities_kC, n_bins)
+    Y, X = np.histogram(valid_affinities_kC, n_bins)
     Y = np.cumsum(Y)
     x_span = X.max() - X.min()
     C = [cm(((X.max() - x) / x_span)) for x in X]
