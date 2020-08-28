@@ -23,13 +23,27 @@ class Work:
 
 @dataclass_json
 @dataclass
-class PhaseAnalysis:
+class FreeEnergy:
     delta_f: float
     ddelta_f: float
     bar_overlap: float
+    num_work_values: int
+
+
+@dataclass_json
+@dataclass
+class GenAnalysis:
+    gen: int
+    free_energy: FreeEnergy
     forward_works: List[float]
     reverse_works: List[float]
-    num_work_values: int
+
+
+@dataclass_json
+@dataclass
+class PhaseAnalysis:
+    free_energy: FreeEnergy
+    gens: List[GenAnalysis]
 
 
 @dataclass_json
@@ -71,5 +85,31 @@ class RunDetails:
 @dataclass_json
 @dataclass
 class Run:
+    """
+    Results of free energy analysis for a single run.
+
+    Parameters
+    ----------
+    details : RunDetails
+        Compound details extracted from input JSON
+    analysis : RunAnalysis
+        Results of free energy analysis
+
+    Examples
+    --------
+    >>> import json
+    >>> from covid_moonshot import Run
+
+    >>> # Extract results for RUN0, complex phase
+    >>> run = results[0]
+    >>> phase = run.analysis.complex_phase
+
+    >>> # Extract all works (ignoring GENs)
+    >>> all_forward_works = [forward_work for gen in phase.gens for forward_work in gen.forward_works]
+    >>> all_reverse_works = [reverse_work for gen in phase.gens for reverse_work in gen.reverse_works]
+
+    >>> # Extract works for specific gen
+    >>> forward_works = phase.gens[0].forward_works
+    """
     details: RunDetails
     analysis: RunAnalysis
