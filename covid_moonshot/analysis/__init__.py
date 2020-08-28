@@ -1,4 +1,5 @@
 from typing import List
+import numpy as np
 from covid_moonshot.core import Binding, RunAnalysis, Work
 from .free_energy import get_phase_analysis
 
@@ -19,8 +20,10 @@ def get_run_analysis(
 
     binding = Binding(
         delta_f=solvent_phase.free_energy.delta_f - complex_phase.free_energy.delta_f,
-        ddelta_f=(complex_phase.free_energy.ddelta_f ** 2 + solvent_phase.free_energy.ddelta_f ** 2)
-        ** 0.5,
+        ddelta_f=np.sqrt(
+            complex_phase.free_energy.ddelta_f ** 2
+            + solvent_phase.free_energy.ddelta_f ** 2
+        ),
     )
 
     return RunAnalysis(
