@@ -236,9 +236,9 @@ def plot_cumulative_distributions(
     affinities : list of float
         Affinities to plot
     minimum : float
-        Maximum affinity to plot, saves plotting boring plateaus
+        Maximum affinity to plot in kcal/mol
     maximum : float
-        Maximum affinity to plot, saves plotting boring plateaus
+        Maximum affinity to plot in kcal/mol
     cmap : str
         string name of colormap to use
     n_bins : int
