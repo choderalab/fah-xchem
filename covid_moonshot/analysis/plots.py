@@ -1,6 +1,4 @@
-from matplotlib.axes._subplots import AxesSubplot
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
 import os
 import logging
 import seaborn as sns
@@ -15,7 +13,7 @@ KT = kB * TEMPERATURE
 
 
 def plot_work_distribution(
-    ax: AxesSubplot, forward_works: List[float], reverse_works: List[float]
+    ax: plt.Axes, forward_works: List[float], reverse_works: List[float]
 ) -> None:
     """
     Plot a single work distribution
@@ -55,7 +53,7 @@ def plot_work_distributions(
     solvent_forward_works: List[float],
     solvent_reverse_works: List[float],
     figsize: Tuple[float, float] = (7.5, 3.25),
-) -> Figure:
+) -> plt.Figure:
     """
     Plot work distributions complex and solvent side by side
 
