@@ -59,7 +59,9 @@ def plot_two_work_distribution(
 
 
 def plot_relative_distribution(
-    relative_delta_fs: List[float], bins: int = 100,
+    relative_delta_fs: List[float],
+    bins: int = 100,
+    relative_delta_f_bounds: Tuple[float, float] = (-30, 30),
 ) -> None:
     """ Plots the distribution of relative free energies
 
@@ -69,15 +71,24 @@ def plot_relative_distribution(
         Relative free energies in kcal/mol
     bins : int, default=100
         Number of bins for histogramming
-
-
+    relative_delta_f_bounds : tuple
+        Omit values less than the first element or greater than the
+        second element
     """
     relative_delta_fs_kC = [
         (delta_f * KT).value_in_unit(unit.kilocalories_per_mole)
         for delta_f in relative_delta_fs
     ]
+
+    valid_relative_delta_fs_kC = [
+        delta_f
+        for delta_f in relative_delta_fs_kC
+        if delta_f >= relative_delta_f_bounds[0]
+        and delta_f <= relative_delta_f_bounds[1]
+    ]
+
     sns.distplot(
-        relative_delta_fs_kC,
+        valid_relative_delta_fs_kC,
         hist=False,
         kde=True,
         rug=True,
