@@ -125,7 +125,13 @@ def analyze_run(
         except ValueError as e:
             raise ValueError(f"Failed to save structures for complex: {e}")
 
-    save_run_level_plots(run, complex_works, solvent_works, plot_output_path)
+    save_run_level_plots(
+        run=run,
+        complex_phase=analysis.complex_phase,
+        solvent_phase=analysis.solvent_phase,
+        binding=analysis.binding,
+        path=plot_output_path,
+    )
 
     return analysis
 
