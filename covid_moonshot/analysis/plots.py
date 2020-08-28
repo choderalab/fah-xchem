@@ -1,7 +1,8 @@
-import matplotlib.pyplot as plt
+from contextlib import contextmanager
 import os
 import logging
 import seaborn as sns
+import matplotlib.pyplot as plt
 import numpy as np
 from simtk.openmm import unit
 from openmmtools.constants import kB
@@ -279,8 +280,13 @@ def plot_cumulative_distributions(
     plt.ylabel("Cumulative $N$ ligands")
 
 
-def get_plot_filename(path: str, name: str, file_format: str) -> str:
-    return os.path.join(path, os.extsep.join([name, file_format]))
+@contextmanager
+def save_plot(path: str, name: str, file_format: str):
+    plt.figure()
+    try:
+        yield
+    finally:
+        plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
 
 
 def save_run_level_plots(
@@ -310,38 +316,41 @@ def save_run_level_plots(
         File format for plot output
     """
 
-    plt.figure()
-    fig = plot_work_distributions(
-        complex_forward_works=[
-            w for gen in complex_phase.gens for w in gen.forward_works
-        ],
-        complex_reverse_works=[
-            w for gen in complex_phase.gens for w in gen.reverse_works
-        ],
-        solvent_forward_works=[
-            w for gen in solvent_phase.gens for w in gen.forward_works
-        ],
-        solvent_reverse_works=[
-            w for gen in solvent_phase.gens for w in gen.reverse_works
-        ],
-    )
-    fig.suptitle(f"RUN{run}")
-    plt.savefig(get_plot_filename(path, f"RUN{run}", file_format))
+    with save_plot(path, f"RUN{run}", file_format):
+        fig = plot_work_distributions(
+            complex_forward_works=[
+                w for gen in complex_phase.gens for w in gen.forward_works
+            ],
+            complex_reverse_works=[
+                w for gen in complex_phase.gens for w in gen.reverse_works
+            ],
+            solvent_forward_works=[
+                w for gen in solvent_phase.gens for w in gen.forward_works
+            ],
+            solvent_reverse_works=[
+                w for gen in solvent_phase.gens for w in gen.reverse_works
+            ],
+        )
+        fig.suptitle(f"RUN{run}")
 
     complex_gens = set([gen.gen for gen in complex_phase.gens])
     solvent_gens = set([gen.gen for gen in solvent_phase.gens])
 
-    plt.figure()
-    plot_convergence(
-        gens=list(complex_gens.intersection(solvent_gens)),
-        complex_delta_fs=[gen.free_energy.delta_f for gen in complex_phase.gens],
-        complex_delta_f_errs=[gen.free_energy.ddelta_f for gen in complex_phase.gens],
-        solvent_delta_fs=[gen.free_energy.delta_f for gen in solvent_phase.gens],
-        solvent_delta_f_errs=[gen.free_energy.ddelta_f for gen in solvent_phase.gens],
-        binding_delta_f=binding.delta_f,
-        binding_delta_f_err=binding.ddelta_f,
-    )
-    plt.savefig(get_plot_filename(path, f"RUN{run}-convergence", file_format))
+    with save_plot(path, f"RUN{run}-convergence", file_format):
+        plot_convergence(
+            gens=list(complex_gens.intersection(solvent_gens)),
+            complex_delta_fs=[gen.free_energy.delta_f for gen in complex_phase.gens],
+            complex_delta_f_errs=[
+                gen.free_energy.ddelta_f for gen in complex_phase.gens
+            ],
+            solvent_delta_fs=[gen.free_energy.delta_f for gen in solvent_phase.gens],
+            solvent_delta_f_errs=[
+                gen.free_energy.ddelta_f for gen in solvent_phase.gens
+            ],
+            binding_delta_f=binding.delta_f,
+            binding_delta_f_err=binding.ddelta_f,
+        )
+        plt.title(f"RUN{run}")
 
 
 def save_summary_plots(
@@ -361,12 +370,10 @@ def save_summary_plots(
     """
     binding_delta_fs = [run.binding.delta_f for run in runs]
 
-    plt.figure()
-    plot_relative_distribution(binding_delta_fs)
-    plt.title("Relative affinity")
-    plt.savefig(get_plot_filename(path, "relative_fe_hist", file_format))
+    with save_plot(path, "relative_fe_hist", file_format):
+        plot_relative_distribution(binding_delta_fs)
+        plt.title("Relative affinity")
 
-    plt.figure()
-    plot_cumulative_distributions(binding_delta_fs)
-    plt.title("Cumulative distribution")
-    plt.savefig(get_plot_filename(path, "cumulative_fe_hist", file_format))
+    with save_plot(path, "cumulative_fe_hist", file_format):
+        plot_cumulative_distributions(binding_delta_fs)
+        plt.title("Cumulative distribution")
