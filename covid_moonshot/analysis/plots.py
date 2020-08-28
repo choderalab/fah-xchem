@@ -1,21 +1,34 @@
-import matplotlib.figure
+from matplotlib.axes._subplots import AxesSubplot
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 import os
 import logging
 import seaborn as sns
 import numpy as np
 from simtk.openmm import unit
 from openmmtools.constants import kB
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from ..core import Binding, PhaseAnalysis, RunAnalysis, Work
 
 TEMPERATURE = 300.0 * unit.kelvin
 KT = kB * TEMPERATURE
 
 
-def plot_single_work_distribution(
-    ax, forward_works: List[float], reverse_works: List[float]
+def plot_work_distribution(
+    ax: AxesSubplot, forward_works: List[float], reverse_works: List[float]
 ) -> None:
+    """
+    Plot a single work distribution
+
+    Parameters
+    ----------
+    ax : AxesSubplot
+       Axes on which to draw the plot
+    forward_works : list of float
+       Forward work values
+    reverse_works : list of float
+       Reverse work values
+    """
 
     sns.kdeplot(forward_works, shade=True, color="cornflowerblue", ax=ax)
     sns.rugplot(
@@ -36,19 +49,35 @@ def plot_single_work_distribution(
     )
 
 
-def plot_two_work_distribution(
+def plot_work_distributions(
     complex_forward_works: List[float],
     complex_reverse_works: List[float],
     solvent_forward_works: List[float],
     solvent_reverse_works: List[float],
     figsize: Tuple[float, float] = (7.5, 3.25),
-) -> matplotlib.figure.Figure:
+) -> Figure:
+    """
+    Plot work distributions complex and solvent side by side
+
+    Parameters
+    ----------
+    complex_forward_works, complex_reverse_works : list of float
+       Work values for the complex
+    solvent_forward_works, solvent_reverse_works : list of float
+       Work values for the solvent
+
+    Returns
+    -------
+    Figure
+        Figure containing the plot
+    """
+
     fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=figsize)
 
-    plot_single_work_distribution(ax1, complex_forward_works, complex_reverse_works)
+    plot_work_distribution(ax1, complex_forward_works, complex_reverse_works)
     plt.title("complex")
 
-    plot_single_work_distribution(ax2, solvent_forward_works, solvent_reverse_works)
+    plot_work_distribution(ax2, solvent_forward_works, solvent_reverse_works)
     plt.title("solvent")
 
     fig.subplots_adjust(top=0.9, wspace=0.15)
@@ -61,19 +90,20 @@ def plot_two_work_distribution(
 def plot_relative_distribution(
     relative_delta_fs: List[float],
     bins: int = 100,
-    relative_delta_f_bounds: Tuple[float, float] = (-30, 30),
+    min_bound: float = -30,
+    max_bound: float = 30,
 ) -> None:
-    """ Plots the distribution of relative free energies
+    """
+    Plot the distribution of relative free energies
 
     Parameters
     ----------
-    relative_delta_fs : array_like of float
-        Relative free energies in kcal/mol
-    bins : int, default=100
+    relative_delta_fs : list of float
+        Relative free energies
+    bins : int
         Number of bins for histogramming
-    relative_delta_f_bounds : tuple
-        Omit values less than the first element or greater than the
-        second element
+    min_bound, max_bound : float
+        Omit values less than `min_bound` or greater than `max_bound`
     """
     relative_delta_fs_kC = [
         (delta_f * KT).value_in_unit(unit.kilocalories_per_mole)
@@ -81,10 +111,7 @@ def plot_relative_distribution(
     ]
 
     valid_relative_delta_fs_kC = [
-        delta_f
-        for delta_f in relative_delta_fs_kC
-        if delta_f >= relative_delta_f_bounds[0]
-        and delta_f <= relative_delta_f_bounds[1]
+        delta_f for delta_f in relative_delta_fs_kC if min_bound <= delta_f <= max_bound
     ]
 
     sns.distplot(
@@ -107,8 +134,24 @@ def plot_convergence(
     solvent_delta_f_errs: List[float],
     binding_delta_f: float,
     binding_delta_f_err: float,
-    bounds_zscore: float = 1.65,  # 95th percentile
+    n_devs_bounds: float = 1.65,  # 95th percentile
 ) -> None:
+    """
+    Plot the convergence of free energy estimates with GEN
+
+    Parameters
+    ----------
+    gens : list of int
+        List of gens to plot
+    complex_delta_fs, complex_delta_f_errs : list of float
+        Free energies and errors for the complex; one of each per gen
+    solvent_delta_fs, solvent_delta_f_errs : list of float
+        Free energies and errors for the solvent; one of each per gen
+    binding_delta_f, binding_delta_f_err : float
+        Binding free energy and error, estimated using data for all gens
+    n_devs_bounds : float
+        Number of standard deviations for drawing bounds
+    """
 
     for gen in gens:
 
@@ -123,8 +166,8 @@ def plot_convergence(
         plt.scatter(gen, DDG_kC, color="green")
         plt.vlines(
             gen,
-            DDG_kC - DDG_err_kC * bounds_zscore,
-            DDG_kC + DDG_err_kC * bounds_zscore,
+            DDG_kC - DDG_err_kC * n_devs_bounds,
+            DDG_kC + DDG_err_kC * n_devs_bounds,
             color="green",
         )
 
@@ -148,8 +191,8 @@ def plot_convergence(
         for gen in gens:
             plt.vlines(
                 gen,
-                y[gen] - delta_f_errs_kC[gen] * bounds_zscore,
-                y[gen] + delta_f_errs_kC[gen] * bounds_zscore,
+                y[gen] - delta_f_errs_kC[gen] * n_devs_bounds,
+                y[gen] + delta_f_errs_kC[gen] * n_devs_bounds,
                 color=color,
             )
 
@@ -165,10 +208,10 @@ def plot_convergence(
     )
     plt.fill_between(
         [0, max(gens)],
-        ((binding_delta_f - binding_delta_f_err * bounds_zscore) * KT).value_in_unit(
+        ((binding_delta_f - binding_delta_f_err * n_devs_bounds) * KT).value_in_unit(
             unit.kilocalories_per_mole
         ),
-        ((binding_delta_f + binding_delta_f_err * bounds_zscore) * KT).value_in_unit(
+        ((binding_delta_f + binding_delta_f_err * n_devs_bounds) * KT).value_in_unit(
             unit.kilocalories_per_mole
         ),
         alpha=0.2,
@@ -179,42 +222,45 @@ def plot_convergence(
 
 
 def plot_cumulative_distributions(
-    results,
-    minimum=None,
-    maximum=5,
-    cmap="PiYG",
-    n_bins=100,
-    markers=[-2, -1, 0, 1, 2],
+    affinities: List[float],
+    minimum: Optional[float] = None,
+    maximum: float = 5,
+    cmap: str = "PiYG",
+    n_bins: int = 100,
+    markers: List[float] = [-2, -1, 0, 1, 2],
 ) -> None:
-    """Plots cumulative distribution of ligand affinities
+    """
+    Plot cumulative distribution of ligand affinities
 
     Parameters
     ----------
-    results : list(float)
-        List of affinities to plot
-    maximum : int, default=5
+    affinities : list of float
+        Affinities to plot
+    minimum : float
         Maximum affinity to plot, saves plotting boring plateaus
-    cmap : str, default='PiYG'
+    maximum : float
+        Maximum affinity to plot, saves plotting boring plateaus
+    cmap : str
         string name of colormap to use
-    n_bins : int, default=100
+    n_bins : int
         Number of bins to use
-    markers : list(float), default=range(-2,3)
+    markers : list of float
         Affinity values at which to label
-    title : str, default='Cumulative distribution'
-        Title to label plot
 
     """
-    results = [(x * KT).value_in_unit(unit.kilocalories_per_mole) for x in results]
-    if minimum is None:
-        results = [x for x in results if x < maximum]
-    else:
-        results = [x for x in results if minimum < x < maximum]
+    affinities_kC = [
+        (x * KT).value_in_unit(unit.kilocalories_per_mole) for x in affinities
+    ]
 
-    # the colormap could be a kwarg
+    if minimum is None:
+        affinities_kC = [x for x in affinities if x < maximum]
+    else:
+        affinities_kC = [x for x in affinities if minimum < x < maximum]
+
     cm = plt.cm.get_cmap(cmap)
 
-    # Get the histogramp
-    Y, X = np.histogram(list(results), n_bins)
+    # Get the histogram
+    Y, X = np.histogram(affinities_kC, n_bins)
     Y = np.cumsum(Y)
     x_span = X.max() - X.min()
     C = [cm(((X.max() - x) / x_span)) for x in X]
@@ -226,7 +272,7 @@ def plot_cumulative_distributions(
         plt.text(
             v - 0.5,
             0.8 * Y.max(),
-            f"$N$ = {len([x for x in results if x < v])}",
+            f"$N$ = {len([x for x in affinities if x < v])}",
             rotation=90,
             verticalalignment="center",
             color="green",
@@ -247,9 +293,27 @@ def save_run_level_plots(
     path: str = os.curdir,
     file_format: str = "pdf",
 ) -> None:
+    """
+    Save plots specific to a run
+
+    Parameters
+    ----------
+    run : int
+        Run
+    complex_phase : PhaseAnalysis
+        Results for complex
+    solvent_phase : PhaseAnalysis
+        Results for solvent
+    binding : Binding
+        Results for binding free energy
+    path : str
+        Where to write plot files
+    file_format : str
+        File format for plot output
+    """
 
     plt.figure()
-    fig = plot_two_work_distribution(
+    fig = plot_work_distributions(
         complex_forward_works=[
             w for gen in complex_phase.gens for w in gen.forward_works
         ],
@@ -285,6 +349,18 @@ def save_run_level_plots(
 def save_summary_plots(
     runs: List[RunAnalysis], path: str = os.curdir, file_format: str = "pdf"
 ) -> None:
+    """
+    Save plots summarizing all runs
+
+    Parameters
+    ----------
+    runs : list of RunAnalysis
+        Results for all runs
+    path : str
+        Where to write plot files
+    file_format : str
+        File format for plot output
+    """
     binding_delta_fs = [run.binding.delta_f for run in runs]
 
     plt.figure()
