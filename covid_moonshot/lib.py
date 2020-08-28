@@ -8,7 +8,7 @@ import re
 from typing import List, Optional
 import joblib
 from tqdm.auto import tqdm
-from .analysis.fah_plotting import save_run_level_plots, save_summary_plots
+from .analysis.plots import save_run_level_plots, save_summary_plots
 from .analysis import get_run_analysis
 from .analysis.structures import save_representative_snapshots
 from .core import (
