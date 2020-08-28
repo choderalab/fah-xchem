@@ -73,10 +73,10 @@ def plot_work_distributions(
     fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=figsize)
 
     plot_work_distribution(ax1, complex_forward_works, complex_reverse_works)
-    plt.title("complex")
+    ax1.title("complex")
 
     plot_work_distribution(ax2, solvent_forward_works, solvent_reverse_works)
-    plt.title("solvent")
+    ax2.title("solvent")
 
     fig.subplots_adjust(top=0.9, wspace=0.15)
     ax1.legend()
