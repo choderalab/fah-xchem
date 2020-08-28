@@ -1,3 +1,4 @@
+import matplotlib.figure
 import matplotlib.pyplot as plt
 import os
 import logging
@@ -5,70 +6,86 @@ import seaborn as sns
 import numpy as np
 from simtk.openmm import unit
 from openmmtools.constants import kB
-from typing import List
+from typing import List, Tuple
 from ..core import Binding, PhaseAnalysis, RunAnalysis, Work
 
 TEMPERATURE = 300.0 * unit.kelvin
 KT = kB * TEMPERATURE
 
 
-def plot_single_work_distribution(f, r, ax=None, title=None):
-    if ax is None:
-        ax = plt.gca()
-    sns.kdeplot(f, shade=True, color="cornflowerblue", ax=ax)
+def plot_single_work_distribution(
+    ax, forward_works: List[float], reverse_works: List[float]
+) -> None:
+
+    sns.kdeplot(forward_works, shade=True, color="cornflowerblue", ax=ax)
     sns.rugplot(
-        f, ax=ax, color="cornflowerblue", alpha=0.5, label=f"forward : N={len(f)}",
+        forward_works,
+        color="cornflowerblue",
+        alpha=0.5,
+        label=f"forward : N={len(forward_works)}",
+        ax=ax,
     )
 
-    sns.kdeplot([-x for x in r], shade=True, color="hotpink", ax=ax)
+    sns.kdeplot([-x for x in reverse_works], shade=True, color="hotpink", ax=ax)
     sns.rugplot(
-        [-x for x in r],
-        ax=ax,
+        [-x for x in reverse_works],
         color="hotpink",
         alpha=0.5,
-        label=f"reverse : N={len(r)}",
+        label=f"reverse : N={len(reverse_works)}",
+        ax=ax,
     )
-    if title is not None:
-        ax.set_title(title)
 
 
-def plot_two_work_distribution(f1, r1, f2, r2, phases=(None, None), title=None):
-    fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=(7.5, 3.25))
-    plot_single_work_distribution(f1, r1, ax1, phases[0])
-    plot_single_work_distribution(f2, r2, ax2, phases[1])
+def plot_two_work_distribution(
+    complex_forward_works: List[float],
+    complex_reverse_works: List[float],
+    solvent_forward_works: List[float],
+    solvent_reverse_works: List[float],
+    figsize: Tuple[float, float] = (7.5, 3.25),
+) -> matplotlib.figure.Figure:
+    fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=figsize)
 
-    if title is not None:
-        fig.suptitle(
-            title, fontsize=16,
-        )
+    plot_single_work_distribution(ax1, complex_forward_works, complex_reverse_works)
+    plt.title("complex")
+
+    plot_single_work_distribution(ax2, solvent_forward_works, solvent_reverse_works)
+    plt.title("solvent")
+
     fig.subplots_adjust(top=0.9, wspace=0.15)
     ax1.legend()
     ax2.legend()
 
+    return fig
 
-def plot_relative_distribution(relative_fes, bins=100, title="Relative affinity"):
+
+def plot_relative_distribution(
+    relative_delta_fs: List[float], bins: int = 100,
+) -> None:
     """ Plots the distribution of relative free energies
 
     Parameters
     ----------
-    relative_fes : list
+    relative_delta_fs : array_like of float
         Relative free energies in kcal/mol
     bins : int, default=100
         Number of bins for histogramming
 
 
     """
-    # first convert kT to kcal/mol
-
-    relative_fes = [
-        (x * KT).value_in_unit(unit.kilocalories_per_mole) for x in relative_fes
+    relative_delta_fs_kC = [
+        (delta_f * KT).value_in_unit(unit.kilocalories_per_mole)
+        for delta_f in relative_delta_fs
     ]
-    sns.kdeplot(relative_fes, shade=True, color="hotpink")
-    sns.rugplot(
-        relative_fes, color="hotpink", alpha=0.5, label=f"N={len(relative_fes)}",
+    sns.distplot(
+        relative_delta_fs_kC,
+        hist=False,
+        kde=True,
+        rug=True,
+        kde_kws=dict(shade=True),
+        rug_kws=dict(color="hotpink", alpha=0.5),
+        label=f"N={len(relative_delta_fs)}",
     )
     plt.xlabel("Relative free energy to ligand 0 / kcal/mol")
-    plt.title(title)
 
 
 def plot_convergence(
@@ -79,9 +96,8 @@ def plot_convergence(
     solvent_delta_f_errs: List[float],
     binding_delta_f: float,
     binding_delta_f_err: float,
-    bounds_zscore=1.65,  # 95th percentile
-    title=None,
-):
+    bounds_zscore: float = 1.65,  # 95th percentile
+) -> None:
 
     for gen in gens:
 
@@ -158,8 +174,7 @@ def plot_cumulative_distributions(
     cmap="PiYG",
     n_bins=100,
     markers=[-2, -1, 0, 1, 2],
-    title="Cumulative distribution",
-):
+) -> None:
     """Plots cumulative distribution of ligand affinities
 
     Parameters
@@ -207,7 +222,6 @@ def plot_cumulative_distributions(
         )
     plt.xlabel("Affinity relative to ligand 0 / " + r"kcal mol$^{-1}$")
     plt.ylabel("Cumulative $N$ ligands")
-    plt.title(title)
 
 
 def get_plot_filename(path: str, name: str, file_format: str) -> str:
@@ -223,19 +237,22 @@ def save_run_level_plots(
     file_format: str = "pdf",
 ) -> None:
 
-    complex_forward_works = [w for gen in complex_phase.gens for w in gen.forward_works]
-    complex_reverse_works = [w for gen in complex_phase.gens for w in gen.reverse_works]
-    solvent_forward_works = [w for gen in solvent_phase.gens for w in gen.forward_works]
-    solvent_reverse_works = [w for gen in solvent_phase.gens for w in gen.reverse_works]
-
     plt.figure()
-    plot_two_work_distribution(
-        complex_forward_works,
-        complex_reverse_works,
-        solvent_forward_works,
-        solvent_reverse_works,
-        phases=("complex", "solvent"),
+    fig = plot_two_work_distribution(
+        complex_forward_works=[
+            w for gen in complex_phase.gens for w in gen.forward_works
+        ],
+        complex_reverse_works=[
+            w for gen in complex_phase.gens for w in gen.reverse_works
+        ],
+        solvent_forward_works=[
+            w for gen in solvent_phase.gens for w in gen.forward_works
+        ],
+        solvent_reverse_works=[
+            w for gen in solvent_phase.gens for w in gen.reverse_works
+        ],
     )
+    fig.suptitle(f"RUN{run}")
     plt.savefig(get_plot_filename(path, f"run{run}", file_format))
 
     complex_gens = set([gen.gen for gen in complex_phase.gens])
@@ -261,8 +278,10 @@ def save_summary_plots(
 
     plt.figure()
     plot_relative_distribution(binding_delta_fs)
+    plt.title("Relative affinity")
     plt.savefig(get_plot_filename(path, "rel_fe_hist", file_format))
 
     plt.figure()
     plot_cumulative_distributions(binding_delta_fs)
+    plt.title("Cumulative distribution")
     plt.savefig(get_plot_filename(path, "cumulative_fe_hist", file_format))
