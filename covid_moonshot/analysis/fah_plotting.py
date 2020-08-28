@@ -6,7 +6,7 @@ import numpy as np
 from simtk.openmm import unit
 from openmmtools.constants import kB
 from typing import List
-from ..core import RunAnalysis, Work
+from ..core import Binding, PhaseAnalysis, RunAnalysis, Work
 
 TEMPERATURE = 300.0 * unit.kelvin
 KT = kB * TEMPERATURE
@@ -71,100 +71,84 @@ def plot_relative_distribution(relative_fes, bins=100, title="Relative affinity"
     plt.title(title)
 
 
-def plot_convergence(results, n_gens=3, title=None):
-    if "complex_fes" in results and "solvent_fes" in results:
-        max_gen = 0
-        for i in range(n_gens):
-            try:
-                DDG = (
-                    (
-                        results[f"solvent_fes_GEN{i}"][0]
-                        - results[f"complex_fes_GEN{i}"][0]
-                    )
-                    * KT
-                ).value_in_unit(unit.kilocalories_per_mole)
-                low = (
-                    (
-                        results[f"solvent_fes_GEN{i}"][1]
-                        - results[f"complex_fes_GEN{i}"][2]
-                    )
-                    * KT
-                ).value_in_unit(unit.kilocalories_per_mole)
-                high = (
-                    (
-                        results[f"solvent_fes_GEN{i}"][2]
-                        - results[f"complex_fes_GEN{i}"][1]
-                    )
-                    * KT
-                ).value_in_unit(unit.kilocalories_per_mole)
-                plt.scatter(i, DDG, color="green")
-                plt.vlines(i, low, high, color="green")
-                if i > max_gen:
-                    max_gen = i
-            except KeyError:
-                continue
+def plot_convergence(
+    gens: List[int],
+    complex_delta_fs: List[float],
+    complex_delta_f_errs: List[float],
+    solvent_delta_fs: List[float],
+    solvent_delta_f_errs: List[float],
+    binding_delta_f: float,
+    binding_delta_f_err: float,
+    bounds_zscore=1.65,  # 95th percentile
+    title=None,
+):
 
-        colors = {"solvent": "blue", "complex": "red"}
-        for phase in ["solvent", "complex"]:
-            y = []
-            low = []
-            high = []
-            for i in range(n_gens):
-                try:
-                    y.append(
-                        (results[f"{phase}_fes_GEN{i}"][0] * KT).value_in_unit(
-                            unit.kilocalories_per_mole
-                        )
-                    )
-                    low.append(
-                        (results[f"{phase}_fes_GEN{i}"][1] * KT).value_in_unit(
-                            unit.kilocalories_per_mole
-                        )
-                    )
-                    high.append(
-                        (results[f"{phase}_fes_GEN{i}"][2] * KT).value_in_unit(
-                            unit.kilocalories_per_mole
-                        )
-                    )
-                    if i > max_gen:
-                        max_gen = i
-                except KeyError:
-                    continue
-            shift = np.mean(y)
-            y = y - shift
-            low = low - shift
-            high = high - shift
-            plt.scatter(
-                [i for i in range(0, max_gen + 1)], y, color=colors[phase], label=phase
+    for gen in gens:
+
+        DDG = solvent_delta_fs[gen] - complex_delta_fs[gen]
+        DDG_kC = (DDG * KT).value_in_unit(unit.kilocalories_per_mole)
+
+        DDG_err = np.sqrt(
+            solvent_delta_f_errs[gen] ** 2 + complex_delta_f_errs[gen] ** 2
+        )
+        DDG_err_kC = (DDG_err * KT).value_in_unit(unit.kilocalories_per_mole)
+
+        plt.scatter(gen, DDG_kC, color="green")
+        plt.vlines(
+            gen,
+            DDG_kC - DDG_err_kC * bounds_zscore,
+            DDG_kC + DDG_err_kC * bounds_zscore,
+            color="green",
+        )
+
+    for label, (delta_fs, delta_f_errs), color in [
+        ("solvent", (solvent_delta_fs, solvent_delta_f_errs), "blue"),
+        ("complex", (complex_delta_fs, complex_delta_f_errs), "red"),
+    ]:
+
+        delta_fs_kC = [
+            (delta_f * KT).value_in_unit(unit.kilocalories_per_mole)
+            for delta_f in delta_fs
+        ]
+        delta_f_errs_kC = [
+            (delta_f_err * KT).value_in_unit(unit.kilocalories_per_mole)
+            for delta_f_err in delta_f_errs
+        ]
+
+        shift = np.mean(delta_fs_kC)
+        y = delta_fs_kC - shift
+        plt.scatter(gens, y, color=color, label=label)
+        for gen in gens:
+            plt.vlines(
+                gen,
+                y[gen] - delta_f_errs_kC[gen] * bounds_zscore,
+                y[gen] + delta_f_errs_kC[gen] * bounds_zscore,
+                color=color,
             )
-            for i, _ in enumerate(y):
-                plt.vlines(i, low[i], high[i], color=colors[phase])
 
-        plt.xlabel("GEN")
-        plt.ylabel("Relative free energy /" + r" kcal mol${^-1}$")
-        plt.plot(
-            [0, max_gen],
-            [
-                (results["binding_fe"][0] * KT).value_in_unit(
-                    unit.kilocalories_per_mole
-                ),
-                (results["binding_fe"][0] * KT).value_in_unit(
-                    unit.kilocalories_per_mole
-                ),
-            ],
-            color="green",
-            linestyle=":",
-            label="free energy (all GENS)",
-        )
-        plt.fill_between(
-            [0, max_gen],
-            (results["binding_fe"][1] * KT).value_in_unit(unit.kilocalories_per_mole),
-            (results["binding_fe"][2] * KT).value_in_unit(unit.kilocalories_per_mole),
-            alpha=0.2,
-            color="green",
-        )
-        plt.xticks([i for i in range(0, max_gen + 1)])
-        plt.legend()
+    plt.xlabel("GEN")
+    plt.ylabel("Relative free energy /" + r" kcal mol${^-1}$")
+    plt.hlines(
+        (binding_delta_f * KT).value_in_unit(unit.kilocalories_per_mole),
+        0,
+        max(gens),
+        color="green",
+        linestyle=":",
+        label="free energy (all GENS)",
+    )
+    plt.fill_between(
+        [0, max(gens)],
+        ((binding_delta_f - binding_delta_f_err * bounds_zscore) * KT).value_in_unit(
+            unit.kilocalories_per_mole
+        ),
+        ((binding_delta_f + binding_delta_f_err * bounds_zscore) * KT).value_in_unit(
+            unit.kilocalories_per_mole
+        ),
+        alpha=0.2,
+        color="green",
+    )
+    plt.xticks([gen for gen in range(0, max(gens) + 1)])
+    plt.legend()
 
 
 def plot_cumulative_distributions(
@@ -232,18 +216,42 @@ def get_plot_filename(path: str, name: str, file_format: str) -> str:
 
 def save_run_level_plots(
     run: int,
-    complex_works: List[Work],
-    solvent_works: List[Work],
+    complex_phase: PhaseAnalysis,
+    solvent_phase: PhaseAnalysis,
+    binding: Binding,
     path: str = os.curdir,
     file_format: str = "pdf",
 ) -> None:
 
-    f1 = [w.forward_work for w in complex_works]
-    r1 = [w.reverse_work for w in complex_works]
-    f2 = [w.forward_work for w in solvent_works]
-    r2 = [w.reverse_work for w in solvent_works]
-    plot_two_work_distribution(f1, r1, f2, r2, phases=("complex", "solvent"))
+    complex_forward_works = [w for gen in complex_phase.gens for w in gen.forward_works]
+    complex_reverse_works = [w for gen in complex_phase.gens for w in gen.reverse_works]
+    solvent_forward_works = [w for gen in solvent_phase.gens for w in gen.forward_works]
+    solvent_reverse_works = [w for gen in solvent_phase.gens for w in gen.reverse_works]
+
+    plt.figure()
+    plot_two_work_distribution(
+        complex_forward_works,
+        complex_reverse_works,
+        solvent_forward_works,
+        solvent_reverse_works,
+        phases=("complex", "solvent"),
+    )
     plt.savefig(get_plot_filename(path, f"run{run}", file_format))
+
+    complex_gens = set([gen.gen for gen in complex_phase.gens])
+    solvent_gens = set([gen.gen for gen in solvent_phase.gens])
+
+    plt.figure()
+    plot_convergence(
+        gens=list(complex_gens.intersection(solvent_gens)),
+        complex_delta_fs=[gen.free_energy.delta_f for gen in complex_phase.gens],
+        complex_delta_f_errs=[gen.free_energy.ddelta_f for gen in complex_phase.gens],
+        solvent_delta_fs=[gen.free_energy.delta_f for gen in solvent_phase.gens],
+        solvent_delta_f_errs=[gen.free_energy.ddelta_f for gen in solvent_phase.gens],
+        binding_delta_f=binding.delta_f,
+        binding_delta_f_err=binding.ddelta_f,
+    )
+    plt.savefig(get_plot_filename(path, f"run{run}-convergence", file_format))
 
 
 def save_summary_plots(
@@ -257,6 +265,4 @@ def save_summary_plots(
 
     plt.figure()
     plot_cumulative_distributions(binding_delta_fs)
-    plt.savefig(os.path.join(path, "cumulative_fe_hist", file_format))
-
-    # TODO plot convergence
+    plt.savefig(get_plot_filename(path, "cumulative_fe_hist", file_format))
