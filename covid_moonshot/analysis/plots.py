@@ -326,7 +326,7 @@ def save_run_level_plots(
         ],
     )
     fig.suptitle(f"RUN{run}")
-    plt.savefig(get_plot_filename(path, f"run{run}", file_format))
+    plt.savefig(get_plot_filename(path, f"RUN{run}", file_format))
 
     complex_gens = set([gen.gen for gen in complex_phase.gens])
     solvent_gens = set([gen.gen for gen in solvent_phase.gens])
@@ -341,7 +341,7 @@ def save_run_level_plots(
         binding_delta_f=binding.delta_f,
         binding_delta_f_err=binding.ddelta_f,
     )
-    plt.savefig(get_plot_filename(path, f"run{run}-convergence", file_format))
+    plt.savefig(get_plot_filename(path, f"RUN{run}-convergence", file_format))
 
 
 def save_summary_plots(
