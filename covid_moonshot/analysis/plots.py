@@ -15,7 +15,10 @@ KT = kB * TEMPERATURE
 
 
 def plot_work_distribution(
-    ax: plt.Axes, forward_works: List[float], reverse_works: List[float]
+    ax: plt.Axes,
+    forward_works: List[float],
+    reverse_works: List[float],
+    delta_f: float,
 ) -> None:
     """
     Plot a single work distribution
@@ -28,6 +31,8 @@ def plot_work_distribution(
        Forward work values
     reverse_works : list of float
        Reverse work values
+    delta_f : float
+       Free energy estimate
     """
 
     distplot = partial(
@@ -52,14 +57,17 @@ def plot_work_distribution(
         label=f"reverse : N={len(reverse_works)}",
     )
 
-    ax.set_xlabel(fr"work / $(k_B \times {TEMPERATURE.value_in_unit(unit.kelvin)} K)$")
+    ax.axvline(delta_f, color="k", ls=":")
+    ax.set_xlabel(f"work / $k_B T$")
 
 
 def plot_work_distributions(
     complex_forward_works: List[float],
     complex_reverse_works: List[float],
+    complex_delta_f: float,
     solvent_forward_works: List[float],
     solvent_reverse_works: List[float],
+    solvent_delta_f: float,
     figsize: Tuple[float, float] = (7.5, 3.25),
 ) -> plt.Figure:
     """
@@ -71,6 +79,8 @@ def plot_work_distributions(
        Work values for the complex
     solvent_forward_works, solvent_reverse_works : list of float
        Work values for the solvent
+    complex_delta_f, solvent_delta_f : float
+       Free energies computed for the complex and solvent
 
     Returns
     -------
@@ -80,10 +90,14 @@ def plot_work_distributions(
 
     fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=figsize)
 
-    plot_work_distribution(ax1, complex_forward_works, complex_reverse_works)
+    plot_work_distribution(
+        ax1, complex_forward_works, complex_reverse_works, complex_delta_f
+    )
     ax1.set_title("complex")
 
-    plot_work_distribution(ax2, solvent_forward_works, solvent_reverse_works)
+    plot_work_distribution(
+        ax2, solvent_forward_works, solvent_reverse_works, solvent_delta_f
+    )
     ax2.set_title("solvent")
 
     fig.subplots_adjust(top=0.9, wspace=0.15)
@@ -104,9 +118,7 @@ def _filter_inclusive(
 
 
 def plot_relative_distribution(
-    relative_delta_fs: List[float],
-    min_bound: float = -30,
-    max_bound: float = 30,
+    relative_delta_fs: List[float], min_bound: float = -30, max_bound: float = 30
 ) -> None:
     """
     Plot the distribution of relative free energies
@@ -370,12 +382,14 @@ def save_run_level_plots(
             complex_reverse_works=[
                 w for gen in complex_phase.gens for w in gen.reverse_works
             ],
+            complex_delta_f=complex_phase.free_energy.delta_f,
             solvent_forward_works=[
                 w for gen in solvent_phase.gens for w in gen.forward_works
             ],
             solvent_reverse_works=[
                 w for gen in solvent_phase.gens for w in gen.reverse_works
             ],
+            solvent_delta_f=solvent_phase.free_energy.delta_f,
         )
         fig.suptitle(f"RUN{run}")
 
