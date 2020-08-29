@@ -147,7 +147,7 @@ def plot_relative_distribution(
         rug_kws=dict(color="hotpink", alpha=0.5),
         label=f"N={len(relative_delta_fs)}",
     )
-    plt.xlabel("Relative free energy to ligand 0 / kcal/mol")
+    plt.xlabel("Relative free energy to ligand 0 / kcal mol$^{-1}$")
 
 
 def plot_convergence(
@@ -246,7 +246,7 @@ def plot_convergence(
     ax2.legend()
 
     for ax in [ax1, ax2]:
-        ax.set_ylabel("Rel. $\Delta F$ /" + r" kcal mol${^-1}$")
+        ax.set_ylabel(r"Rel. $\Delta F$ / kcal mol$^{-1}$")
 
     return fig
 
@@ -304,7 +304,7 @@ def plot_cumulative_distributions(
             verticalalignment="center",
             color="green",
         )
-    plt.xlabel("Affinity relative to ligand 0 / " + r"kcal mol$^{-1}$")
+    plt.xlabel(r"Affinity relative to ligand 0 / kcal mol$^{-1}$")
     plt.ylabel("Cumulative $N$ ligands")
 
 
