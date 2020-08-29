@@ -330,11 +330,9 @@ def save_plot(path: str, name: str, file_format: str):
     >>>     plt.title("My cool plot")
     """
     plt.figure()
-    try:
-        yield
-    finally:
-        plt.tight_layout()
-        plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
+    yield
+    plt.tight_layout()
+    plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
 
 
 def save_run_level_plots(
