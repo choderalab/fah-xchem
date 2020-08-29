@@ -148,7 +148,7 @@ def plot_convergence(
     binding_delta_f: float,
     binding_delta_f_err: float,
     n_devs_bounds: float = 1.65,  # 95th percentile
-) -> None:
+) -> plt.Figure:
     """
     Plot the convergence of free energy estimates with GEN
 
@@ -164,7 +164,14 @@ def plot_convergence(
         Binding free energy and error, estimated using data for all gens
     n_devs_bounds : float
         Number of standard deviations for drawing bounds
+
+    Returns
+    -------
+    Figure
+        Figure containing the plot
     """
+
+    fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
 
     DDG = np.array(solvent_delta_fs) - np.array(complex_delta_fs)
     DDG_kC = (DDG * KT).value_in_unit(unit.kilocalories_per_mole)
@@ -174,8 +181,8 @@ def plot_convergence(
     )
     DDG_err_kC = (DDG_err * KT).value_in_unit(unit.kilocalories_per_mole)
 
-    plt.scatter(gens, DDG_kC, color="green", label="binding")
-    plt.vlines(
+    ax1.scatter(gens, DDG_kC, color="green", label="binding")
+    ax1.vlines(
         gens,
         DDG_kC - DDG_err_kC * n_devs_bounds,
         DDG_kC + DDG_err_kC * n_devs_bounds,
@@ -194,28 +201,23 @@ def plot_convergence(
             unit.kilocalories_per_mole
         )
 
-        shift = np.mean(delta_fs_kC)
-        y = delta_fs_kC - shift
-        plt.scatter(gens, y, color=color, label=label)
-        for gen in gens:
-            plt.vlines(
-                gen,
-                y[gen] - delta_f_errs_kC[gen] * n_devs_bounds,
-                y[gen] + delta_f_errs_kC[gen] * n_devs_bounds,
-                color=color,
-            )
+        ax2.scatter(gens, delta_fs_kC, color=color, label=label)
+        ax2.vlines(
+            gens,
+            delta_fs_kC - delta_f_errs_kC * n_devs_bounds,
+            delta_fs_kC + delta_f_errs_kC * n_devs_bounds,
+            color=color,
+        )
 
-    plt.xlabel("GEN")
-    plt.ylabel("Relative free energy /" + r" kcal mol${^-1}$")
-    plt.hlines(
+    ax1.hlines(
         (binding_delta_f * KT).value_in_unit(unit.kilocalories_per_mole),
         0,
         max(gens),
         color="green",
         linestyle=":",
-        label="free energy (all GENS)",
+        label="binding (all GENS)",
     )
-    plt.fill_between(
+    ax1.fill_between(
         [0, max(gens)],
         ((binding_delta_f - binding_delta_f_err * n_devs_bounds) * KT).value_in_unit(
             unit.kilocalories_per_mole
@@ -226,8 +228,16 @@ def plot_convergence(
         alpha=0.2,
         color="green",
     )
-    plt.xticks([gen for gen in range(0, max(gens) + 1)])
-    plt.legend()
+
+    ax1.set_xticks([gen for gen in range(0, max(gens) + 1)])
+    ax2.set_xlabel("GEN")
+    ax1.legend()
+    ax2.legend()
+
+    for ax in [ax1, ax2]:
+        ax.set_ylabel("Rel. $\Delta F$ /" + r" kcal mol${^-1}$")
+
+    return fig
 
 
 def plot_cumulative_distributions(
@@ -373,7 +383,7 @@ def save_run_level_plots(
     solvent_gens = set([gen.gen for gen in solvent_phase.gens])
 
     with save_plot(path, f"RUN{run}-convergence", file_format):
-        plot_convergence(
+        fig = plot_convergence(
             gens=list(complex_gens.intersection(solvent_gens)),
             complex_delta_fs=[gen.free_energy.delta_f for gen in complex_phase.gens],
             complex_delta_f_errs=[
@@ -386,7 +396,7 @@ def save_run_level_plots(
             binding_delta_f=binding.delta_f,
             binding_delta_f_err=binding.ddelta_f,
         )
-        plt.title(f"RUN{run}")
+        fig.suptitle(f"RUN{run}")
 
 
 def save_summary_plots(
