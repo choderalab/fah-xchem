@@ -103,7 +103,6 @@ def _filter_inclusive(
 
 def plot_relative_distribution(
     relative_delta_fs: List[float],
-    bins: int = 100,
     min_bound: float = -30,
     max_bound: float = 30,
 ) -> None:
@@ -114,8 +113,6 @@ def plot_relative_distribution(
     ----------
     relative_delta_fs : list of float
         Relative free energies
-    bins : int
-        Number of bins for histogramming
     min_bound, max_bound : float
         Omit values less than `min_bound` or greater than `max_bound`
     """
