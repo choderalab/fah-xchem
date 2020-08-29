@@ -28,11 +28,11 @@ def plot_work_distribution(
     ax : AxesSubplot
        Axes on which to draw the plot
     forward_works : list of float
-       Forward work values
+       Forward work values (in kT)
     reverse_works : list of float
-       Reverse work values
+       Reverse work values (in kT)
     delta_f : float
-       Free energy estimate
+       Free energy estimate (in kT)
     """
 
     distplot = partial(
@@ -76,11 +76,11 @@ def plot_work_distributions(
     Parameters
     ----------
     complex_forward_works, complex_reverse_works : list of float
-       Work values for the complex
+       Work values for the complex (in kT)
     solvent_forward_works, solvent_reverse_works : list of float
-       Work values for the solvent
+       Work values for the solvent (in kT)
     complex_delta_f, solvent_delta_f : float
-       Free energies computed for the complex and solvent
+       Free energies computed for the complex and solvent (in kT)
 
     Returns
     -------
@@ -126,7 +126,7 @@ def plot_relative_distribution(
     Parameters
     ----------
     relative_delta_fs : list of float
-        Relative free energies
+        Relative free energies (in kT)
     min_bound, max_bound : float
         Omit values less than `min_bound` or greater than `max_bound`
     """
@@ -168,11 +168,11 @@ def plot_convergence(
     gens : list of int
         List of gens to plot
     complex_delta_fs, complex_delta_f_errs : list of float
-        Free energies and errors for the complex; one of each per gen
+        Free energies and errors for the complex; one of each per gen (in kT)
     solvent_delta_fs, solvent_delta_f_errs : list of float
-        Free energies and errors for the solvent; one of each per gen
+        Free energies and errors for the solvent; one of each per gen (in kT)
     binding_delta_f, binding_delta_f_err : float
-        Binding free energy and error, estimated using data for all gens
+        Binding free energy and error, estimated using data for all gens (in kT)
     n_devs_bounds : float
         Number of standard deviations for drawing bounds
 
