@@ -326,7 +326,17 @@ def save_run_level_plots(
     file_format: str = "pdf",
 ) -> None:
     """
-    Save plots specific to a run
+    Save plots specific to a run.
+
+    The following plots are generated. See the docstrings for the
+    individual plotting functions for more information.
+
+    - Work distributions for the solvent and complex.
+      Saved to ``{path}/RUN{run}.{file_format}``
+
+    - Convergence of relative free energies by GEN.
+      Useful for examining the convergence of the results.
+      Saved to ``{path}/RUN{run}-convergence.{file_format}``
 
     Parameters
     ----------
@@ -385,7 +395,18 @@ def save_summary_plots(
     runs: List[RunAnalysis], path: str = os.curdir, file_format: str = "pdf"
 ) -> None:
     """
-    Save plots summarizing all runs
+    Save plots summarizing all runs.
+
+    The following plots are generated. See the docstrings for the
+    individual plotting functions for more information.
+
+    - Histogram of relative binding free energies (solvent - complex).
+      Saved to ``{path}/relative_fe_hist.{file_format}``
+
+    - Cumulative distribution of relative binding free energies.
+      This is useful for seeing at a glance how many compounds are
+      below a threshold binding free energy.
+      Saved to ``{path}/cumulative_fe_hist.{file_format}``
 
     Parameters
     ----------
