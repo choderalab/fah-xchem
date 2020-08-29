@@ -406,12 +406,12 @@ def save_summary_plots(
     individual plotting functions for more information.
 
     - Histogram of relative binding free energies (solvent - complex).
-      Saved to ``{path}/relative_fe_hist.{file_format}``
+      Saved to ``{path}/relative_fe_dist.{file_format}``
 
     - Cumulative distribution of relative binding free energies.
       This is useful for seeing at a glance how many compounds are
       below a threshold binding free energy.
-      Saved to ``{path}/cumulative_fe_hist.{file_format}``
+      Saved to ``{path}/cumulative_fe_dist.{file_format}``
 
     Parameters
     ----------
@@ -424,10 +424,10 @@ def save_summary_plots(
     """
     binding_delta_fs = [run.binding.delta_f for run in runs]
 
-    with save_plot(path, "relative_fe_hist", file_format):
+    with save_plot(path, "relative_fe_dist", file_format):
         plot_relative_distribution(binding_delta_fs)
         plt.title("Relative affinity")
 
-    with save_plot(path, "cumulative_fe_hist", file_format):
+    with save_plot(path, "cumulative_fe_dist", file_format):
         plot_cumulative_distributions(binding_delta_fs)
         plt.title("Cumulative distribution")
