@@ -166,23 +166,21 @@ def plot_convergence(
         Number of standard deviations for drawing bounds
     """
 
-    for gen in gens:
+    DDG = np.array(solvent_delta_fs) - np.array(complex_delta_fs)
+    DDG_kC = (DDG * KT).value_in_unit(unit.kilocalories_per_mole)
 
-        DDG = solvent_delta_fs[gen] - complex_delta_fs[gen]
-        DDG_kC = (DDG * KT).value_in_unit(unit.kilocalories_per_mole)
+    DDG_err = np.sqrt(
+        np.array(solvent_delta_f_errs) ** 2 + np.array(complex_delta_f_errs) ** 2
+    )
+    DDG_err_kC = (DDG_err * KT).value_in_unit(unit.kilocalories_per_mole)
 
-        DDG_err = np.sqrt(
-            solvent_delta_f_errs[gen] ** 2 + complex_delta_f_errs[gen] ** 2
-        )
-        DDG_err_kC = (DDG_err * KT).value_in_unit(unit.kilocalories_per_mole)
-
-        plt.scatter(gen, DDG_kC, color="green", label='binding')
-        plt.vlines(
-            gen,
-            DDG_kC - DDG_err_kC * n_devs_bounds,
-            DDG_kC + DDG_err_kC * n_devs_bounds,
-            color="green",
-        )
+    plt.scatter(gens, DDG_kC, color="green", label="binding")
+    plt.vlines(
+        gens,
+        DDG_kC - DDG_err_kC * n_devs_bounds,
+        DDG_kC + DDG_err_kC * n_devs_bounds,
+        color="green",
+    )
 
     for label, (delta_fs, delta_f_errs), color in [
         ("solvent", (solvent_delta_fs, solvent_delta_f_errs), "blue"),
