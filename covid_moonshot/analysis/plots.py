@@ -321,6 +321,7 @@ def save_plot(path: str, name: str, file_format: str):
     try:
         yield
     finally:
+        plt.tight_layout()
         plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
 
 
