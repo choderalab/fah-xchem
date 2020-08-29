@@ -176,7 +176,7 @@ def plot_convergence(
         )
         DDG_err_kC = (DDG_err * KT).value_in_unit(unit.kilocalories_per_mole)
 
-        plt.scatter(gen, DDG_kC, color="green")
+        plt.scatter(gen, DDG_kC, color="green", label='binding')
         plt.vlines(
             gen,
             DDG_kC - DDG_err_kC * n_devs_bounds,
