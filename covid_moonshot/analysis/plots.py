@@ -52,6 +52,8 @@ def plot_work_distribution(
         label=f"reverse : N={len(reverse_works)}",
     )
 
+    ax.set_xlabel(fr"work / $(k_B \times {TEMPERATURE.value_in_unit(unit.kelvin)} K)$")
+
 
 def plot_work_distributions(
     complex_forward_works: List[float],
