@@ -134,12 +134,12 @@ def plot_relative_distribution(
     valid_relative_delta_fs = _filter_inclusive(
         np.array(relative_delta_fs), min_bound, max_bound
     )
-    valid_relative_delta_fs_kC = (valid_relative_delta_fs * KT).value_in_unit(
+    valid_relative_delta_fs_kcal = (valid_relative_delta_fs * KT).value_in_unit(
         unit.kilocalories_per_mole
     )
 
     sns.distplot(
-        valid_relative_delta_fs_kC,
+        valid_relative_delta_fs_kcal,
         hist=False,
         kde=True,
         rug=True,
@@ -185,18 +185,18 @@ def plot_convergence(
     fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
 
     DDG = np.array(solvent_delta_fs) - np.array(complex_delta_fs)
-    DDG_kC = (DDG * KT).value_in_unit(unit.kilocalories_per_mole)
+    DDG_kcal = (DDG * KT).value_in_unit(unit.kilocalories_per_mole)
 
     DDG_err = np.sqrt(
         np.array(solvent_delta_f_errs) ** 2 + np.array(complex_delta_f_errs) ** 2
     )
-    DDG_err_kC = (DDG_err * KT).value_in_unit(unit.kilocalories_per_mole)
+    DDG_err_kcal = (DDG_err * KT).value_in_unit(unit.kilocalories_per_mole)
 
-    ax1.scatter(gens, DDG_kC, color="green", label="binding")
+    ax1.scatter(gens, DDG_kcal, color="green", label="binding")
     ax1.vlines(
         gens,
-        DDG_kC - DDG_err_kC * n_devs_bounds,
-        DDG_kC + DDG_err_kC * n_devs_bounds,
+        DDG_kcal - DDG_err_kcal * n_devs_bounds,
+        DDG_kcal + DDG_err_kcal * n_devs_bounds,
         color="green",
     )
 
@@ -205,18 +205,18 @@ def plot_convergence(
         ("complex", (complex_delta_fs, complex_delta_f_errs), "red"),
     ]:
 
-        delta_fs_kC = (np.array(delta_fs) * KT).value_in_unit(
+        delta_fs_kcal = (np.array(delta_fs) * KT).value_in_unit(
             unit.kilocalories_per_mole
         )
-        delta_f_errs_kC = (np.array(delta_f_errs) * KT).value_in_unit(
+        delta_f_errs_kcal = (np.array(delta_f_errs) * KT).value_in_unit(
             unit.kilocalories_per_mole
         )
 
-        ax2.scatter(gens, delta_fs_kC, color=color, label=label)
+        ax2.scatter(gens, delta_fs_kcal, color=color, label=label)
         ax2.vlines(
             gens,
-            delta_fs_kC - delta_f_errs_kC * n_devs_bounds,
-            delta_fs_kC + delta_f_errs_kC * n_devs_bounds,
+            delta_fs_kcal - delta_f_errs_kcal * n_devs_bounds,
+            delta_fs_kcal + delta_f_errs_kcal * n_devs_bounds,
             color=color,
         )
 
@@ -279,15 +279,15 @@ def plot_cumulative_distributions(
 
     """
 
-    affinities_kC = (np.array(affinities) * KT).value_in_unit(
+    affinities_kcal = (np.array(affinities) * KT).value_in_unit(
         unit.kilocalories_per_mole
     )
-    valid_affinities_kC = _filter_inclusive(affinities_kC, minimum, maximum)
+    valid_affinities_kcal = _filter_inclusive(affinities_kcal, minimum, maximum)
 
     cm = plt.cm.get_cmap(cmap)
 
     # Get the histogram
-    Y, X = np.histogram(valid_affinities_kC, n_bins)
+    Y, X = np.histogram(valid_affinities_kcal, n_bins)
     Y = np.cumsum(Y)
     x_span = X.max() - X.min()
     C = [cm(((X.max() - x) / x_span)) for x in X]
