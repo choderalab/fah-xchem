@@ -32,7 +32,7 @@ def extract_works(project_data_path: str, run: int) -> List[Work]:
 
     if not paths:
         raise ValueError(
-            f"Empty result set for project path '{project_data_path}', run {run}"
+            f"Empty result set for project path '{project_data_path}', RUN {run}"
         )
 
     def try_extract_work(path: ResultPath) -> Optional[Work]:
@@ -105,7 +105,7 @@ def analyze_run(
         and analysis.binding.delta_f >= max_binding_delta_f
     ):
         logging.warning(
-            f"Skipping snapshot for run {run}. "
+            f"Skipping snapshot for RUN {run}. "
             f"Binding free energy estimate {analysis.binding.delta_f} "
             f"exceeds threshold {max_binding_delta_f}."
         )
@@ -130,7 +130,7 @@ def _try_process_run(details: RunDetails, **kwargs) -> Optional[Run]:
     try:
         return Run(details=details, analysis=analyze_run(details.run_id(), **kwargs))
     except ValueError as e:
-        logging.warning("Failed to process run %d: %s", details.run_id(), e)
+        logging.warning("Failed to process RUN %d: %s", details.run_id(), e)
         return None
 
 
@@ -204,6 +204,6 @@ def analyze_runs(
     num_failed = len(results) - len(valid)
 
     if num_failed > 0:
-        logging.warning("Failed to process %d runs out of %d", num_failed, len(results))
+        logging.warning("Failed to process %d RUNs out of %d", num_failed, len(results))
 
     return valid
