@@ -298,12 +298,13 @@ def plot_cumulative_distribution(
 
     plt.bar(X[:-1], Y, color=C, width=X[1] - X[0], edgecolor="k")
 
-    for v in markers_kcal:
-        plt.vlines(-v, 0, Y.max(), "grey", linestyles="dashed")
+    for marker_kcal in markers_kcal:
+        n_below = (relative_delta_fs_kcal < marker_kcal).astype(int).sum()
+        plt.vlines(-marker_kcal, 0, Y.max(), "grey", linestyles="dashed")
         plt.text(
-            v - 0.5,
+            marker_kcal - 0.5,
             0.8 * Y.max(),
-            f"$N$ = {len([x for x in relative_delta_fs if x < v])}",
+            rf"$N$ = {n_below}",
             rotation=90,
             verticalalignment="center",
             color="green",
