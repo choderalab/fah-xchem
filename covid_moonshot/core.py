@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 from dataclasses_json import dataclass_json
 
 
@@ -34,7 +34,7 @@ class FreeEnergy:
 @dataclass
 class GenAnalysis:
     gen: int
-    free_energy: FreeEnergy
+    free_energy: Optional[FreeEnergy]
     forward_works: List[float]
     reverse_works: List[float]
 

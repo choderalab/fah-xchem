@@ -1,9 +1,14 @@
 import functools
+import logging
 from typing import List, Optional, Tuple
 import numpy as np
 from pymbar import BAR
 from pymbar.mbar import MBAR
 from covid_moonshot.core import FreeEnergy, GenAnalysis, PhaseAnalysis, Work
+
+
+class InsufficientDataError(ValueError):
+    pass
 
 
 def mask_outliers(a: np.ndarray, max_value: float, max_n_devs: float) -> np.ndarray:
@@ -101,7 +106,7 @@ def get_free_energy(
         representing forward and reverse works, respectively
     min_num_work_values : int or None, optional
         Minimum number of valid work values required for
-        analysis. Raises ValueError if not satisfied.
+        analysis. Raises InsufficientDataError if not satisfied.
 
     Returns
     -------
@@ -110,13 +115,13 @@ def get_free_energy(
 
     Raises
     ------
-    ValueError
+    InsufficientDataError
         If `min_num_work_values` is given and the number of work
         values is less than this.
     """
 
     if min_num_work_values is not None and len(works) < min_num_work_values:
-        raise ValueError(
+        raise InsufficientDataError(
             f"Need at least {min_num_work_values} good work values for analysis, "
             f"but got {len(works)}"
         )
@@ -145,21 +150,17 @@ def get_gen_analysis(
         Work values for all clones and a run/phase/gen
     min_num_work_values : int or None, optional
         Minimum number of valid work values required for
-        analysis. Raises ValueError if not satisfied.
+        analysis. Logs a warning and returns `None` if not satisfied.
     work_precision_decimals : int or None, optional
         If given, round returned `forward_works` and `reverse_works`
         to this number of decimal places
 
     Returns
     -------
-    GenAnalysis
-        Results of free energy computations for a run/phase/gen
-
-    Raises
-    ------
-    ValueError
-        If `min_num_work_values` is given and the number of work
-        values is less than this.
+    GenAnalysis or None
+        Results of free energy computations for a run/phase/gen if
+        there were at least `min_num_work_values` in the input,
+        otherwise None
     """
 
     def maybe_round(works: np.ndarray) -> np.ndarray:
@@ -169,7 +170,11 @@ def get_gen_analysis(
             else works.round(work_precision_decimals)
         )
 
-    free_energy = get_free_energy(works, min_num_work_values=min_num_work_values)
+    try:
+        free_energy = get_free_energy(works, min_num_work_values=min_num_work_values)
+    except InsufficientDataError as e:
+        logging.warning(f"Skipping GEN %d due to insufficient data: %s", gen, e)
+        free_energy = None
 
     return GenAnalysis(
         gen=gen,
