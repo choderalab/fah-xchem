@@ -118,7 +118,7 @@ def _filter_inclusive(
 
 
 def plot_relative_distribution(
-    relative_delta_fs: List[float], min_bound: float = -30, max_bound: float = 30
+    relative_delta_fs: List[float], min_delta_f: float = -30, max_delta_f: float = 30
 ) -> None:
     """
     Plot the distribution of relative free energies
@@ -127,12 +127,13 @@ def plot_relative_distribution(
     ----------
     relative_delta_fs : list of float
         Relative free energies (in kT)
-    min_bound, max_bound : float
+    min_delta_f, max_delta_f : float
         Omit values less than `min_bound` or greater than `max_bound`
+        (in kT)
     """
 
     valid_relative_delta_fs = _filter_inclusive(
-        np.array(relative_delta_fs), min_bound, max_bound
+        np.array(relative_delta_fs), min_delta_f, max_delta_f
     )
     valid_relative_delta_fs_kcal = (valid_relative_delta_fs * KT).value_in_unit(
         unit.kilocalories_per_mole
@@ -147,7 +148,7 @@ def plot_relative_distribution(
         rug_kws=dict(color="hotpink", alpha=0.5),
         label=f"N={len(relative_delta_fs)}",
     )
-    plt.xlabel("Relative free energy to ligand 0 / kcal mol$^{-1}$")
+    plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
 
 
 def plot_convergence(
@@ -251,60 +252,63 @@ def plot_convergence(
     return fig
 
 
-def plot_cumulative_distributions(
-    affinities: List[float],
-    minimum: Optional[float] = None,
-    maximum: float = 5,
+def plot_cumulative_distribution(
+    relative_delta_fs: List[float],
+    min_delta_f_kcal: Optional[float] = None,
+    max_delta_f_kcal: float = 5,
     cmap: str = "PiYG",
     n_bins: int = 100,
-    markers: List[float] = [-2, -1, 0, 1, 2],
+    markers_kcal: List[float] = [-2, -1, 0, 1, 2],
 ) -> None:
     """
     Plot cumulative distribution of ligand affinities
 
     Parameters
     ----------
-    affinities : list of float
-        Affinities to plot
-    minimum : float
-        Maximum affinity to plot in kcal/mol
-    maximum : float
-        Maximum affinity to plot in kcal/mol
+    relative_delta_fs : list of float
+        Relative free energies (in kT)
+    min_delta_f_kcal : float
+        Minimum free energy to plot (in kcal/mol)
+    max_delta_f_kcal : float
+        Maximum free energy to plot (in kcal/mol)
     cmap : str
-        string name of colormap to use
+        String name of colormap to use
     n_bins : int
         Number of bins to use
-    markers : list of float
-        Affinity values at which to label
+    markers_kcal : list of float
+        Free energy values at which to label (in kcal/mol)
 
     """
 
-    affinities_kcal = (np.array(affinities) * KT).value_in_unit(
+    relative_delta_fs_kcal = (np.array(relative_delta_fs) * KT).value_in_unit(
         unit.kilocalories_per_mole
     )
-    valid_affinities_kcal = _filter_inclusive(affinities_kcal, minimum, maximum)
+
+    relative_delta_fs_kcal = _filter_inclusive(
+        relative_delta_fs_kcal, min_delta_f_kcal, max_delta_f_kcal
+    )
 
     cm = plt.cm.get_cmap(cmap)
 
     # Get the histogram
-    Y, X = np.histogram(valid_affinities_kcal, n_bins)
+    Y, X = np.histogram(relative_delta_fs_kcal, n_bins)
     Y = np.cumsum(Y)
     x_span = X.max() - X.min()
     C = [cm(((X.max() - x) / x_span)) for x in X]
 
     plt.bar(X[:-1], Y, color=C, width=X[1] - X[0], edgecolor="k")
 
-    for v in markers:
+    for v in markers_kcal:
         plt.vlines(-v, 0, Y.max(), "grey", linestyles="dashed")
         plt.text(
             v - 0.5,
             0.8 * Y.max(),
-            f"$N$ = {len([x for x in affinities if x < v])}",
+            f"$N$ = {len([x for x in relative_delta_fs if x < v])}",
             rotation=90,
             verticalalignment="center",
             color="green",
         )
-    plt.xlabel(r"Affinity relative to ligand 0 / kcal mol$^{-1}$")
+    plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
     plt.ylabel("Cumulative $N$ ligands")
 
 
@@ -444,5 +448,5 @@ def save_summary_plots(
         plt.title("Relative affinity")
 
     with save_plot(path, "cumulative_fe_dist", file_format):
-        plot_cumulative_distributions(binding_delta_fs)
+        plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
