@@ -446,7 +446,7 @@ def save_summary_plots(
 
     with save_plot(path, "relative_fe_dist", file_format):
         plot_relative_distribution(binding_delta_fs)
-        plt.title("Relative affinity")
+        plt.title("Relative free energy")
 
     with save_plot(path, "cumulative_fe_dist", file_format):
         plot_cumulative_distribution(binding_delta_fs)
