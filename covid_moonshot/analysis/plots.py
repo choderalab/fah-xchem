@@ -248,7 +248,7 @@ def plot_convergence(
     ax2.legend()
 
     for ax in [ax1, ax2]:
-        ax.set_ylabel(r"Rel. $\Delta F$ / kcal mol$^{-1}$")
+        ax.set_ylabel(r"Rel. $\Delta G$ / kcal mol$^{-1}$")
 
     return fig
 
