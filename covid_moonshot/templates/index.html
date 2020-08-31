@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>COVID Moonshot Sprint {{ sprint }} Analysis</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+<!--[if lt IE 9]><script src="js/html5shiv-printshiv.js" media="all"></script><![endif]-->
+<style>
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+tr:nth-child(even){background-color: #f2f2f2;}
+
+tr:hover {background-color: #ddd;}
+
+th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #4CAF50;
+  color: white;
+}
+</style>
+</head>
+<body>
+  <h1>COVID Moonshot Sprint {{ sprint }} Analysis</h1>
+  <h2>Summary</h2>
+  <a href="plots/relative_fe_dist.png"><img src="plots/relative_fe_dist.png"></a>
+  <a href="plots/cumulative_fe_dist.png"><img src="plots/cumulative_fe_dist.png"></a>
+  <h2>Top 20 Compounds</h2>
+  <table>
+    <tr>
+      <th>RUN</th>
+      <th>DDG 2σ UB</th>
+      <th>ΔG distributions</th>
+      <th>Convergence</th>
+    </tr>
+    {% for run in runs[:20] | sort(attribute="analysis.binding.delta_f") %}
+    <tr>
+      <td>RUN{{ run.details.run_id() }}</td>
+      <td><b>{{ "%.03f" % (run.analysis.binding.delta_f + 2*run.analysis.binding.ddelta_f) }}</b></td>
+      <td><a href="plots/RUN{{ run.details.run_id() }}.png"><img src="plots/RUN{{ run.details.run_id() }}.png" height=100></a></td>
+      <td><a href="plots/RUN{{ run.details.run_id() }}-convergence.png"><img src="plots/RUN{{ run.details.run_id() }}-convergence.png" height=100></a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <h2>All Compounds</h2>
+  <table>
+    <tr>
+      <th>RUN</th>
+      <th>DDG 2σ UB</th>
+      <th>ΔG distributions</th>
+      <th>Convergence</th>
+    </tr>
+    {% for run in runs | sort(attribute="details.JOBID") %}
+    <tr>
+      <td>RUN{{ run.details.run_id() }}</td>
+      <td><b>{{ "%.03f" % (run.analysis.binding.delta_f + 2*run.analysis.binding.ddelta_f) }}</b></td>
+      <td><a href="plots/RUN{{ run.details.run_id() }}.png">ΔG distributions</a></td>
+      <td><a href="plots/RUN{{ run.details.run_id() }}-convergence.png">convergence</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+
+</body>
+</html>

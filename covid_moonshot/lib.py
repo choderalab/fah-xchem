@@ -19,6 +19,7 @@ from .core import (
     Work,
 )
 from .extract_work import extract_work
+from .reports import save_reports
 
 
 def get_result_path(project_data_path: str, run: str, clone: str, gen: str) -> str:
@@ -219,8 +220,8 @@ def analyze_runs(
     if num_failed > 0:
         logging.warning("Failed to process %d RUNs out of %d", num_failed, len(results))
 
-    save_summary_plots(
-        [run.analysis for run in runs_output], os.path.join(output_dir, "plots")
-    )
+    run_analyses = [run.analysis for run in runs_output]
+    save_summary_plots(run_analyses, os.path.join(output_dir, "plots"))
+    save_reports(runs_output, output_dir)
 
     return runs_output
