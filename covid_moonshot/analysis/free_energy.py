@@ -170,11 +170,12 @@ def get_gen_analysis(
             else works.round(work_precision_decimals)
         )
 
+    free_energy = None
+
     try:
         free_energy = get_free_energy(works, min_num_work_values=min_num_work_values)
     except InsufficientDataError as e:
         logging.warning(f"Skipping GEN %d due to insufficient data: %s", gen, e)
-        free_energy = None
 
     return GenAnalysis(
         gen=gen,
