@@ -159,7 +159,8 @@ def get_gen_analysis(
         Work values for all clones and a run/phase/gen
     min_num_work_values : int or None, optional
         Minimum number of valid work values required for
-        analysis. Logs a warning and returns `None` if not satisfied.
+        analysis. Logs a warning and returns an object with
+        `free_energy` equal to `None` if not satisfied.
     work_precision_decimals : int or None, optional
         If given, round returned `forward_works` and `reverse_works`
         to this number of decimal places
