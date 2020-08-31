@@ -9,7 +9,7 @@ from typing import List, Optional
 import joblib
 from tqdm.auto import tqdm
 from .analysis.plots import save_run_level_plots, save_summary_plots
-from .analysis import get_run_analysis
+from .analysis.free_energy import get_run_analysis
 from .analysis.structures import save_representative_snapshots
 from .core import (
     ResultPath,
@@ -33,7 +33,7 @@ def extract_works(project_data_path: str, run: int) -> List[Work]:
 
     if not paths:
         raise ValueError(
-            f"Empty result set for project path '{project_data_path}', run {run}"
+            f"Empty result set for project path '{project_data_path}', RUN {run}"
         )
 
     def try_extract_work(path: ResultPath) -> Optional[Work]:
@@ -100,14 +100,14 @@ def analyze_run(
     except ValueError as e:
         raise ValueError(f"Failed to extract work values for solvent: {e}")
 
-    analysis = get_run_analysis(complex_works, solvent_works)
+    analysis = get_run_analysis(run, complex_works, solvent_works)
 
     if (
         max_binding_delta_f is not None
         and analysis.binding.delta_f >= max_binding_delta_f
     ):
         logging.warning(
-            f"Skipping snapshot for run {run}. "
+            f"Skipping snapshot for RUN {run}. "
             f"Binding free energy estimate {analysis.binding.delta_f} "
             f"exceeds threshold {max_binding_delta_f}."
         )
@@ -140,7 +140,7 @@ def _try_process_run(details: RunDetails, **kwargs) -> Optional[Run]:
     try:
         return Run(details=details, analysis=analyze_run(details.run_id(), **kwargs))
     except ValueError as e:
-        logging.warning("Failed to process run %d: %s", details.run_id(), e)
+        logging.warning("Failed to process RUN %d: %s", details.run_id(), e)
         return None
 
 
@@ -218,7 +218,7 @@ def analyze_runs(
     num_failed = len(results) - len(runs_output)
 
     if num_failed > 0:
-        logging.warning("Failed to process %d runs out of %d", num_failed, len(results))
+        logging.warning("Failed to process %d RUNs out of %d", num_failed, len(results))
 
     save_summary_plots([run.analysis for run in runs_output], plot_output_path)
 

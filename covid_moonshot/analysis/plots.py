@@ -11,8 +11,7 @@ from openmmtools.constants import kB
 from typing import List, Optional, Tuple
 from ..core import Binding, PhaseAnalysis, RunAnalysis, Work
 
-TEMPERATURE = 300.0 * unit.kelvin
-KT = kB * TEMPERATURE
+_kT_kcal = kB * 300 * unit.kelvin / unit.kilocalories_per_mole
 
 
 def plot_work_distribution(
@@ -136,9 +135,7 @@ def plot_relative_distribution(
     valid_relative_delta_fs = _filter_inclusive(
         np.array(relative_delta_fs), min_delta_f, max_delta_f
     )
-    valid_relative_delta_fs_kcal = (valid_relative_delta_fs * KT).value_in_unit(
-        unit.kilocalories_per_mole
-    )
+    valid_relative_delta_fs_kcal = valid_relative_delta_fs * _kT_kcal
 
     sns.distplot(
         valid_relative_delta_fs_kcal,
@@ -189,20 +186,16 @@ def plot_convergence(
     fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
 
     complex_delta_fs_kcal = pd.Series(
-        (np.array(complex_delta_fs) * KT).value_in_unit(unit.kilocalories_per_mole),
-        index=complex_gens,
+        np.array(complex_delta_fs) * _kT_kcal, index=complex_gens,
     )
     complex_delta_f_errs_kcal = pd.Series(
-        (np.array(complex_delta_f_errs) * KT).value_in_unit(unit.kilocalories_per_mole),
-        index=complex_gens,
+        np.array(complex_delta_f_errs) * _kT_kcal, index=complex_gens,
     )
     solvent_delta_fs_kcal = pd.Series(
-        (np.array(solvent_delta_fs) * KT).value_in_unit(unit.kilocalories_per_mole),
-        index=solvent_gens,
+        np.array(solvent_delta_fs) * _kT_kcal, index=solvent_gens,
     )
     solvent_delta_f_errs_kcal = pd.Series(
-        (np.array(solvent_delta_f_errs) * KT).value_in_unit(unit.kilocalories_per_mole),
-        index=solvent_gens,
+        np.array(solvent_delta_f_errs) * _kT_kcal, index=solvent_gens,
     )
 
     DDG_kcal = solvent_delta_fs_kcal - complex_delta_fs_kcal
@@ -233,7 +226,7 @@ def plot_convergence(
     gens = complex_delta_fs_kcal.index.union(solvent_delta_fs_kcal.index).values
 
     ax1.hlines(
-        (binding_delta_f * KT).value_in_unit(unit.kilocalories_per_mole),
+        binding_delta_f * _kT_kcal,
         0,
         gens.max(),
         color="green",
@@ -242,12 +235,8 @@ def plot_convergence(
     )
     ax1.fill_between(
         [0, gens.max()],
-        ((binding_delta_f - binding_delta_f_err * n_devs_bounds) * KT).value_in_unit(
-            unit.kilocalories_per_mole
-        ),
-        ((binding_delta_f + binding_delta_f_err * n_devs_bounds) * KT).value_in_unit(
-            unit.kilocalories_per_mole
-        ),
+        (binding_delta_f - binding_delta_f_err * n_devs_bounds) * _kT_kcal,
+        (binding_delta_f + binding_delta_f_err * n_devs_bounds) * _kT_kcal,
         alpha=0.2,
         color="green",
     )
@@ -291,9 +280,7 @@ def plot_cumulative_distribution(
 
     """
 
-    relative_delta_fs_kcal = (np.array(relative_delta_fs) * KT).value_in_unit(
-        unit.kilocalories_per_mole
-    )
+    relative_delta_fs_kcal = np.array(relative_delta_fs) * _kT_kcal
 
     relative_delta_fs_kcal = _filter_inclusive(
         relative_delta_fs_kcal, min_delta_f_kcal, max_delta_f_kcal
@@ -413,17 +400,26 @@ def save_run_level_plots(
         fig.suptitle(f"RUN{run}")
 
     with save_plot(path, f"RUN{run}-convergence", file_format):
+
+        # Filter to GENs for which free energy calculation is available
+        complex_gens = [
+            (gen.gen, gen.free_energy)
+            for gen in complex_phase.gens
+            if gen.free_energy is not None
+        ]
+        solvent_gens = [
+            (gen.gen, gen.free_energy)
+            for gen in solvent_phase.gens
+            if gen.free_energy is not None
+        ]
+
         fig = plot_convergence(
-            complex_gens=[gen.gen for gen in complex_phase.gens],
-            solvent_gens=[gen.gen for gen in solvent_phase.gens],
-            complex_delta_fs=[gen.free_energy.delta_f for gen in complex_phase.gens],
-            complex_delta_f_errs=[
-                gen.free_energy.ddelta_f for gen in complex_phase.gens
-            ],
-            solvent_delta_fs=[gen.free_energy.delta_f for gen in solvent_phase.gens],
-            solvent_delta_f_errs=[
-                gen.free_energy.ddelta_f for gen in solvent_phase.gens
-            ],
+            complex_gens=[gen for gen, _ in complex_gens],
+            solvent_gens=[gen for gen, _ in solvent_gens],
+            complex_delta_fs=[fe.delta_f for _, fe in complex_gens],
+            complex_delta_f_errs=[fe.ddelta_f for _, fe in complex_gens],
+            solvent_delta_fs=[fe.delta_f for _, fe in solvent_gens],
+            solvent_delta_f_errs=[fe.ddelta_f for _, fe in solvent_gens],
             binding_delta_f=binding.delta_f,
             binding_delta_f_err=binding.ddelta_f,
         )

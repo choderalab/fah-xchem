@@ -1,9 +1,21 @@
 import functools
+import logging
 from typing import List, Optional, Tuple
 import numpy as np
 from pymbar import BAR
 from pymbar.mbar import MBAR
-from covid_moonshot.core import FreeEnergy, GenAnalysis, PhaseAnalysis, Work
+from covid_moonshot.core import (
+    Binding,
+    FreeEnergy,
+    GenAnalysis,
+    PhaseAnalysis,
+    RunAnalysis,
+    Work,
+)
+
+
+class InsufficientDataError(ValueError):
+    pass
 
 
 def mask_outliers(a: np.ndarray, max_value: float, max_n_devs: float) -> np.ndarray:
@@ -101,7 +113,7 @@ def get_free_energy(
         representing forward and reverse works, respectively
     min_num_work_values : int or None, optional
         Minimum number of valid work values required for
-        analysis. Raises ValueError if not satisfied.
+        analysis. Raises InsufficientDataError if not satisfied.
 
     Returns
     -------
@@ -110,13 +122,13 @@ def get_free_energy(
 
     Raises
     ------
-    ValueError
+    InsufficientDataError
         If `min_num_work_values` is given and the number of work
         values is less than this.
     """
 
     if min_num_work_values is not None and len(works) < min_num_work_values:
-        raise ValueError(
+        raise InsufficientDataError(
             f"Need at least {min_num_work_values} good work values for analysis, "
             f"but got {len(works)}"
         )
@@ -133,6 +145,8 @@ def get_free_energy(
 
 
 def get_gen_analysis(
+    run: int,
+    phase: str,
     gen: int,
     works: np.ndarray,
     min_num_work_values: Optional[int],
@@ -145,7 +159,8 @@ def get_gen_analysis(
         Work values for all clones and a run/phase/gen
     min_num_work_values : int or None, optional
         Minimum number of valid work values required for
-        analysis. Raises ValueError if not satisfied.
+        analysis. Logs a warning and returns an object with
+        `free_energy` equal to `None` if not satisfied.
     work_precision_decimals : int or None, optional
         If given, round returned `forward_works` and `reverse_works`
         to this number of decimal places
@@ -154,12 +169,6 @@ def get_gen_analysis(
     -------
     GenAnalysis
         Results of free energy computations for a run/phase/gen
-
-    Raises
-    ------
-    ValueError
-        If `min_num_work_values` is given and the number of work
-        values is less than this.
     """
 
     def maybe_round(works: np.ndarray) -> np.ndarray:
@@ -169,7 +178,19 @@ def get_gen_analysis(
             else works.round(work_precision_decimals)
         )
 
-    free_energy = get_free_energy(works, min_num_work_values=min_num_work_values)
+    free_energy = None
+
+    try:
+        free_energy = get_free_energy(works, min_num_work_values=min_num_work_values)
+    except InsufficientDataError as e:
+        logging.warning(
+            f"RUN %d, %s, GEN %d : Skipping free energy calculation due "
+            f"to insufficient data: %s",
+            run,
+            phase,
+            gen,
+            e,
+        )
 
     return GenAnalysis(
         gen=gen,
@@ -180,6 +201,8 @@ def get_gen_analysis(
 
 
 def get_phase_analysis(
+    run: int,
+    phase: str,
     works: List[Work],
     min_num_work_values: Optional[int] = 10,
     work_precision_decimals: Optional[int] = 3,
@@ -217,6 +240,8 @@ def get_phase_analysis(
 
     gens = [
         get_gen_analysis(
+            run=run,
+            phase=phase,
             gen=int(gen),
             works=ws[ws["gen"] == gen],
             min_num_work_values=min_num_work_values,
@@ -228,3 +253,30 @@ def get_phase_analysis(
     free_energy = get_free_energy(ws, min_num_work_values=min_num_work_values)
 
     return PhaseAnalysis(free_energy=free_energy, gens=gens)
+
+
+def get_run_analysis(
+    run: int, complex_works: List[Work], solvent_works: List[Work],
+) -> RunAnalysis:
+
+    try:
+        complex_phase = get_phase_analysis(run, "complex", complex_works)
+    except ValueError as e:
+        raise ValueError(f"Failed to analyze complex: {e}")
+
+    try:
+        solvent_phase = get_phase_analysis(run, "solvent", solvent_works)
+    except ValueError as e:
+        raise ValueError(f"Failed to analyze solvent: {e}")
+
+    binding = Binding(
+        delta_f=solvent_phase.free_energy.delta_f - complex_phase.free_energy.delta_f,
+        ddelta_f=np.sqrt(
+            complex_phase.free_energy.ddelta_f ** 2
+            + solvent_phase.free_energy.ddelta_f ** 2
+        ),
+    )
+
+    return RunAnalysis(
+        complex_phase=complex_phase, solvent_phase=solvent_phase, binding=binding
+    )
