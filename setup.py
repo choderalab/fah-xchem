@@ -9,6 +9,7 @@ setup(
         "dataclasses-json>=0.5",
         "pymbar>=3.0",
         "fire>=0.3",
+        "jinja2>=2.11",
         "joblib>=0.16",
         "simplejson>=3.17",
         "mdtraj>=1.9.4",
