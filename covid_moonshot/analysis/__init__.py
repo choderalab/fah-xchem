@@ -5,16 +5,16 @@ from .free_energy import get_phase_analysis
 
 
 def get_run_analysis(
-    complex_works: List[Work], solvent_works: List[Work],
+    run: int, complex_works: List[Work], solvent_works: List[Work],
 ) -> RunAnalysis:
 
     try:
-        complex_phase = get_phase_analysis(complex_works)
+        complex_phase = get_phase_analysis(run, "complex", complex_works)
     except ValueError as e:
         raise ValueError(f"Failed to analyze complex: {e}")
 
     try:
-        solvent_phase = get_phase_analysis(solvent_works)
+        solvent_phase = get_phase_analysis(run, "solvent", solvent_works)
     except ValueError as e:
         raise ValueError(f"Failed to analyze solvent: {e}")
 

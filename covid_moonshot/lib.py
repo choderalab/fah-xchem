@@ -100,7 +100,7 @@ def analyze_run(
     except ValueError as e:
         raise ValueError(f"Failed to extract work values for solvent: {e}")
 
-    analysis = get_run_analysis(complex_works, solvent_works)
+    analysis = get_run_analysis(run, complex_works, solvent_works)
 
     if (
         max_binding_delta_f is not None

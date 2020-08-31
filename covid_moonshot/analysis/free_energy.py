@@ -138,6 +138,8 @@ def get_free_energy(
 
 
 def get_gen_analysis(
+    run: int,
+    phase: str,
     gen: int,
     works: np.ndarray,
     min_num_work_values: Optional[int],
@@ -175,7 +177,14 @@ def get_gen_analysis(
     try:
         free_energy = get_free_energy(works, min_num_work_values=min_num_work_values)
     except InsufficientDataError as e:
-        logging.warning(f"Skipping GEN %d due to insufficient data: %s", gen, e)
+        logging.warning(
+            f"RUN %d, %s, GEN %d : Skipping free energy calculation due "
+            f"to insufficient data: %s",
+            run,
+            phase,
+            gen,
+            e,
+        )
 
     return GenAnalysis(
         gen=gen,
@@ -186,6 +195,8 @@ def get_gen_analysis(
 
 
 def get_phase_analysis(
+    run: int,
+    phase: str,
     works: List[Work],
     min_num_work_values: Optional[int] = 10,
     work_precision_decimals: Optional[int] = 3,
@@ -223,6 +234,8 @@ def get_phase_analysis(
 
     gens = [
         get_gen_analysis(
+            run=run,
+            phase=phase,
             gen=int(gen),
             works=ws[ws["gen"] == gen],
             min_num_work_values=min_num_work_values,
