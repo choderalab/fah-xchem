@@ -167,10 +167,8 @@ def get_gen_analysis(
 
     Returns
     -------
-    GenAnalysis or None
-        Results of free energy computations for a run/phase/gen if
-        there were at least `min_num_work_values` in the input,
-        otherwise None
+    GenAnalysis
+        Results of free energy computations for a run/phase/gen
     """
 
     def maybe_round(works: np.ndarray) -> np.ndarray:
