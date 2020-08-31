@@ -195,3 +195,31 @@ def plot_cumulative_distributions(results, minimum=None, maximum=5, cmap='PiYG',
     plt.ylabel('Cumulative $N$ ligands')
     plt.title(title)
     _produce_plot(f"{filename}")
+   
+def plot_bar_distributions(results, title='', filename='BARoverlap'):
+    """Plots solvent BAR overlap against complex BAR overlap with marginal distribution
+
+    >>> results = json.load(open('analysis.json','r'))
+    >>> plot_bar_distributions(results, 'Sprint 3')
+    
+    Parameters
+    ----------
+    results : list(dict)
+        Contents of analysis.json
+    title : str, default=''
+        Title for plot
+    filename : str, default='BARoverlap'
+        Location to save fille
+    """
+    import numpy as np
+    import seaborn as sns
+    sns.set(style="ticks")
+
+    x = [r['analysis']['solvent_phase']['free_energy']['bar_overlap'] for r in results]
+    y = [r['analysis']['complex_phase']['free_energy']['bar_overlap'] for r in results]
+
+    # BAR overlap has range of 0. to 1. so set limits to represent this
+    sns.jointplot(x, y,kind='scatter', color="#4CB391",xlim=(0.,1.),ylim=(0.,1.)).set_axis_labels(f"Solvent BAR overlap\n{title}", "Complex BAR overlap")
+   _produce_plot(filename)
+                           
+                           
