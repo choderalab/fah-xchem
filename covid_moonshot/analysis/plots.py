@@ -413,17 +413,26 @@ def save_run_level_plots(
         fig.suptitle(f"RUN{run}")
 
     with save_plot(path, f"RUN{run}-convergence", file_format):
+
+        # Filter to GENs for which free energy calculation is available
+        complex_gens = [
+            (gen.gen, gen.free_energy)
+            for gen in complex_phase.gens
+            if gen.free_energy is not None
+        ]
+        solvent_gens = [
+            (gen.gen, gen.free_energy)
+            for gen in solvent_phase.gens
+            if gen.free_energy is not None
+        ]
+
         fig = plot_convergence(
-            complex_gens=[gen.gen for gen in complex_phase.gens],
-            solvent_gens=[gen.gen for gen in solvent_phase.gens],
-            complex_delta_fs=[gen.free_energy.delta_f for gen in complex_phase.gens],
-            complex_delta_f_errs=[
-                gen.free_energy.ddelta_f for gen in complex_phase.gens
-            ],
-            solvent_delta_fs=[gen.free_energy.delta_f for gen in solvent_phase.gens],
-            solvent_delta_f_errs=[
-                gen.free_energy.ddelta_f for gen in solvent_phase.gens
-            ],
+            complex_gens=[gen for gen, _ in complex_gens],
+            solvent_gens=[gen for gen, _ in solvent_gens],
+            complex_delta_fs=[fe.delta_f for _, fe in complex_gens],
+            complex_delta_f_errs=[fe.ddelta_f for _, fe in complex_gens],
+            solvent_delta_fs=[fe.delta_f for _, fe in solvent_gens],
+            solvent_delta_f_errs=[fe.ddelta_f for _, fe in solvent_gens],
             binding_delta_f=binding.delta_f,
             binding_delta_f_err=binding.ddelta_f,
         )
