@@ -334,6 +334,10 @@ def save_plot(path: str, name: str, file_format: str):
     >>>     plt.plot(np.cos(np.linspace(-np.pi, np.pi)))
     >>>     plt.title("My cool plot")
     """
+    # Make sure the directory exists
+    import os
+    os.makedirs(path, exist_ok=True)
+
     plt.figure()
     yield
     plt.tight_layout()
