@@ -61,7 +61,7 @@ def _get_num_steps(df: pd.DataFrame) -> int:
     if df.empty:
         raise ValueError("Empty dataframe")
     step = df["Step"].astype(int)
-    return step.iloc[-1] - step.iloc[0]
+    return int(step.iloc[-1] - step.iloc[0])
 
 
 def extract_work(path: ResultPath) -> Work:

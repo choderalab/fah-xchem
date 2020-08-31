@@ -79,7 +79,7 @@ class RunDetails:
     target: str
 
     def run_id(self) -> int:
-        return self.JOBID - 1
+        return self.JOBID
 
 
 @dataclass_json

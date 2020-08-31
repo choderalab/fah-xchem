@@ -11,6 +11,7 @@ def analyze_runs_cli(
     complex_project_data_path: str,
     solvent_project_data_path: str,
     snapshot_output_path: str,
+    plot_output_path: str,
     output: str = "analysis.json",
     max_binding_delta_f: Optional[float] = None,
     cache_dir: Optional[str] = None,
@@ -42,6 +43,8 @@ def analyze_runs_cli(
         Write json output to this path
     snapshot_output_path : str
         Path where snapshots will be written
+    plot_output_path : str
+        Path where plots will be written
     max_binding_delta_f : float, optional
         If given, skip storing snapshot if dimensionless binding free
         energy estimate exceeds this value
@@ -58,6 +61,7 @@ def analyze_runs_cli(
         complex_project_data_path=complex_project_data_path,
         solvent_project_data_path=solvent_project_data_path,
         snapshot_output_path=snapshot_output_path,
+        plot_output_path=plot_output_path,
         max_binding_delta_f=max_binding_delta_f,
         cache_dir=cache_dir,
         num_procs=num_procs,
