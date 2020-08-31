@@ -144,8 +144,9 @@ def plot_relative_distribution(
         hist=False,
         kde=True,
         rug=True,
+        color="hotpink",
         kde_kws=dict(shade=True),
-        rug_kws=dict(color="hotpink", alpha=0.5),
+        rug_kws=dict(alpha=0.5),
         label=f"N={len(relative_delta_fs)}",
     )
     plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
