@@ -9,7 +9,7 @@ from typing import List, Optional
 import joblib
 from tqdm.auto import tqdm
 from .analysis.plots import save_run_level_plots, save_summary_plots
-from .analysis import get_run_analysis
+from .analysis.free_energy import get_run_analysis
 from .analysis.structures import save_representative_snapshots
 from .core import (
     ResultPath,
