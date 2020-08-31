@@ -5,6 +5,7 @@ import logging
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from simtk.openmm import unit
 from openmmtools.constants import kB
 from typing import List, Optional, Tuple
@@ -153,7 +154,8 @@ def plot_relative_distribution(
 
 
 def plot_convergence(
-    gens: List[int],
+    complex_gens: List[int],
+    solvent_gens: List[int],
     complex_delta_fs: List[float],
     complex_delta_f_errs: List[float],
     solvent_delta_fs: List[float],
@@ -167,7 +169,7 @@ def plot_convergence(
 
     Parameters
     ----------
-    gens : list of int
+    complex_gens, solvent_gens : list of int
         List of gens to plot
     complex_delta_fs, complex_delta_f_errs : list of float
         Free energies and errors for the complex; one of each per gen (in kT)
@@ -186,52 +188,60 @@ def plot_convergence(
 
     fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
 
-    DDG = np.array(solvent_delta_fs) - np.array(complex_delta_fs)
-    DDG_kcal = (DDG * KT).value_in_unit(unit.kilocalories_per_mole)
-
-    DDG_err = np.sqrt(
-        np.array(solvent_delta_f_errs) ** 2 + np.array(complex_delta_f_errs) ** 2
+    complex_delta_fs_kcal = pd.Series(
+        (np.array(complex_delta_fs) * KT).value_in_unit(unit.kilocalories_per_mole),
+        index=complex_gens,
     )
-    DDG_err_kcal = (DDG_err * KT).value_in_unit(unit.kilocalories_per_mole)
+    complex_delta_f_errs_kcal = pd.Series(
+        (np.array(complex_delta_f_errs) * KT).value_in_unit(unit.kilocalories_per_mole),
+        index=complex_gens,
+    )
+    solvent_delta_fs_kcal = pd.Series(
+        (np.array(solvent_delta_fs) * KT).value_in_unit(unit.kilocalories_per_mole),
+        index=solvent_gens,
+    )
+    solvent_delta_f_errs_kcal = pd.Series(
+        (np.array(solvent_delta_f_errs) * KT).value_in_unit(unit.kilocalories_per_mole),
+        index=solvent_gens,
+    )
 
-    ax1.scatter(gens, DDG_kcal, color="green", label="binding")
+    DDG_kcal = solvent_delta_fs_kcal - complex_delta_fs_kcal
+    DDG_err_kcal = np.sqrt(
+        solvent_delta_f_errs_kcal ** 2 + complex_delta_f_errs_kcal ** 2
+    )
+
+    ax1.scatter(DDG_kcal.index, DDG_kcal, color="green", label="binding")
     ax1.vlines(
-        gens,
+        DDG_kcal.index,
         DDG_kcal - DDG_err_kcal * n_devs_bounds,
         DDG_kcal + DDG_err_kcal * n_devs_bounds,
         color="green",
     )
 
-    for label, (delta_fs, delta_f_errs), color in [
-        ("solvent", (solvent_delta_fs, solvent_delta_f_errs), "blue"),
-        ("complex", (complex_delta_fs, complex_delta_f_errs), "red"),
+    for label, (delta_fs_kcal, delta_f_errs_kcal), color in [
+        ("solvent", (solvent_delta_fs_kcal, solvent_delta_f_errs_kcal), "blue"),
+        ("complex", (complex_delta_fs_kcal, complex_delta_f_errs_kcal), "red"),
     ]:
-
-        delta_fs_kcal = (np.array(delta_fs) * KT).value_in_unit(
-            unit.kilocalories_per_mole
-        )
-        delta_f_errs_kcal = (np.array(delta_f_errs) * KT).value_in_unit(
-            unit.kilocalories_per_mole
-        )
-
-        ax2.scatter(gens, delta_fs_kcal, color=color, label=label)
+        ax2.scatter(delta_fs_kcal.index, delta_fs_kcal, color=color, label=label)
         ax2.vlines(
-            gens,
+            delta_fs_kcal.index,
             delta_fs_kcal - delta_f_errs_kcal * n_devs_bounds,
             delta_fs_kcal + delta_f_errs_kcal * n_devs_bounds,
             color=color,
         )
 
+    gens = complex_delta_fs_kcal.index.union(solvent_delta_fs_kcal.index).values
+
     ax1.hlines(
         (binding_delta_f * KT).value_in_unit(unit.kilocalories_per_mole),
         0,
-        max(gens),
+        gens.max(),
         color="green",
         linestyle=":",
         label="binding (all GENS)",
     )
     ax1.fill_between(
-        [0, max(gens)],
+        [0, gens.max()],
         ((binding_delta_f - binding_delta_f_err * n_devs_bounds) * KT).value_in_unit(
             unit.kilocalories_per_mole
         ),
@@ -242,7 +252,7 @@ def plot_convergence(
         color="green",
     )
 
-    ax1.set_xticks([gen for gen in range(0, max(gens) + 1)])
+    ax1.set_xticks([gen for gen in range(gens.max() + 1)])
     ax2.set_xlabel("GEN")
     ax1.legend()
     ax2.legend()
@@ -337,6 +347,7 @@ def save_plot(path: str, name: str, file_format: str):
     """
     # Make sure the directory exists
     import os
+
     os.makedirs(path, exist_ok=True)
 
     plt.figure()
@@ -401,12 +412,10 @@ def save_run_level_plots(
         )
         fig.suptitle(f"RUN{run}")
 
-    complex_gens = set([gen.gen for gen in complex_phase.gens])
-    solvent_gens = set([gen.gen for gen in solvent_phase.gens])
-
     with save_plot(path, f"RUN{run}-convergence", file_format):
         fig = plot_convergence(
-            gens=list(complex_gens.intersection(solvent_gens)),
+            complex_gens=[gen.gen for gen in complex_phase.gens],
+            solvent_gens=[gen.gen for gen in solvent_phase.gens],
             complex_delta_fs=[gen.free_energy.delta_f for gen in complex_phase.gens],
             complex_delta_f_errs=[
                 gen.free_energy.ddelta_f for gen in complex_phase.gens
