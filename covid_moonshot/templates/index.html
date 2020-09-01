@@ -37,6 +37,7 @@ th {
   <h2>Top 20 Compounds</h2>
   <table>
     <tr>
+      <th>Rank</th>
       <th>RUN</th>
       <th>DDG / k<sub>B</sub>T</th>
       <th>DDG 2σ UB / k<sub>B</sub>T</th>
@@ -45,6 +46,7 @@ th {
     </tr>
     {% for run in (runs | sort(attribute="analysis.binding.delta_f"))[:20] %}
     <tr>
+      <td>{{ loop.index }}</td>
       <td>RUN{{ run.details.run_id() }}</td>
       <td><b>{{ "%.03f" % run.analysis.binding.delta_f }}</b></td>
       <td>{{ "%.03f" % (run.analysis.binding.delta_f + 2*run.analysis.binding.ddelta_f) }}</td>
@@ -62,14 +64,16 @@ th {
   <h2>All Compounds</h2>
   <table>
     <tr>
+      <th>Rank</th>
       <th>RUN</th>
       <th>DDG / k<sub>B</sub>T</th>
       <th>DDG 2σ UB / k<sub>B</sub>T</th>
       <th>ΔG distributions</th>
       <th>Convergence</th>
     </tr>
-    {% for run in runs | sort(attribute="details.JOBID") %}
+    {% for run in runs | sort(attribute="analysis.binding.delta_f") %}
     <tr>
+      <td>{{ loop.index }}</td>
       <td>RUN{{ run.details.run_id() }}</td>
       <td><b>{{ "%.03f" % run.analysis.binding.delta_f }}</b></td>
       <td>{{ "%.03f" % (run.analysis.binding.delta_f + 2*run.analysis.binding.ddelta_f) }}</td>
