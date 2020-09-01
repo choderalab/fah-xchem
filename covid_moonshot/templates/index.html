@@ -24,7 +24,7 @@ th {
   padding-top: 12px;
   padding-bottom: 12px;
   text-align: left;
-  background-color: #4CAF50;
+  background-color: #1f77b4;
   color: white;
 }
 </style>
@@ -38,16 +38,24 @@ th {
   <table>
     <tr>
       <th>RUN</th>
-      <th>DDG 2σ UB</th>
+      <th>DDG / k<sub>B</sub>T</th>
+      <th>DDG 2σ UB / k<sub>B</sub>T</th>
       <th>ΔG distributions</th>
       <th>Convergence</th>
     </tr>
     {% for run in runs[:20] | sort(attribute="analysis.binding.delta_f") %}
     <tr>
       <td>RUN{{ run.details.run_id() }}</td>
-      <td><b>{{ "%.03f" % (run.analysis.binding.delta_f + 2*run.analysis.binding.ddelta_f) }}</b></td>
-      <td><a href="plots/RUN{{ run.details.run_id() }}.png"><img src="plots/RUN{{ run.details.run_id() }}.png" height=100></a></td>
-      <td><a href="plots/RUN{{ run.details.run_id() }}-convergence.png"><img src="plots/RUN{{ run.details.run_id() }}-convergence.png" height=100></a></td>
+      <td><b>{{ "%.03f" % run.analysis.binding.delta_f }}</b></td>
+      <td>{{ "%.03f" % (run.analysis.binding.delta_f + 2*run.analysis.binding.ddelta_f) }}</td>
+      <td>
+        <a href="plots/RUN{{ run.details.run_id() }}.png"><img src="plots/RUN{{ run.details.run_id() }}.png" height=100></a>
+        <a href="plots/RUN{{ run.details.run_id() }}.pdf">[pdf]</a>
+      </td>
+      <td>
+        <a href="plots/RUN{{ run.details.run_id() }}-convergence.png"><img src="plots/RUN{{ run.details.run_id() }}-convergence.png" height=100></a>
+        <a href="plots/RUN{{ run.details.run_id() }}-convergence.pdf">[pdf]</a>
+      </td>
     </tr>
     {% endfor %}
   </table>
@@ -55,16 +63,26 @@ th {
   <table>
     <tr>
       <th>RUN</th>
-      <th>DDG 2σ UB</th>
+      <th>DDG / k<sub>B</sub>T</th>
+      <th>DDG 2σ UB / k<sub>B</sub>T</th>
       <th>ΔG distributions</th>
       <th>Convergence</th>
     </tr>
     {% for run in runs | sort(attribute="details.JOBID") %}
     <tr>
       <td>RUN{{ run.details.run_id() }}</td>
-      <td><b>{{ "%.03f" % (run.analysis.binding.delta_f + 2*run.analysis.binding.ddelta_f) }}</b></td>
-      <td><a href="plots/RUN{{ run.details.run_id() }}.png">ΔG distributions</a></td>
-      <td><a href="plots/RUN{{ run.details.run_id() }}-convergence.png">convergence</a></td>
+      <td><b>{{ "%.03f" % run.analysis.binding.delta_f }}</b></td>
+      <td>{{ "%.03f" % (run.analysis.binding.delta_f + 2*run.analysis.binding.ddelta_f) }}</td>
+      <td>
+        ΔG distributions
+        <a href="plots/RUN{{ run.details.run_id() }}.png">[png]</a>
+        <a href="plots/RUN{{ run.details.run_id() }}.pdf">[pdf]</a>
+      </td>
+      <td>
+        convergence
+        <a href="plots/RUN{{ run.details.run_id() }}-convergence.png">[png]</a>
+        <a href="plots/RUN{{ run.details.run_id() }}-convergence.pdf">[pdf]</a>
+      </td>
     </tr>
     {% endfor %}
   </table>
