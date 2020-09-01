@@ -66,8 +66,11 @@ th {
       <td>{{ loop.index }}</td>
       <td>RUN{{ run.details.run_id() }}</td>
       <td>{{ run.details.start_title }}</td>
-      <td>{{ run.details.start_smiles }}</td>
-      <td>{{ run.analysis.binding | format_binding }}</td>
+      <td class="smiles">{{ run.details.start_smiles }}</td>
+      <td class="binding">
+        <span class="point">{{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("point") }}</span>
+        <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("stderr") }}</span>
+      </td>
       <td class="thumbnail">
         <a href="plots/RUN{{ run.details.run_id() }}.png">
           <img src="plots/RUN{{ run.details.run_id() }}.png" alt="work distributions">
@@ -99,8 +102,11 @@ th {
       <td>{{ loop.index }}</td>
       <td>RUN{{ run.details.run_id() }}</td>
       <td>{{ run.details.start_title }}</td>
-      <td>{{ run.details.start_smiles }}</td>
-      <td>{{ run.analysis.binding | format_binding }}</td>
+      <td class="smiles">{{ run.details.start_smiles }}</td>
+      <td class="binding">
+        <span class="point">{{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("point") }}</span>
+        <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("stderr") }}</span>
+      </td>
       <td>
         works
         <a href="plots/RUN{{ run.details.run_id() }}.png">[png]</a>

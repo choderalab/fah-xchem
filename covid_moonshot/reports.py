@@ -1,7 +1,8 @@
+from dataclasses import dataclass
 import importlib.resources as pkg_resources
 from math import floor, log10
 import os
-from typing import List
+from typing import List, Tuple
 from jinja2 import Environment
 from .analysis.constants import KT_KCALMOL
 from .core import Binding, Run
@@ -12,21 +13,30 @@ from . import templates
 SPRINT_NUMBER = 3
 
 
-def format_uncertainty(estimate: float, stderr: float) -> str:
-    precision = -floor(log10(stderr))
-    return f"{round(estimate, precision)} ± {round(stderr, precision)}"
+@dataclass
+class Estimate:
+    point: float
+    stderr: float
 
 
-def format_binding(binding: Binding) -> str:
-    return format_uncertainty(
-        binding.delta_f * KT_KCALMOL, binding.ddelta_f * KT_KCALMOL
+def canonicalize(estimate: Estimate) -> Estimate:
+    precision = -floor(log10(estimate.stderr))
+    return Estimate(
+        point=round(estimate.point, precision), stderr=round(estimate.stderr, precision)
+    )
+
+
+def binding_estimate_kcal(binding: Binding) -> Estimate:
+    return Estimate(
+        point=binding.delta_f * KT_KCALMOL, stderr=binding.ddelta_f * KT_KCALMOL
     )
 
 
 def get_index_html(runs: List[Run]) -> str:
     template = pkg_resources.read_text(templates, "index.html")
     environment = Environment()
-    environment.filters["format_binding"] = format_binding
+    environment.filters["canonicalize"] = canonicalize
+    environment.filters["binding_estimate_kcal"] = binding_estimate_kcal
     return environment.from_string(template).render(sprint=SPRINT_NUMBER, runs=runs)
 
 
