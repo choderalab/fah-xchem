@@ -153,7 +153,6 @@ th {
           <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | format_estimate_stderr }}</span>
         </span>
       </td>
-      <td class="smiles">{{ run.details.start_smiles }}</td>
       <td>
         works
         <a href="plots/RUN{{ run.details.run_id() }}.png">[png]</a>
