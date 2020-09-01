@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 import importlib.resources as pkg_resources
-from math import floor, log10
+from math import floor, isfinite, log10
 import os
-from typing import List
+from typing import List, Optional
 from jinja2 import Environment
 from ..analysis.constants import KT_KCALMOL
 from ..core import Binding, Run
@@ -18,8 +18,8 @@ class Estimate:
     point: float
     stderr: float
 
-    def precision(self) -> int:
-        return -floor(log10(self.stderr))
+    def precision(self) -> Optional[int]:
+        return -floor(log10(self.stderr)) if isfinite(self.stderr) else None
 
 
 def binding_estimate_kcal(binding: Binding) -> Estimate:
@@ -29,16 +29,22 @@ def binding_estimate_kcal(binding: Binding) -> Estimate:
 
 
 def format_estimate_point(est: Estimate) -> str:
-    rounded = round(est.point, est.precision())
+    prec = est.precision()
+    if prec is None or not isfinite(est.point):
+        return ""
+    rounded = round(est.point, prec)
     return (
-        f"{rounded:.{est.precision()}f}"
+        f"{rounded:.{prec}f}"
         if est.point > 0
-        else f'<span class="negative">−{abs(rounded):.{est.precision()}f}</span>'
+        else f'<span class="negative">−{abs(rounded):.{prec}f}</span>'
     )
 
 
 def format_estimate_stderr(est: Estimate) -> str:
-    return f"{round(est.stderr, est.precision()):.{est.precision()}f}"
+    prec = est.precision()
+    if prec is None or not isfinite(est.point):
+        return ""
+    return f"{round(est.stderr, prec):.{prec}f}"
 
 
 def get_index_html(runs: List[Run]) -> str:
