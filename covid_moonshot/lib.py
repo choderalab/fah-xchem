@@ -220,6 +220,10 @@ def analyze_runs(
     if num_failed > 0:
         logging.warning("Failed to process %d RUNs out of %d", num_failed, len(results))
 
-    save_summary_plots([run.analysis for run in runs_output], plot_output_path)
+    save_summary_plots(
+        [run.analysis for run in runs_output],
+        [run.details for run in runs_output],
+        plot_output_path,
+    )
 
     return runs_output

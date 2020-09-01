@@ -4,12 +4,13 @@ import os
 import logging
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import pandas as pd
 from simtk.openmm import unit
 from openmmtools.constants import kB
 from typing import List, Optional, Tuple
-from ..core import Binding, PhaseAnalysis, RunAnalysis, Work
+from ..core import Binding, PhaseAnalysis, RunAnalysis, RunDetails, Work
 
 _kT_kcal = kB * 300 * unit.kelvin / unit.kilocalories_per_mole
 
@@ -252,6 +253,41 @@ def plot_convergence(
     return fig
 
 
+def plot_poor_convergence_fe_table(
+    runs: List[int], runs_details: List[int]
+) -> plt.Figure:
+
+    complex_phases = [run.complex_phase for run in runs]
+    job_ids = [run.JOBID for run in runs_details]
+
+    std_dev_store = []
+    jobid_store = []
+
+    for i, run in enumerate(runs):
+
+        complex_gens = run.analysis.complex_phase.gens
+
+        std_dev = np.std([gen.free_energy.delta_f for gen in complex_gens])
+
+        if std_dev * _kT_kcal >= 1:  # 1kcal/mol
+
+            jobid_store.append(int(runs_details.JOBID))
+            std_dev_store.append(np.round(std_dev * _kT_kcal, 3))
+
+    df = pd.DataFrame(
+        zip(jobid_store, std_dev_store),
+        columns=["JOBID", "Complex phase standard deviation (kcal / mol)"],
+    )
+
+    fig, ax = plt.subplots()
+    ax.axis("tight")
+    ax.axis("off")
+    table = ax.table(cellText=df.values, colLabels=df.columns, loc="center")
+
+    return fig
+
+
+
 def plot_cumulative_distribution(
     relative_delta_fs: List[float],
     min_delta_f_kcal: Optional[float] = None,
@@ -312,7 +348,7 @@ def plot_cumulative_distribution(
 
 
 @contextmanager
-def save_plot(path: str, name: str, file_format: str):
+def save_plot(path: str, name: str, file_format: str, table: False):
     """
     Context manager that creates a new figure on entry and saves the
     figure using the specified name, format, and path on exit.
@@ -325,6 +361,8 @@ def save_plot(path: str, name: str, file_format: str):
         Basename to use in constructing the result path
     file_format : str
         File extension of the result. Must be accepted by ``plt.savefig``
+    table : bool
+        Specify whether to plot a table
 
     Examples
     --------
@@ -337,10 +375,16 @@ def save_plot(path: str, name: str, file_format: str):
 
     os.makedirs(path, exist_ok=True)
 
-    plt.figure()
-    yield
-    plt.tight_layout()
-    plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
+    if table:
+        pdf_plt = PdfPages()
+        pdf_plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
+        pdf_plt.close()
+
+    else:
+        plt.figure()
+        yield
+        plt.tight_layout()
+        plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
 
 
 def save_run_level_plots(
@@ -427,7 +471,10 @@ def save_run_level_plots(
 
 
 def save_summary_plots(
-    runs: List[RunAnalysis], path: str = os.curdir, file_format: str = "pdf"
+    runs: List[RunAnalysis],
+    runs_details: List[RunDetails],
+    path: str = os.curdir,
+    file_format: str = "pdf",
 ) -> None:
     """
     Save plots summarizing all runs.
@@ -461,3 +508,7 @@ def save_summary_plots(
     with save_plot(path, "cumulative_fe_dist", file_format):
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
+
+    with save_plot(path, "poor_complex_convergence_fe_table", file_format, table=True):
+        plot_poor_complex_convergence_fe_table(runs, runs_details)
+        plt.title("Poor complex convergence table")
