@@ -182,6 +182,8 @@ def analyze_runs(
         - ``{output_dir}/analysis.json``: analysis results
         - ``{output_dir}/structures``: structure snapshots
         - ``{output_dir}/plots``: plots
+        - ``{output_dir}/index.html``: analysis report
+        - ``{output_dir}/images``: images for report (e.g. molecule renderings)
     max_binding_delta_f : float, optional
         If given, skip storing snapshot if dimensionless binding free
         energy estimate exceeds this value

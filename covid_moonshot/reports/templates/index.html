@@ -21,13 +21,17 @@ td, th {
   padding: 8px;
 }
 
-table.top20 td.rank, table.top20 td.molecule, table.top20 td.binding {
-    font-size: 1.5em;
+table.top20 td {
+    font-size: 1.25em;
 }
 
 td.smiles {
-    font-size: 0.8em;
+    font-size: 0.8em !important;
     font-family: 'Roboto Mono', monospace;
+}
+
+td.binding span.estimate {
+    white-space: nowrap;
 }
 
 td.binding span.point {
@@ -80,9 +84,9 @@ th {
   <table class="top20">
     <tr>
       <th>Rank</th>
-      <th>Molecule</th>
-      <th>ΔΔG / kcal mol<sup>-1</sup></th>
       <th>RUN</th>
+      <th colspan=2>Molecule</th>
+      <th>ΔΔG / kcal mol<sup>-1</sup></th>
       <th>SMILES</th>
       <th colspan=2>Work distributions</th>
       <th colspan=2>Convergence</th>
@@ -90,12 +94,19 @@ th {
     {% for run in (runs | sort(attribute="analysis.binding.delta_f"))[:20] %}
     <tr>
       <td class="rank">{{ loop.index }}</td>
-      <td class="molecule">{{ run.details.start_title }}</td>
-      <td class="binding">
-        <span class="point">{{ run.analysis.binding | binding_estimate_kcal | format_estimate_point }}</span>
-        <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | format_estimate_stderr }}</span>
-      </td>
       <td >RUN{{ run.details.run_id() }}</td>
+      <td class="molecule">{{ run.details.start_title }}</td>
+      <td class="thumbnail">
+        <a href="images/RUN{{ run.details.run_id() }}.svg">
+          <img src="images/RUN{{ run.details.run_id() }}.svg" alt="molecule rendering">
+        </a>
+      </td>
+      <td class="binding">
+        <span class="estimate">
+          <span class="point">{{ run.analysis.binding | binding_estimate_kcal | format_estimate_point }}</span>
+          <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | format_estimate_stderr }}</span>
+        </span>
+      </td>
       <td class="smiles">{{ run.details.start_smiles }}</td>
       <td class="thumbnail">
         <a href="plots/RUN{{ run.details.run_id() }}.png">
@@ -116,9 +127,9 @@ th {
   <table>
     <tr>
       <th>Rank</th>
-      <th>Molecule</th>
-      <th>ΔΔG / kcal mol<sup>-1</sup></th>
       <th>RUN</th>
+      <th colspan=2>Molecule</th>
+      <th>ΔΔG / kcal mol<sup>-1</sup></th>
       <th>SMILES</th>
       <th>Work distributions</th>
       <th>Convergence</th>
@@ -126,12 +137,15 @@ th {
     {% for run in runs | sort(attribute="analysis.binding.delta_f") %}
     <tr>
       <td class="rank">{{ loop.index }}</td>
-      <td class="molecule">{{ run.details.start_title }}</td>
-      <td class="binding">
-        <span class="point">{{ run.analysis.binding | binding_estimate_kcal | format_estimate_point }}</span>
-        <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | format_estimate_stderr }}</span>
-      </td>
       <td >RUN{{ run.details.run_id() }}</td>
+      <td class="molecule">{{ run.details.start_title }}</td>
+      <td>image <a href="images/RUN{{ run.details.run_id() }}.svg">[svg]</a></td>
+      <td class="binding">
+        <span class="estimate">
+          <span class="point">{{ run.analysis.binding | binding_estimate_kcal | format_estimate_point }}</span>
+          <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | format_estimate_stderr }}</span>
+        </span>
+      </td>
       <td class="smiles">{{ run.details.start_smiles }}</td>
       <td>
         works

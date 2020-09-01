@@ -2,10 +2,10 @@ from dataclasses import dataclass
 import importlib.resources as pkg_resources
 from math import floor, log10
 import os
-from typing import List, Tuple
+from typing import List
 from jinja2 import Environment
-from .analysis.constants import KT_KCALMOL
-from .core import Binding, Run
+from ..analysis.constants import KT_KCALMOL
+from ..core import Binding, Run
 from . import templates
 
 
@@ -48,9 +48,3 @@ def get_index_html(runs: List[Run]) -> str:
     environment.filters["format_estimate_point"] = format_estimate_point
     environment.filters["format_estimate_stderr"] = format_estimate_stderr
     return environment.from_string(template).render(sprint=SPRINT_NUMBER, runs=runs)
-
-
-def save_reports(runs: List[Run], path: str) -> None:
-    html = get_index_html(runs)
-    with open(os.path.join(path, "index.html"), "w") as f:
-        f.write(html)
