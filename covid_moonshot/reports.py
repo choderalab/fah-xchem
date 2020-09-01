@@ -18,12 +18,8 @@ class Estimate:
     point: float
     stderr: float
 
-
-def canonicalize(estimate: Estimate) -> Estimate:
-    precision = -floor(log10(estimate.stderr))
-    return Estimate(
-        point=round(estimate.point, precision), stderr=round(estimate.stderr, precision)
-    )
+    def precision(self) -> int:
+        return -floor(log10(self.stderr))
 
 
 def binding_estimate_kcal(binding: Binding) -> Estimate:
@@ -32,18 +28,25 @@ def binding_estimate_kcal(binding: Binding) -> Estimate:
     )
 
 
-def format_negative(number: float) -> str:
+def format_estimate_point(est: Estimate) -> str:
+    rounded = round(est.point, est.precision())
     return (
-        f"{number}" if number > 0 else f'<span class="negative">−{abs(number)}</span>'
+        f"{rounded:.{est.precision()}f}"
+        if est.point > 0
+        else f'<span class="negative">−{abs(rounded):.{est.precision()}f}</span>'
     )
+
+
+def format_estimate_stderr(est: Estimate) -> str:
+    return f"{round(est.stderr, est.precision()):.{est.precision()}f}"
 
 
 def get_index_html(runs: List[Run]) -> str:
     template = pkg_resources.read_text(templates, "index.html")
     environment = Environment()
-    environment.filters["canonicalize"] = canonicalize
-    environment.filters["format_negative"] = format_negative
     environment.filters["binding_estimate_kcal"] = binding_estimate_kcal
+    environment.filters["format_estimate_point"] = format_estimate_point
+    environment.filters["format_estimate_stderr"] = format_estimate_stderr
     return environment.from_string(template).render(sprint=SPRINT_NUMBER, runs=runs)
 
 

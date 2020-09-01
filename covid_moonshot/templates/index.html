@@ -92,8 +92,8 @@ th {
       <td class="rank">{{ loop.index }}</td>
       <td class="molecule">{{ run.details.start_title }}</td>
       <td class="binding">
-        <span class="point">{{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("point") | format_negative }}</span>
-        <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("stderr") }}</span>
+        <span class="point">{{ run.analysis.binding | binding_estimate_kcal | format_estimate_point }}</span>
+        <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | format_estimate_stderr }}</span>
       </td>
       <td >RUN{{ run.details.run_id() }}</td>
       <td class="smiles">{{ run.details.start_smiles }}</td>
@@ -128,8 +128,8 @@ th {
       <td class="rank">{{ loop.index }}</td>
       <td class="molecule">{{ run.details.start_title }}</td>
       <td class="binding">
-        <span class="point">{{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("point") | format_negative }}</span>
-        <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("stderr") }}</span>
+        <span class="point">{{ run.analysis.binding | binding_estimate_kcal | format_estimate_point }}</span>
+        <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | format_estimate_stderr }}</span>
       </td>
       <td >RUN{{ run.details.run_id() }}</td>
       <td class="smiles">{{ run.details.start_smiles }}</td>
