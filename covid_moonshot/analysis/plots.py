@@ -254,7 +254,7 @@ def plot_convergence(
 
 
 def plot_poor_convergence_fe_table(
-    runs: List[int], runs_details: List[int]
+    runs: List[int], runs_details: List[int], energy_cutoff: float = 1.0,
 ) -> plt.Figure:
 
     complex_phases = [run.complex_phase for run in runs]
@@ -269,7 +269,7 @@ def plot_poor_convergence_fe_table(
 
         std_dev = np.std([gen.free_energy.delta_f for gen in complex_gens])
 
-        if std_dev * _kT_kcal >= 1:  # 1kcal/mol
+        if std_dev * _kT_kcal >= energy_cutoff:
 
             jobid_store.append(int(runs_details.JOBID))
             std_dev_store.append(np.round(std_dev * _kT_kcal, 3))
@@ -285,7 +285,6 @@ def plot_poor_convergence_fe_table(
     table = ax.table(cellText=df.values, colLabels=df.columns, loc="center")
 
     return fig
-
 
 
 def plot_cumulative_distribution(
