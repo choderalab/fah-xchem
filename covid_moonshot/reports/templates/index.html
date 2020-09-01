@@ -26,7 +26,6 @@ table.top20 td {
 }
 
 td.smiles {
-    font-size: 0.8em !important;
     font-family: 'Roboto Mono', monospace;
 }
 
@@ -89,9 +88,9 @@ th {
     <tr>
       <th>Rank</th>
       <th>RUN</th>
-      <th colspan=2>Molecule</th>
+      <th colspan=3>Molecule</th>
+      <th>Protein</th>
       <th>ΔΔG / kcal mol<sup>-1</sup></th>
-      <th>SMILES</th>
       <th colspan=2>Work distributions</th>
       <th colspan=2>Convergence</th>
     </tr>
@@ -99,19 +98,20 @@ th {
     <tr>
       <td class="rank">{{ loop.index }}</td>
       <td >RUN{{ run.details.run_id() }}</td>
-      <td class="molecule">{{ run.details.start_title }}</td>
+      <td>{{ run.details.start_title }}</td>
       <td class="thumbnail">
         <a href="images/RUN{{ run.details.run_id() }}.svg">
-          <img src="images/RUN{{ run.details.run_id() }}.svg" alt="molecule rendering">
+          <img src="images/RUN{{ run.details.run_id() }}.svg" alt="{{ run.details.start_smiles }}">
         </a>
       </td>
+      <td><a href="structures/RUN{{ run.details.run_id() }}-old_ligand.sdf">[sdf]</a></td>
+      <td><a href="structures/RUN{{ run.details.run_id() }}-old_protein.pdb">[pdb]</a></td>
       <td class="binding">
         <span class="estimate">
           <span class="point">{{ run.analysis.binding | binding_estimate_kcal | format_estimate_point }}</span>
           <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | format_estimate_stderr }}</span>
         </span>
       </td>
-      <td class="smiles">{{ run.details.start_smiles }}</td>
       <td class="thumbnail">
         <a href="plots/RUN{{ run.details.run_id() }}.png">
           <img src="plots/RUN{{ run.details.run_id() }}.png" alt="work distributions">
@@ -132,9 +132,9 @@ th {
     <tr>
       <th>Rank</th>
       <th>RUN</th>
-      <th colspan=2>Molecule</th>
+      <th colspan=4>Molecule</th>
+      <th>Protein</th>
       <th>ΔΔG / kcal mol<sup>-1</sup></th>
-      <th>SMILES</th>
       <th>Work distributions</th>
       <th>Convergence</th>
     </tr>
@@ -142,8 +142,11 @@ th {
     <tr>
       <td class="rank">{{ loop.index }}</td>
       <td >RUN{{ run.details.run_id() }}</td>
-      <td class="molecule">{{ run.details.start_title }}</td>
-      <td>image <a href="images/RUN{{ run.details.run_id() }}.svg">[svg]</a></td>
+      <td>{{ run.details.start_title }}</td>
+      <td class="smiles">{{ run.details.start_smiles }}</td>
+      <td><a href="images/RUN{{ run.details.run_id() }}.svg">[svg]</a></td>
+      <td><a href="structures/RUN{{ run.details.run_id() }}-old_ligand.sdf">[sdf]</a></td>
+      <td><a href="structures/RUN{{ run.details.run_id() }}-old_protein.pdb">[pdb]</a></td>
       <td class="binding">
         <span class="estimate">
           <span class="point">{{ run.analysis.binding | binding_estimate_kcal | format_estimate_point }}</span>
