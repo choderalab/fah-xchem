@@ -3,6 +3,7 @@ from math import floor, log10
 import os
 from typing import List
 from jinja2 import Environment
+from .analysis.constants import KT_KCALMOL
 from .core import Binding, Run
 from . import templates
 
@@ -17,7 +18,9 @@ def format_uncertainty(estimate: float, stderr: float) -> str:
 
 
 def format_binding(binding: Binding) -> str:
-    return format_uncertainty(binding.delta_f, binding.ddelta_f)
+    return format_uncertainty(
+        binding.delta_f * KT_KCALMOL, binding.ddelta_f * KT_KCALMOL
+    )
 
 
 def get_index_html(runs: List[Run]) -> str:

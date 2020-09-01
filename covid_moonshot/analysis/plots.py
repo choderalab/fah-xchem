@@ -6,12 +6,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from simtk.openmm import unit
-from openmmtools.constants import kB
 from typing import Generator, Iterable, List, Optional, Tuple
 from ..core import Binding, PhaseAnalysis, RunAnalysis, Work
-
-_kT_kcal = kB * 300 * unit.kelvin / unit.kilocalories_per_mole
+from .constants import KT_KCALMOL
 
 
 def plot_work_distribution(
@@ -135,7 +132,7 @@ def plot_relative_distribution(
     valid_relative_delta_fs = _filter_inclusive(
         np.array(relative_delta_fs), min_delta_f, max_delta_f
     )
-    valid_relative_delta_fs_kcal = valid_relative_delta_fs * _kT_kcal
+    valid_relative_delta_fs_kcal = valid_relative_delta_fs * KT_KCALMOL
 
     sns.distplot(
         valid_relative_delta_fs_kcal,
@@ -186,16 +183,16 @@ def plot_convergence(
     fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
 
     complex_delta_fs_kcal = pd.Series(
-        np.array(complex_delta_fs) * _kT_kcal, index=complex_gens,
+        np.array(complex_delta_fs) * KT_KCALMOL, index=complex_gens,
     )
     complex_delta_f_errs_kcal = pd.Series(
-        np.array(complex_delta_f_errs) * _kT_kcal, index=complex_gens,
+        np.array(complex_delta_f_errs) * KT_KCALMOL, index=complex_gens,
     )
     solvent_delta_fs_kcal = pd.Series(
-        np.array(solvent_delta_fs) * _kT_kcal, index=solvent_gens,
+        np.array(solvent_delta_fs) * KT_KCALMOL, index=solvent_gens,
     )
     solvent_delta_f_errs_kcal = pd.Series(
-        np.array(solvent_delta_f_errs) * _kT_kcal, index=solvent_gens,
+        np.array(solvent_delta_f_errs) * KT_KCALMOL, index=solvent_gens,
     )
 
     DDG_kcal = solvent_delta_fs_kcal - complex_delta_fs_kcal
@@ -226,7 +223,7 @@ def plot_convergence(
     gens = complex_delta_fs_kcal.index.union(solvent_delta_fs_kcal.index).values
 
     ax1.hlines(
-        binding_delta_f * _kT_kcal,
+        binding_delta_f * KT_KCALMOL,
         0,
         gens.max(),
         color="green",
@@ -235,8 +232,8 @@ def plot_convergence(
     )
     ax1.fill_between(
         [0, gens.max()],
-        (binding_delta_f - binding_delta_f_err * n_devs_bounds) * _kT_kcal,
-        (binding_delta_f + binding_delta_f_err * n_devs_bounds) * _kT_kcal,
+        (binding_delta_f - binding_delta_f_err * n_devs_bounds) * KT_KCALMOL,
+        (binding_delta_f + binding_delta_f_err * n_devs_bounds) * KT_KCALMOL,
         alpha=0.2,
         color="green",
     )
@@ -280,7 +277,7 @@ def plot_cumulative_distribution(
 
     """
 
-    relative_delta_fs_kcal = np.array(relative_delta_fs) * _kT_kcal
+    relative_delta_fs_kcal = np.array(relative_delta_fs) * KT_KCALMOL
 
     relative_delta_fs_kcal = _filter_inclusive(
         relative_delta_fs_kcal, min_delta_f_kcal, max_delta_f_kcal
