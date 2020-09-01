@@ -16,6 +16,14 @@ td, th {
   padding: 8px;
 }
 
+td.thumbnail {
+    text-align: center;
+}
+
+td.thumbnail img {
+    height: 100px;
+}
+
 tr:nth-child(even){background-color: #f2f2f2;}
 
 tr:hover {background-color: #ddd;}
@@ -47,24 +55,30 @@ th {
     <tr>
       <th>Rank</th>
       <th>RUN</th>
-      <th>DDG / k<sub>B</sub>T</th>
-      <th>DDG 2σ UB / k<sub>B</sub>T</th>
-      <th>Work distributions</th>
-      <th>Convergence</th>
+      <th>Molecule</th>
+      <th>ΔΔG / kcal mol<sup>-1</sup></th>
+      <th>ΔΔG 2σ UB / kcal mol<sup>-1</sup></th>
+      <th colspan=2>Work distributions</th>
+      <th colspan=2>Convergence</th>
     </tr>
     {% for run in (runs | sort(attribute="analysis.binding.delta_f"))[:20] %}
     <tr>
       <td>{{ loop.index }}</td>
       <td>RUN{{ run.details.run_id() }}</td>
+      <td>{{ run.details.end_title }}</td>
       <td><b>{{ "%.03f" % run.analysis.binding.delta_f }}</b></td>
       <td>{{ "%.03f" % (run.analysis.binding.delta_f + 2*run.analysis.binding.ddelta_f) }}</td>
-      <td>
-        <a href="plots/RUN{{ run.details.run_id() }}.png"><img src="plots/RUN{{ run.details.run_id() }}.png" height=100></a>
-        <a href="plots/RUN{{ run.details.run_id() }}.pdf">[pdf]</a>
+      <td class="thumbnail">
+        <a href="plots/RUN{{ run.details.run_id() }}.png">
+          <img src="plots/RUN{{ run.details.run_id() }}.png" alt="work distributions">
+        </a>
+      <td><a href="plots/RUN{{ run.details.run_id() }}.pdf">[pdf]</a></td>
       </td>
-      <td>
-        <a href="plots/RUN{{ run.details.run_id() }}-convergence.png"><img src="plots/RUN{{ run.details.run_id() }}-convergence.png" height=100></a>
-        <a href="plots/RUN{{ run.details.run_id() }}-convergence.pdf">[pdf]</a>
+      <td class="thumbnail">
+        <a href="plots/RUN{{ run.details.run_id() }}-convergence.png">
+          <img src="plots/RUN{{ run.details.run_id() }}-convergence.png" alt="convergence plot">
+        </a>
+      <td><a href="plots/RUN{{ run.details.run_id() }}-convergence.pdf">[pdf]</a></td>
       </td>
     </tr>
     {% endfor %}
@@ -74,6 +88,7 @@ th {
     <tr>
       <th>Rank</th>
       <th>RUN</th>
+      <th>Molecule</th>
       <th>DDG / k<sub>B</sub>T</th>
       <th>DDG 2σ UB / k<sub>B</sub>T</th>
       <th>Work distributions</th>
@@ -83,10 +98,11 @@ th {
     <tr>
       <td>{{ loop.index }}</td>
       <td>RUN{{ run.details.run_id() }}</td>
+      <td>{{ run.details.end_title }}</td>
       <td><b>{{ "%.03f" % run.analysis.binding.delta_f }}</b></td>
       <td>{{ "%.03f" % (run.analysis.binding.delta_f + 2*run.analysis.binding.ddelta_f) }}</td>
       <td>
-        work distributions
+        works
         <a href="plots/RUN{{ run.details.run_id() }}.png">[png]</a>
         <a href="plots/RUN{{ run.details.run_id() }}.pdf">[pdf]</a>
       </td>
@@ -98,6 +114,5 @@ th {
     </tr>
     {% endfor %}
   </table>
-
 </body>
 </html>
