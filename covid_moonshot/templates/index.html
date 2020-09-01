@@ -64,7 +64,7 @@ th {
     <tr>
       <td>{{ loop.index }}</td>
       <td>RUN{{ run.details.run_id() }}</td>
-      <td>{{ run.details.end_title }}</td>
+      <td>{{ run.details.start_title }}</td>
       <td>{{ run.analysis.binding | format_binding }}</td>
       <td class="thumbnail">
         <a href="plots/RUN{{ run.details.run_id() }}.png">
@@ -95,7 +95,7 @@ th {
     <tr>
       <td>{{ loop.index }}</td>
       <td>RUN{{ run.details.run_id() }}</td>
-      <td>{{ run.details.end_title }}</td>
+      <td>{{ run.details.start_title }}</td>
       <td>{{ run.analysis.binding | format_binding }}</td>
       <td>
         works
