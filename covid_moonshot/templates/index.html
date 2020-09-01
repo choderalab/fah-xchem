@@ -43,7 +43,7 @@ th {
       <th>ΔG distributions</th>
       <th>Convergence</th>
     </tr>
-    {% for run in runs[:20] | sort(attribute="analysis.binding.delta_f") %}
+    {% for run in (runs | sort(attribute="analysis.binding.delta_f"))[:20] %}
     <tr>
       <td>RUN{{ run.details.run_id() }}</td>
       <td><b>{{ "%.03f" % run.analysis.binding.delta_f }}</b></td>
