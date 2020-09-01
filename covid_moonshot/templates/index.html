@@ -29,6 +29,10 @@ td.binding span.point {
     font-weight: bold;
 }
 
+td.binding span.point > span.negative {
+    color: green;
+}
+
 td.binding span.stderr {
     color: #555;
 }
@@ -85,7 +89,7 @@ th {
       <td>{{ run.details.start_title }}</td>
       <td class="smiles">{{ run.details.start_smiles }}</td>
       <td class="binding">
-        <span class="point">{{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("point") }}</span>
+        <span class="point">{{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("point") | format_negative }}</span>
         <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("stderr") }}</span>
       </td>
       <td class="thumbnail">
@@ -121,7 +125,7 @@ th {
       <td>{{ run.details.start_title }}</td>
       <td class="smiles">{{ run.details.start_smiles }}</td>
       <td class="binding">
-        <span class="point">{{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("point") }}</span>
+        <span class="point">{{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("point") | format_negative }}</span>
         <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | canonicalize | attr("stderr") }}</span>
       </td>
       <td>

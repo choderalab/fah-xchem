@@ -32,10 +32,17 @@ def binding_estimate_kcal(binding: Binding) -> Estimate:
     )
 
 
+def format_negative(number: float) -> str:
+    return (
+        f"{number}" if number > 0 else f'<span class="negative">−{abs(number)}</span>'
+    )
+
+
 def get_index_html(runs: List[Run]) -> str:
     template = pkg_resources.read_text(templates, "index.html")
     environment = Environment()
     environment.filters["canonicalize"] = canonicalize
+    environment.filters["format_negative"] = format_negative
     environment.filters["binding_estimate_kcal"] = binding_estimate_kcal
     return environment.from_string(template).render(sprint=SPRINT_NUMBER, runs=runs)
 
