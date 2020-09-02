@@ -309,10 +309,15 @@ def plot_cumulative_distribution(
     plt.ylabel("Cumulative $N$ ligands")
 
 
-def _plot_updated_timestamp() -> None:
-    ts = dt.datetime.now(dt.timezone.utc).isoformat()
+def _plot_updated_timestamp(timestamp: dt.datetime) -> None:
     fig = plt.gcf()
-    fig.text(0.5, 0.03, f"Updated {ts}", color="gray", horizontalalignment="center")
+    fig.text(
+        0.5,
+        0.03,
+        f"Updated {timestamp.isoformat()}",
+        color="gray",
+        horizontalalignment="center",
+    )
 
 
 @contextmanager
@@ -355,7 +360,7 @@ def _save_plot(
 
     if timestamp is not None:
         plt.tight_layout(rect=(0, 0.05, 1, 1))  # leave space for timestamp on bottom
-        _plot_updated_timestamp()
+        _plot_updated_timestamp(timestamp)
     else:
         plt.tight_layout()
 
