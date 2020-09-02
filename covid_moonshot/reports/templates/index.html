@@ -12,6 +12,7 @@ html * {
 }
 
 span.updated {
+    color: gray;
     font-style: italic;
 }
 
@@ -72,7 +73,7 @@ th {
 </head>
 <body>
   <h1>COVID Moonshot Sprint {{ sprint }} Analysis</h1>
-  <span class="updated">Updated {{ analysis.updated_at.isoformat() }}</span>
+  <span class="updated">Last updated: {{ analysis.updated_at.isoformat() }}</span>
   <h2>Summary</h2>
   <h3>Free energy distribution</h3>
   <a href="plots/relative_fe_dist.pdf">
