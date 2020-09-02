@@ -282,7 +282,6 @@ def plot_poor_convergence_fe_table(
     for run in runs:
 
         complex_gens = run.analysis.complex_phase.gens
-
         std_dev = np.std([gen.free_energy.delta_f for gen in complex_gens])
 
         if std_dev * _kT_kcal >= energy_cutoff_kcal:
@@ -290,15 +289,13 @@ def plot_poor_convergence_fe_table(
             jobid_store.append(int(run.details.run_id()))
             std_dev_store.append(np.round(std_dev * _kT_kcal, 3))
 
-    df = pd.DataFrame(
-        zip(jobid_store, std_dev_store),
-        columns=["JOBID", "Complex phase standard deviation (kcal / mol)"],
-    )
+    data = list(zip(jobid_store, std_dev_store))
+    column_titles = ["JOBID", "Complex phase standard deviation / kcal mol$^{-1}$"]
 
     fig, ax = plt.subplots()
     ax.axis("tight")
     ax.axis("off")
-    table = ax.table(cellText=df.values, colLabels=df.columns, loc="center")
+    table = ax.table(cellText=data, colLabels=column_titles, loc="center")
 
     return fig
 
