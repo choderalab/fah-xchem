@@ -307,6 +307,51 @@ def plot_cumulative_distribution(
     plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
     plt.ylabel("Cumulative $N$ ligands")
 
+def plot_bootstrapped_clones(
+    complex_phase: PhaseAnalysis, 
+    solvent_phase: PhaseAnalysis,
+    clones_per_gen: int,
+    n_gens: int,
+    n_bootstrap: int = 100):
+
+    fig, ax = plt.subplots()
+
+    for n in n_gens:
+        
+        # bootstrap
+        fes = []
+
+        for _ in range(n_bootstrap):
+
+            random_indices = np.random.choice(clones_per_gen, n)
+            subset_f = [works.forward_works[x] for x in random_indices for works in complex_phase.gens]
+            subset_r = [works.reverse_works[x] for x in random_indices for works in complex_phase.gens]
+            fe, _ = BAR(np.asarray(subset_f), np.asarray(subset_r))
+            fes.append(fe * KT_KCALMOL)
+
+        plt.scatter(n, np.mean(fes), color='red', label='complex')
+        plt.errorbar(n, np.mean(fes), yerr=np.std(fes), c='red')
+
+        fes = []
+
+        for _ in range(n_bootstrap):
+
+            random_indices = np.random.choice(clones_per_gen, n)
+            subset_f = [works.forward_works[x] for x in random_indices for works in solvent_phase.gens]
+            subset_r = [works.reverse_works[x] for x in random_indices for works in solvent_phase.gens]
+            fe, _ = BAR(np.asarray(subset_f), np.asarray(subset_r))
+            fes.append(fe * KT_KCALMOL)
+
+        plt.scatter(n, np.mean(fes), color='blue', label='solvent')
+        plt.errorbar(n, np.mean(fes), yerr=np.std(fes), c='blue')
+
+    plt.xlim(0, clones_per_gen + 10)
+    plt.xlabel('Number of CLONEs')
+    plt.ylabel(r"Rel. $\Delta$G / kcal mol$^{-1}$")
+    plt.legend(["complex", "solvent"], loc='best')
+
+    return fig
+
 
 @contextmanager
 def save_plot(path: str, name: str, file_formats: Iterable[str]) -> Generator:
@@ -424,6 +469,24 @@ def save_run_level_plots(
             solvent_delta_f_errs=[fe.ddelta_f for _, fe in solvent_gens],
             binding_delta_f=binding.delta_f,
             binding_delta_f_err=binding.ddelta_f,
+        )
+        fig.suptitle(f"RUN{run}")
+
+    with save_plot(path, f"RUN{run}-bootstrapped CLONEs", fileformats):
+
+        # Gather CLONES per GEN for run
+        clones_per_gen = min([len(works.forward_works) for works in solvent_phase.gens] + 
+        [len(works.reverse_works) for works in solvent_phase.gens] + 
+        [len(works.forward_works) for works in complex_phase.gens] + 
+        len(works.reverse_works for works in complex_phase.gens])
+
+        n_gens = range(10, clones_per_gen, 10)
+
+        fig = plot_bootstrapped_clones(
+            complex_phase=complex_phase,
+            solvent_phase=solvent_phase,
+            clones_per_gen=clones_per_gen,
+            n_gens=n_gens,
         )
         fig.suptitle(f"RUN{run}")
 
