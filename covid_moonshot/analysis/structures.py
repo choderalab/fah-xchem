@@ -118,6 +118,120 @@ def mdtraj_to_oemol(snapshot: md.Trajectory):
             for mol in ifs.GetOEGraphMols():
                 return mol
 
+def _get_representative_snapshot(traj, cluster_dist=0.5):
+    '''
+    Find the structure closest to the centroid of the largest cluster in trajectory
+
+    Parameters
+    ---------
+    traj : md.Trajectory
+        trajectory to cluster with. Clustering will be all-atom
+    cluster_dist : float, default=0.5
+        threshold for clustering (see scipy.cluster.hierarchy.fcluster)
+
+    Returns
+    -------
+    i : int
+        index of best snapshot
+    rmsd : float
+        mean rmsd of trajectory in Angstrom
+    drmsd : float
+        standard devation of rmsd in Angstrom
+    '''
+    
+    from simtk import unit
+    from scipy.cluster.hierarchy import ward, fcluster
+    from scipy.spatial.distance import pdist
+    
+    distances = np.empty((traj.n_frames, traj.n_frames))
+    for i in range(traj.n_frames):
+        distances[i] = md.rmsd(traj, traj, i)
+    ligand_rmsd = np.mean(distances)*unit.nanometer #this is the ligand to ITSELF in the trajectory, not to the scaffold
+    ligand_drmsd = np.std(distances)*unit.nanometer
+    linkage = ward(pdist(distances))
+    cluster_occupancies = fcluster(linkage, cluster_dist, criterion='distance')
+    n_clusts = max(cluster_occupancies)
+    counts = np.bincount(cluster_occupancies)
+    big_cluster = np.argmax(counts)
+    representative_snapshot = None
+
+    for i, (c, frame) in enumerate(zip(cluster_occupancies, distances)):
+        if c == big_cluster or i == 0:
+            dist_to_centroid = np.mean(frame)
+            if dist_to_centroid < best_distance:
+                best_distance = dist_to_centroid
+                representative_snapshot = i
+    return i, ligand_rmsd. / unit.angstrom , ligand_drmsd / unit.angstrom 
+
+def cluster_snaphots(
+    project_path: str,
+    project_data_path: str,
+    run: int,
+    frame: int,
+    fragment_id: str,
+    n_snapshots: Optional[int] = 20,
+    cache_dir: Optional[str],
+):
+    """
+    Extract the specified snapshot, align it to the reference fragment, and write protein and ligands to separate PDB files
+
+    Parameters
+    ----------
+    project_path : str
+       Path to project directory (e.g. '/home/server/server2/projects/13422')
+    run : str or int
+       Run (e.g. '0')
+    frame : int
+    fragment_id : str
+      Fragment ID (e.g. 'x10789')
+    n_snapshots : int, default=20
+        number of snapshots to load for simulation
+    cache_dir : str or None
+       If specified, cache relevant parts of "htf.npz" file in a local directory of this name
+
+    Returns
+    -------
+    sliced_snapshot : dict of str : mdtraj.Trajectory
+      sliced_snapshot[name] is the Trajectory for name in ['protein', 'old_ligand', 'new_ligand', 'old_complex', 'new_complex']
+    components : dict of str : oechem.OEMol
+      components[name] is the OEMol for name in ['protein', 'old_ligand', 'new_ligand']
+
+    """
+    import random
+    import numpy as np
+
+    # open n random snaphots for the RUN
+    for i in range(0, n_snapshots):
+        # TODO un-hardcode these
+        clone = random.randint(0,99)
+        gen = random.randint(0,2)
+        if i == 0:
+            # TODO safeguard against trying to load output that doesn't exist --- chose n_snapshots randomly from those that exists on disk
+            trajectory = load_trajectory(project_path, project_data_path, run, clone, gen)[frame]
+        else:
+            t = load_trajectory(project_path, project_data_path, run, clone, gen)[frame]
+            trajectory = trajectory.join(t)
+
+    # Load the fragment
+    fragment = load_fragment(fragment_id)
+
+    # Align the trajectory to the fragment (in place)
+    trajectory.image_molecules(inplace=True)
+    trajectory.superpose(fragment, atom_indices=fragment.top.select("name CA"))
+
+    # Slice out old or new state
+    sliced_snapshot = slice_snapshot(trajectory, project_path, run, cache_dir)
+
+    snap_id, ligand_rmsd, ligand_drmsd = _get_representative_snapshot(sliced_snapshot['old_ligand'], cluster_dist=0.5)
+    # TODO - get ligand_rmsd and ligand_drmsd into .pdf file via SDFTag
+
+    # Convert to OEMol
+    # NOTE: This uses heuristics, and should be replaced once we start storing actual chemical information
+    components = dict()
+    for name in ["protein", "old_ligand", "new_ligand"]:
+        components[name] = mdtraj_to_oemol(sliced_snapshot[name][snap_id])
+
+    return sliced_snapshot, components
 
 def extract_snapshot(
     project_path: str,
