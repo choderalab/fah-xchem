@@ -11,6 +11,11 @@ html * {
   font-family: 'Roboto', sans-serif;
 }
 
+span.updated {
+    color: gray;
+    font-style: italic;
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
@@ -68,6 +73,7 @@ th {
 </head>
 <body>
   <h1>COVID Moonshot Sprint {{ sprint }} Analysis</h1>
+  <span class="updated">Last updated: {{ analysis.updated_at.isoformat() }}</span>
   <h2>Summary</h2>
   <h3>Free energy distribution</h3>
   <a href="plots/relative_fe_dist.pdf">
@@ -96,7 +102,7 @@ th {
       <th colspan=2>Work distributions</th>
       <th colspan=2>Convergence</th>
     </tr>
-    {% for run in (runs | sort(attribute="analysis.binding.delta_f"))[:20] %}
+    {% for run in (analysis.runs | sort(attribute="analysis.binding.delta_f"))[:20] %}
     <tr>
       <td class="rank">{{ loop.index }}</td>
       <td >RUN{{ run.details.run_id() }}</td>
@@ -140,7 +146,7 @@ th {
       <th>Work distributions</th>
       <th>Convergence</th>
     </tr>
-    {% for run in runs | sort(attribute="analysis.binding.delta_f") %}
+    {% for run in analysis.runs | sort(attribute="analysis.binding.delta_f") %}
     <tr>
       <td class="rank">{{ loop.index }}</td>
       <td >RUN{{ run.details.run_id() }}</td>

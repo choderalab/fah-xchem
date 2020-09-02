@@ -134,7 +134,19 @@ def get_free_energy(
         )
 
     delta_f, ddelta_f = BAR(works["forward"], works["reverse"])
+
+    if not np.isfinite(delta_f) or not np.isfinite(ddelta_f):
+        raise ValueError(
+            f"BAR free energy computation returned invalid result: "
+            f"{delta_f} ± {ddelta_f}"
+        )
+
     bar_overlap = get_bar_overlap(works)
+
+    if not np.isfinite(bar_overlap):
+        raise ValueError(
+            f"BAR overlap computation returned invalid result: {bar_overlap}"
+        )
 
     return FreeEnergy(
         delta_f=delta_f,

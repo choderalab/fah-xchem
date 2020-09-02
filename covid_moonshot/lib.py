@@ -1,3 +1,4 @@
+import datetime as dt
 import functools
 from glob import glob
 import json
@@ -12,6 +13,7 @@ from .analysis.plots import save_run_level_plots, save_summary_plots
 from .analysis.free_energy import get_run_analysis
 from .analysis.structures import save_representative_snapshots
 from .core import (
+    Analysis,
     ResultPath,
     Run,
     RunAnalysis,
@@ -153,7 +155,7 @@ def analyze_runs(
     max_binding_delta_f: Optional[float] = None,
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = 8,
-) -> List[Run]:
+) -> Analysis:
     """
     Run free energy analysis and return input augmented with analysis
     results for all runs.
@@ -200,7 +202,7 @@ def analyze_runs(
 
     """
 
-    runs = read_run_details(run_details_json_file)
+    run_details = read_run_details(run_details_json_file)
 
     try_process_run = functools.partial(
         _try_process_run,
@@ -213,17 +215,16 @@ def analyze_runs(
     )
 
     with multiprocessing.Pool(num_procs) as pool:
-        results_iter = pool.imap_unordered(try_process_run, runs)
-        results = list(tqdm(results_iter, total=len(runs)))
+        results_iter = pool.imap_unordered(try_process_run, run_details)
+        results = list(tqdm(results_iter, total=len(run_details)))
 
-    runs_output = [r for r in results if r is not None]
-    num_failed = len(results) - len(runs_output)
+    runs = [r for r in results if r is not None]
+    num_failed = len(results) - len(runs)
 
     if num_failed > 0:
         logging.warning("Failed to process %d RUNs out of %d", num_failed, len(results))
 
-    run_analyses = [run.analysis for run in runs_output]
-    save_summary_plots(run_analyses, os.path.join(output_dir, "plots"))
-    save_reports(runs_output, output_dir)
-
-    return runs_output
+    analysis = Analysis(dt.datetime.now(dt.timezone.utc), runs)
+    save_summary_plots(analysis, os.path.join(output_dir, "plots"))
+    save_reports(analysis, output_dir)
+    return analysis
