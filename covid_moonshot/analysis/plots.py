@@ -6,12 +6,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from simtk.openmm import unit
-from openmmtools.constants import kB
-from typing import List, Optional, Tuple
+from typing import Generator, Iterable, List, Optional, Tuple
 from ..core import Binding, PhaseAnalysis, RunAnalysis, Work
-
-_kT_kcal = kB * 300 * unit.kelvin / unit.kilocalories_per_mole
+from .constants import KT_KCALMOL
 
 
 def plot_work_distribution(
@@ -135,7 +132,7 @@ def plot_relative_distribution(
     valid_relative_delta_fs = _filter_inclusive(
         np.array(relative_delta_fs), min_delta_f, max_delta_f
     )
-    valid_relative_delta_fs_kcal = valid_relative_delta_fs * _kT_kcal
+    valid_relative_delta_fs_kcal = valid_relative_delta_fs * KT_KCALMOL
 
     sns.distplot(
         valid_relative_delta_fs_kcal,
@@ -186,16 +183,16 @@ def plot_convergence(
     fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
 
     complex_delta_fs_kcal = pd.Series(
-        np.array(complex_delta_fs) * _kT_kcal, index=complex_gens,
+        np.array(complex_delta_fs) * KT_KCALMOL, index=complex_gens,
     )
     complex_delta_f_errs_kcal = pd.Series(
-        np.array(complex_delta_f_errs) * _kT_kcal, index=complex_gens,
+        np.array(complex_delta_f_errs) * KT_KCALMOL, index=complex_gens,
     )
     solvent_delta_fs_kcal = pd.Series(
-        np.array(solvent_delta_fs) * _kT_kcal, index=solvent_gens,
+        np.array(solvent_delta_fs) * KT_KCALMOL, index=solvent_gens,
     )
     solvent_delta_f_errs_kcal = pd.Series(
-        np.array(solvent_delta_f_errs) * _kT_kcal, index=solvent_gens,
+        np.array(solvent_delta_f_errs) * KT_KCALMOL, index=solvent_gens,
     )
 
     DDG_kcal = solvent_delta_fs_kcal - complex_delta_fs_kcal
@@ -226,7 +223,7 @@ def plot_convergence(
     gens = complex_delta_fs_kcal.index.union(solvent_delta_fs_kcal.index).values
 
     ax1.hlines(
-        binding_delta_f * _kT_kcal,
+        binding_delta_f * KT_KCALMOL,
         0,
         gens.max(),
         color="green",
@@ -235,8 +232,8 @@ def plot_convergence(
     )
     ax1.fill_between(
         [0, gens.max()],
-        (binding_delta_f - binding_delta_f_err * n_devs_bounds) * _kT_kcal,
-        (binding_delta_f + binding_delta_f_err * n_devs_bounds) * _kT_kcal,
+        (binding_delta_f - binding_delta_f_err * n_devs_bounds) * KT_KCALMOL,
+        (binding_delta_f + binding_delta_f_err * n_devs_bounds) * KT_KCALMOL,
         alpha=0.2,
         color="green",
     )
@@ -280,7 +277,7 @@ def plot_cumulative_distribution(
 
     """
 
-    relative_delta_fs_kcal = np.array(relative_delta_fs) * _kT_kcal
+    relative_delta_fs_kcal = np.array(relative_delta_fs) * KT_KCALMOL
 
     relative_delta_fs_kcal = _filter_inclusive(
         relative_delta_fs_kcal, min_delta_f_kcal, max_delta_f_kcal
@@ -312,7 +309,7 @@ def plot_cumulative_distribution(
 
 
 @contextmanager
-def save_plot(path: str, name: str, file_format: str):
+def save_plot(path: str, name: str, file_formats: Iterable[str]) -> Generator:
     """
     Context manager that creates a new figure on entry and saves the
     figure using the specified name, format, and path on exit.
@@ -323,8 +320,9 @@ def save_plot(path: str, name: str, file_format: str):
         Path prefix to use in constructing the result path
     name : str
         Basename to use in constructing the result path
-    file_format : str
-        File extension of the result. Must be accepted by ``plt.savefig``
+    file_formats : iterable of str
+        File extensions with which to save the result. Elements must
+        be accepted by ``plt.savefig``
 
     Examples
     --------
@@ -340,7 +338,11 @@ def save_plot(path: str, name: str, file_format: str):
     plt.figure()
     yield
     plt.tight_layout()
-    plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
+
+    for file_format in file_formats:
+        plt.savefig(
+            os.path.join(path, os.extsep.join([name, file_format])), transparent=True
+        )
 
 
 def save_run_level_plots(
@@ -349,7 +351,7 @@ def save_run_level_plots(
     solvent_phase: PhaseAnalysis,
     binding: Binding,
     path: str = os.curdir,
-    file_format: str = "pdf",
+    file_formats: Iterable[str] = ("pdf", "png"),
 ) -> None:
     """
     Save plots specific to a run.
@@ -380,7 +382,7 @@ def save_run_level_plots(
         File format for plot output
     """
 
-    with save_plot(path, f"RUN{run}", file_format):
+    with save_plot(path, f"RUN{run}", file_formats):
         fig = plot_work_distributions(
             complex_forward_works=[
                 w for gen in complex_phase.gens for w in gen.forward_works
@@ -399,7 +401,7 @@ def save_run_level_plots(
         )
         fig.suptitle(f"RUN{run}")
 
-    with save_plot(path, f"RUN{run}-convergence", file_format):
+    with save_plot(path, f"RUN{run}-convergence", file_formats):
 
         # Filter to GENs for which free energy calculation is available
         complex_gens = [
@@ -427,7 +429,9 @@ def save_run_level_plots(
 
 
 def save_summary_plots(
-    runs: List[RunAnalysis], path: str = os.curdir, file_format: str = "pdf"
+    runs: List[RunAnalysis],
+    path: str = os.curdir,
+    file_formats: Iterable[str] = ("pdf", "png"),
 ) -> None:
     """
     Save plots summarizing all runs.
@@ -454,10 +458,10 @@ def save_summary_plots(
     """
     binding_delta_fs = [run.binding.delta_f for run in runs]
 
-    with save_plot(path, "relative_fe_dist", file_format):
+    with save_plot(path, "relative_fe_dist", file_formats):
         plot_relative_distribution(binding_delta_fs)
         plt.title("Relative free energy")
 
-    with save_plot(path, "cumulative_fe_dist", file_format):
+    with save_plot(path, "cumulative_fe_dist", file_formats):
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
