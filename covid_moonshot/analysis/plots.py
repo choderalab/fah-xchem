@@ -345,9 +345,20 @@ def plot_cumulative_distribution(
     plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
     plt.ylabel("Cumulative $N$ ligands")
 
+def save_table(path: str, name: str, file_format: str):
+
+    # Make sure the directory exists
+    import os
+
+    os.makedirs(path, exist_ok=True)
+
+    pdf_plt = PdfPages()
+    pdf_plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
+    pdf_plt.close()
+
 
 @contextmanager
-def save_plot(path: str, name: str, file_format: str, table: False):
+def save_plot(path: str, name: str, file_format: str):
     """
     Context manager that creates a new figure on entry and saves the
     figure using the specified name, format, and path on exit.
@@ -360,8 +371,6 @@ def save_plot(path: str, name: str, file_format: str, table: False):
         Basename to use in constructing the result path
     file_format : str
         File extension of the result. Must be accepted by ``plt.savefig``
-    table : bool
-        Specify whether to plot a table
 
     Examples
     --------
@@ -374,16 +383,10 @@ def save_plot(path: str, name: str, file_format: str, table: False):
 
     os.makedirs(path, exist_ok=True)
 
-    if table:
-        pdf_plt = PdfPages()
-        pdf_plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
-        pdf_plt.close()
-
-    else:
-        plt.figure()
-        yield
-        plt.tight_layout()
-        plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
+    plt.figure()
+    yield
+    plt.tight_layout()
+    plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
 
 
 def save_run_level_plots(
@@ -507,6 +510,6 @@ def save_summary_plots(
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
 
-    with save_plot(path, "poor_complex_convergence_fe_table", file_format, table=True):
+    with save_table(path, "poor_complex_convergence_fe_table", file_format):
         plot_poor_complex_convergence_fe_table(runs)
         plt.title("Poor complex convergence table")
