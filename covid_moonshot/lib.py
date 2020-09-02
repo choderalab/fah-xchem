@@ -221,9 +221,7 @@ def analyze_runs(
         logging.warning("Failed to process %d RUNs out of %d", num_failed, len(results))
 
     save_summary_plots(
-        [run.analysis for run in runs_output],
-        [run.details for run in runs_output],
-        plot_output_path,
+        [run for run in runs_output], plot_output_path,
     )
 
     return runs_output
