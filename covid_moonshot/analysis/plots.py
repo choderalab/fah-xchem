@@ -470,8 +470,7 @@ def save_run_level_plots(
 
 
 def save_summary_plots(
-    runs: List[RunAnalysis],
-    runs_details: List[RunDetails],
+    runs: List[Run],
     path: str = os.curdir,
     file_format: str = "pdf",
 ) -> None:
@@ -491,14 +490,14 @@ def save_summary_plots(
 
     Parameters
     ----------
-    runs : list of RunAnalysis
-        Results for all runs
+    runs : list of Run
+        Details and results for all runs
     path : str
         Where to write plot files
     file_format : str
         File format for plot output
     """
-    binding_delta_fs = [run.binding.delta_f for run in runs]
+    binding_delta_fs = [run.binding.delta_f for run in runs.analysis]
 
     with save_plot(path, "relative_fe_dist", file_format):
         plot_relative_distribution(binding_delta_fs)
@@ -509,5 +508,5 @@ def save_summary_plots(
         plt.title("Cumulative distribution")
 
     with save_plot(path, "poor_complex_convergence_fe_table", file_format, table=True):
-        plot_poor_complex_convergence_fe_table(runs, runs_details)
+        plot_poor_complex_convergence_fe_table(runs)
         plt.title("Poor complex convergence table")
