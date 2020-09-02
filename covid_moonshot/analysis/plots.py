@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import datetime as dt
 from functools import partial
 import os
 import logging
@@ -7,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from typing import Generator, Iterable, List, Optional, Tuple
-from ..core import Binding, PhaseAnalysis, RunAnalysis, Work
+from ..core import Analysis, Binding, PhaseAnalysis, RunAnalysis, Work
 from .constants import KT_KCALMOL
 
 
@@ -308,8 +309,19 @@ def plot_cumulative_distribution(
     plt.ylabel("Cumulative $N$ ligands")
 
 
+def _plot_updated_timestamp() -> None:
+    ts = dt.datetime.now(dt.timezone.utc).isoformat()
+    fig = plt.gcf()
+    fig.text(0.5, 0.03, f"Updated {ts}", color="gray", horizontalalignment="center")
+
+
 @contextmanager
-def save_plot(path: str, name: str, file_formats: Iterable[str]) -> Generator:
+def _save_plot(
+    path: str,
+    name: str,
+    file_formats: Iterable[str],
+    timestamp: Optional[dt.datetime] = None,
+) -> Generator:
     """
     Context manager that creates a new figure on entry and saves the
     figure using the specified name, format, and path on exit.
@@ -323,6 +335,9 @@ def save_plot(path: str, name: str, file_formats: Iterable[str]) -> Generator:
     file_formats : iterable of str
         File extensions with which to save the result. Elements must
         be accepted by ``plt.savefig``
+    timestamp : datetime or None, optional
+        If given, draw a watermark with the timestamp at the bottom of
+        the figure
 
     Examples
     --------
@@ -337,7 +352,12 @@ def save_plot(path: str, name: str, file_formats: Iterable[str]) -> Generator:
 
     plt.figure()
     yield
-    plt.tight_layout()
+
+    if timestamp is not None:
+        plt.tight_layout(rect=(0, 0.05, 1, 1))  # leave space for timestamp on bottom
+        _plot_updated_timestamp()
+    else:
+        plt.tight_layout()
 
     for file_format in file_formats:
         plt.savefig(
@@ -382,7 +402,14 @@ def save_run_level_plots(
         File format for plot output
     """
 
-    with save_plot(path, f"RUN{run}", file_formats):
+    save_plot = partial(
+        _save_plot,
+        path=path,
+        file_formats=file_formats,
+        timestamp=dt.datetime.now(dt.timezone.utc),
+    )
+
+    with save_plot(name=f"RUN{run}"):
         fig = plot_work_distributions(
             complex_forward_works=[
                 w for gen in complex_phase.gens for w in gen.forward_works
@@ -401,8 +428,7 @@ def save_run_level_plots(
         )
         fig.suptitle(f"RUN{run}")
 
-    with save_plot(path, f"RUN{run}-convergence", file_formats):
-
+    with save_plot(name=f"RUN{run}-convergence"):
         # Filter to GENs for which free energy calculation is available
         complex_gens = [
             (gen.gen, gen.free_energy)
@@ -429,7 +455,7 @@ def save_run_level_plots(
 
 
 def save_summary_plots(
-    runs: List[RunAnalysis],
+    analysis: Analysis,
     path: str = os.curdir,
     file_formats: Iterable[str] = ("pdf", "png"),
 ) -> None:
@@ -456,12 +482,16 @@ def save_summary_plots(
     file_format : str
         File format for plot output
     """
-    binding_delta_fs = [run.binding.delta_f for run in runs]
+    binding_delta_fs = [run.analysis.binding.delta_f for run in analysis.runs]
 
-    with save_plot(path, "relative_fe_dist", file_formats):
+    save_plot = partial(
+        _save_plot, path=path, file_formats=file_formats, timestamp=analysis.updated_at
+    )
+
+    with save_plot(name="relative_fe_dist",):
         plot_relative_distribution(binding_delta_fs)
         plt.title("Relative free energy")
 
-    with save_plot(path, "cumulative_fe_dist", file_formats):
+    with save_plot(name="cumulative_fe_dist",):
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")

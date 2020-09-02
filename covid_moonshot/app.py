@@ -1,6 +1,5 @@
 import os
 from typing import Optional
-import simplejson as json
 import logging
 import fire
 from .lib import analyze_runs
@@ -54,7 +53,7 @@ def analyze_runs_cli(
         Number of parallel processes to run
     """
 
-    results = analyze_runs(
+    analysis = analyze_runs(
         run_details_json_file=run_details_json_file,
         complex_project_path=complex_project_path,
         complex_project_data_path=complex_project_data_path,
@@ -65,10 +64,8 @@ def analyze_runs_cli(
         num_procs=num_procs,
     )
 
-    # NOTE: ignore_nan=True encodes NaN as null, ensuring we produce
-    # valid json even if there are NaNs in the output
     with open(os.path.join(output_dir, "analysis.json"), "w") as output_file:
-        json.dump([r.to_dict() for r in results], output_file, ignore_nan=True)
+        output_file.write(analysis.to_json())
 
 
 def main():
