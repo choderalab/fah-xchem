@@ -254,24 +254,24 @@ def plot_convergence(
 
 
 def plot_poor_convergence_fe_table(
-    runs: List[int], runs_details: List[int], energy_cutoff: float = 1.0,
+    runs: List[Run], energy_cutoff_kcal: float = 1.0,
 ) -> plt.Figure:
 
-    complex_phases = [run.complex_phase for run in runs]
-    job_ids = [run.JOBID for run in runs_details]
+    complex_phases = [run.complex_phase for run in runs.analysis]
+    job_ids = [run.details.job_id() for run in runs.details]
 
     std_dev_store = []
     jobid_store = []
 
-    for i, run in enumerate(runs):
+    for run in runs:
 
         complex_gens = run.analysis.complex_phase.gens
 
         std_dev = np.std([gen.free_energy.delta_f for gen in complex_gens])
 
-        if std_dev * _kT_kcal >= energy_cutoff:
+        if std_dev * _kT_kcal >= energy_cutoff_kcal:
 
-            jobid_store.append(int(runs_details.JOBID))
+            jobid_store.append(int(run.details.run_id()))
             std_dev_store.append(np.round(std_dev * _kT_kcal, 3))
 
     df = pd.DataFrame(
