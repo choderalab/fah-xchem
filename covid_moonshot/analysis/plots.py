@@ -6,6 +6,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from pymbar import BAR
 from typing import Generator, Iterable, List, Optional, Tuple
 from ..core import Binding, PhaseAnalysis, RunAnalysis, Work
 from .constants import KT_KCALMOL
