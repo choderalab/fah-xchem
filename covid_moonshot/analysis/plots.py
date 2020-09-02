@@ -256,6 +256,22 @@ def plot_convergence(
 def plot_poor_convergence_fe_table(
     runs: List[Run], energy_cutoff_kcal: float = 1.0,
 ) -> plt.Figure:
+    """
+    Plot table of poorly converging free energy estimates with GEN
+
+    Parameters
+    ----------
+    runs : list of Run
+        Relative free energies (in kT)
+    energy_cutoff_kcal : float
+        Cutoff to consider a result as poorly converged (in kcal/mol)
+
+    Returns
+    -------
+    Figure
+        Figure containing the plot
+
+    """
 
     complex_phases = [run.complex_phase for run in runs.analysis]
     job_ids = [run.details.job_id() for run in runs.details]
@@ -344,6 +360,7 @@ def plot_cumulative_distribution(
         )
     plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
     plt.ylabel("Cumulative $N$ ligands")
+
 
 def save_table(path: str, name: str, file_format: str):
 
@@ -473,9 +490,7 @@ def save_run_level_plots(
 
 
 def save_summary_plots(
-    runs: List[Run],
-    path: str = os.curdir,
-    file_format: str = "pdf",
+    runs: List[Run], path: str = os.curdir, file_format: str = "pdf",
 ) -> None:
     """
     Save plots summarizing all runs.
