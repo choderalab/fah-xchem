@@ -69,11 +69,36 @@ th {
   background-color: #1f77b4;
   color: white;
 }
+
+div.progress {
+    border-style: solid;
+    border-width: 2px;
+    border-color: #1f77b4;
+    background-color: white;
+    padding: 3px;
+}
+
+div.progress > div.progress-bar {
+    background-color: #ff7f0e;
+    background-color: #1f77b4;
+    color: white;
+    font-size: 1.25em;
+    font-weight: bold;
+    font-style: italic;
+    text-align: right;
+    padding: 5px 20px 5px;
+}
 </style>
 </head>
 <body>
   <h1>COVID Moonshot Sprint {{ sprint }} Analysis</h1>
   <span class="updated">Last updated: {{ analysis.updated_at.isoformat() }}</span>
+  <h2>Progress</h2>
+  <div class="progress">
+    <div class="progress-bar" role="progressbar" style="width: {{ '%.2f' | format(progress.percent_complete()) }}%;">
+      {{ progress.percent_complete() }}%
+    </div>
+  </div>
   <h2>Summary</h2>
   <h3>Free energy distribution</h3>
   <a href="plots/relative_fe_dist.pdf">
