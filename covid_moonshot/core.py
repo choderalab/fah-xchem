@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import List
+import datetime as dt
+from typing import List, Optional
 from dataclasses_json import dataclass_json
 
 
@@ -34,7 +35,7 @@ class FreeEnergy:
 @dataclass
 class GenAnalysis:
     gen: int
-    free_energy: FreeEnergy
+    free_energy: Optional[FreeEnergy]
     forward_works: List[float]
     reverse_works: List[float]
 
@@ -79,7 +80,7 @@ class RunDetails:
     target: str
 
     def run_id(self) -> int:
-        return self.JOBID - 1
+        return self.JOBID
 
 
 @dataclass_json
@@ -111,5 +112,13 @@ class Run:
     >>> # Extract works for specific gen
     >>> forward_works = phase.gens[0].forward_works
     """
+
     details: RunDetails
     analysis: RunAnalysis
+
+
+@dataclass_json
+@dataclass
+class Analysis:
+    updated_at: dt.datetime
+    runs: List[Run]
