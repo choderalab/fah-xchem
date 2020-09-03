@@ -255,7 +255,7 @@ def plot_convergence(
 
 def plot_poor_convergence_fe_table(
     runs: List[Run], energy_cutoff_kcal: float = 1.0,
-) -> plt.Figure:
+) -> Optional[plt.Figure]:
     """
     Plot table of poorly converging free energy estimates with GEN
 
@@ -268,7 +268,7 @@ def plot_poor_convergence_fe_table(
 
     Returns
     -------
-    Figure
+    Figure : Figure or None, optional
         Figure containing the plot
 
     """
@@ -299,8 +299,6 @@ def plot_poor_convergence_fe_table(
             zip(jobid_store, std_dev_store), key=lambda pair: pair[1], reverse=True
         )
     ]
-
-    print(data)
 
     column_titles = ["RUN", "Complex phase standard deviation / kcal mol$^{-1}$"]
 
