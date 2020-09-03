@@ -1,13 +1,3 @@
-#!/bin/env python
-
-"""
-Postprocess results of calculations to extract summary for compound prioritization
-
-Requires
-* openeye-toolkits
-
-"""
-
 from .core import Analysis
 
 
@@ -144,7 +134,22 @@ def RenderData(image, mol, tags):
         table.DrawText(cell, value)
 
 
-def save_postprocessing(analysis: Analysis, dataset_name: str, results_path: str):
+def save_postprocessing(
+    analysis: Analysis, dataset_name: str, results_path: str
+) -> None:
+    """
+    Postprocess results of calculations to extract summary for compound prioritization
+
+    Parameters
+    ----------
+    analysis : Analysis
+        Analysis results
+    dataset_name : str
+        Compound series name, e.g. '2020-08-14-nucleophilic-displacement'
+    results_path : str
+        Path to write results
+    """
+
     import os
 
     structures_path = os.path.join(results_path, "structures")
