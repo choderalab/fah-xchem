@@ -294,8 +294,15 @@ def plot_poor_convergence_fe_table(
         except AttributeError:  # skip if no delta_f recorded
             continue
 
-    # Create 2D list for table input
-    data = [[i, j] for i, j in zip(jobid_store, std_dev_store)]
+    # Create sorted 2D list for table input, from highest to lowest std_dev
+    data = [
+        [i, j]
+        for i, j in sorted(
+            zip(jobid_store, std_dev_store), key=lambda pair: pair[1], reverse=True
+        )
+    ]
+
+    print(data)
 
     column_titles = ["RUN", "Complex phase standard deviation / kcal mol$^{-1}$"]
 
