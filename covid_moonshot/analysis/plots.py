@@ -310,12 +310,30 @@ def plot_cumulative_distribution(
     plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
     plt.ylabel("Cumulative $N$ ligands")
 
+
 def plot_bootstrapped_clones(
     complex_phase: PhaseAnalysis, 
     solvent_phase: PhaseAnalysis,
     clones_per_gen: int,
     n_gens: int,
     n_bootstrap: int = 100):
+    """
+    Plot free energy convergence with number of CLONEs
+
+    Parameters
+    ----------
+    complex_phase : PhaseAnalysis
+        results for complex
+    solvent_phase : PhaseAnalysis
+        results for solvent
+    clones_per_gen : int
+        Number of CLONEs per GEN
+    n_gens : int
+        Number of GENs
+    n_bootstrap : int
+        Number of bootstrap values
+
+    """
 
     fig, ax = plt.subplots()
 
