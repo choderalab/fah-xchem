@@ -80,7 +80,6 @@ class CompoundSeriesMetadata:
 @dataclass_json
 @dataclass
 class Compound:
-    name: str
     compound_id: str
     smiles: str
     is_racemic_mixture: bool
