@@ -8,6 +8,7 @@ Requires
 
 """
 
+
 def write_pdf_report(mollist, pdf_filename, iname):
     """
     Write molecules with SD Data to PDF
@@ -40,11 +41,14 @@ def write_pdf_report(mollist, pdf_filename, iname):
 
     # setup depiction options
     cellwidth, cellheight = report.GetCellWidth(), report.GetCellHeight()
-    opts = oedepict.OE2DMolDisplayOptions(cellwidth, cellheight, oedepict.OEScale_AutoScale)
+    opts = oedepict.OE2DMolDisplayOptions(
+        cellwidth, cellheight, oedepict.OEScale_AutoScale
+    )
 
     # generate report
     DepictMoleculesWithData(report, mollist, iname, tags, opts)
     oedepict.OEWriteReport(pdf_filename, report)
+
 
 def CollectDataTags(mollist):
     import sys
@@ -58,6 +62,7 @@ def CollectDataTags(mollist):
                 tags.append(dp.GetTag())
 
     return tags
+
 
 def DepictMoleculesWithData(report, mollist, iname, tags, opts):
     import sys
@@ -77,20 +82,35 @@ def DepictMoleculesWithData(report, mollist, iname, tags, opts):
         RenderData(cell, mol, tags)
 
     # add input filnename to headers
-    headerfont = oedepict.OEFont(oedepict.OEFontFamily_Default, oedepict.OEFontStyle_Default,
-                                 12, oedepict.OEAlignment_Center, oechem.OEBlack)
-    headerpos = oedepict.OE2DPoint(report.GetHeaderWidth() / 2.0, report.GetHeaderHeight() / 2.0)
+    headerfont = oedepict.OEFont(
+        oedepict.OEFontFamily_Default,
+        oedepict.OEFontStyle_Default,
+        12,
+        oedepict.OEAlignment_Center,
+        oechem.OEBlack,
+    )
+    headerpos = oedepict.OE2DPoint(
+        report.GetHeaderWidth() / 2.0, report.GetHeaderHeight() / 2.0
+    )
 
     for header in report.GetHeaders():
         header.DrawText(headerpos, iname, headerfont)
 
     # add page number to footers
-    footerfont = oedepict.OEFont(oedepict.OEFontFamily_Default, oedepict.OEFontStyle_Default,
-                                 12, oedepict.OEAlignment_Center, oechem.OEBlack)
-    footerpos = oedepict.OE2DPoint(report.GetFooterWidth() / 2.0, report.GetFooterHeight() / 2.0)
+    footerfont = oedepict.OEFont(
+        oedepict.OEFontFamily_Default,
+        oedepict.OEFontStyle_Default,
+        12,
+        oedepict.OEAlignment_Center,
+        oechem.OEBlack,
+    )
+    footerpos = oedepict.OE2DPoint(
+        report.GetFooterWidth() / 2.0, report.GetFooterHeight() / 2.0
+    )
 
     for pageidx, footer in enumerate(report.GetFooters()):
         footer.DrawText(footerpos, "- %d -" % (pageidx + 1), footerfont)
+
 
 def RenderData(image, mol, tags):
     import sys
@@ -106,7 +126,9 @@ def RenderData(image, mol, tags):
 
     nrdata = len(data)
 
-    tableopts = oedepict.OEImageTableOptions(nrdata, 2, oedepict.OEImageTableStyle_LightBlue)
+    tableopts = oedepict.OEImageTableOptions(
+        nrdata, 2, oedepict.OEImageTableStyle_LightBlue
+    )
     tableopts.SetColumnWidths([10, 20])
     tableopts.SetMargins(2.0)
     tableopts.SetHeader(False)
@@ -119,17 +141,18 @@ def RenderData(image, mol, tags):
         cell = table.GetBodyCell(row + 1, 1)
         table.DrawText(cell, value)
 
-        
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import os
 
-    dataset_name = '2020-08-14-nucleophilic-displacement'
-    results_path = f'/home/server/covid-moonshot-analysis/results/{dataset_name}/complex13422/solvent13423/'
-    structures_path = os.path.join(results_path, 'structures')
+    dataset_name = "2020-08-14-nucleophilic-displacement"
+    results_path = f"/home/server/covid-moonshot-analysis/results/{dataset_name}/complex13422/solvent13423/"
+    structures_path = os.path.join(results_path, "structures")
 
     # Load JSON file
-    json_filename = os.path.join(results_path, 'analysis.json')
+    json_filename = os.path.join(results_path, "analysis.json")
     import json
+
     with open(json_filename) as infile:
         transformations = json.load(infile)
 
@@ -137,22 +160,23 @@ if __name__ == '__main__':
     # TODO: Generalize this to handle other than x -> 0 star map transformations
     from openeye import oechem
     from rich.progress import track
-    oemols = list() # target molecules
-    refmols = list() # reference molecules
-    for transformation in track(transformations, description='Reading ligands'):
-        details = transformation['details']
-        analysis = transformation['analysis']
-        binding = analysis['binding']
+
+    oemols = list()  # target molecules
+    refmols = list()  # reference molecules
+    for transformation in track(transformations, description="Reading ligands"):
+        details = transformation["details"]
+        analysis = transformation["analysis"]
+        binding = analysis["binding"]
 
         # Don't load anything not predicted to bind better
-        if binding['delta_f'] >= 0.0:
+        if binding["delta_f"] >= 0.0:
             continue
-        
-        run = details['directory']
+
+        run = details["directory"]
 
         # Read target compound information
-        protein_pdb_filename = os.path.join(structures_path, f'{run}-old_protein.pdb')
-        ligand_sdf_filename = os.path.join(structures_path, f'{run}-old_ligand.sdf')
+        protein_pdb_filename = os.path.join(structures_path, f"{run}-old_protein.pdb")
+        ligand_sdf_filename = os.path.join(structures_path, f"{run}-old_ligand.sdf")
 
         # Read target compound
         oemol = oechem.OEMol()
@@ -161,77 +185,86 @@ if __name__ == '__main__':
 
         # Read reference compound
         refmol = oechem.OEMol()
-        reference_ligand_sdf_filename = os.path.join(structures_path, f'{run}-new_ligand.sdf')
+        reference_ligand_sdf_filename = os.path.join(
+            structures_path, f"{run}-new_ligand.sdf"
+        )
         with oechem.oemolistream(reference_ligand_sdf_filename) as ifs:
             oechem.OEReadMolecule(ifs, refmol)
         refmols.append(refmol)
 
         # Set ligand title
-        title = details['start_title']
+        title = details["start_title"]
         oemol.SetTitle(title)
-        oechem.OESetSDData(oemol, 'CID', title)
+        oechem.OESetSDData(oemol, "CID", title)
 
         # Set SMILES
-        smiles = details['start_smiles']
-        oechem.OESetSDData(oemol, 'SMILES', smiles) 
-        
+        smiles = details["start_smiles"]
+        oechem.OESetSDData(oemol, "SMILES", smiles)
+
         # Set RUN
-        oechem.OESetSDData(oemol, 'RUN', run)
+        oechem.OESetSDData(oemol, "RUN", run)
 
         # Set free energy and uncertainty (in kcal/mol)
-        kT = 0.596 # kcal/mol at 300K # TODO: Replace this with info from the calculation
+        kT = 0.596  # kcal/mol at 300K # TODO: Replace this with info from the calculation
         # TODO: Improve this by writing appropriate digits of precision
-        oechem.OESetSDData(oemol, 'DDG (kcal/mol)', f"{kT*binding['delta_f']:.2f}")
-        oechem.OESetSDData(oemol, 'dDDG (kcal/mol)', f"{kT*binding['ddelta_f']:.2f}")
-        
+        oechem.OESetSDData(oemol, "DDG (kcal/mol)", f"{kT*binding['delta_f']:.2f}")
+        oechem.OESetSDData(oemol, "dDDG (kcal/mol)", f"{kT*binding['ddelta_f']:.2f}")
+
         # Store compound
         oemols.append(oemol)
 
-    print(f'{len(oemols)} molecules read')
-    
+    print(f"{len(oemols)} molecules read")
+
     # Sort ligands in order of most favorable transformations
     import numpy as np
-    sorted_indices = np.argsort([float(oechem.OEGetSDData(oemol, 'DDG (kcal/mol)')) for oemol in oemols])
+
+    sorted_indices = np.argsort(
+        [float(oechem.OEGetSDData(oemol, "DDG (kcal/mol)")) for oemol in oemols]
+    )
 
     # Filter based on threshold
-    THRESHOLD = -0.5 # kcal/mol
-    sorted_indices = [ index for index in sorted_indices if (float(oechem.OEGetSDData(oemols[index], 'DDG (kcal/mol)')) < -THRESHOLD) ]
+    THRESHOLD = -0.5  # kcal/mol
+    sorted_indices = [
+        index
+        for index in sorted_indices
+        if (float(oechem.OEGetSDData(oemols[index], "DDG (kcal/mol)")) < -THRESHOLD)
+    ]
 
     # Slice
-    oemols = [ oemols[index] for index in sorted_indices ]
-    refmols = [ refmols[index] for index in sorted_indices ]
+    oemols = [oemols[index] for index in sorted_indices]
+    refmols = [refmols[index] for index in sorted_indices]
 
     # Write sorted molecules
-    for filename in ['ligands.sdf', 'ligands.csv', 'ligands.mol2']:
+    for filename in ["ligands.sdf", "ligands.csv", "ligands.mol2"]:
         with oechem.oemolostream(os.path.join(results_path, filename)) as ofs:
-            for oemol in track(oemols, description=f'Writing {filename}'):
+            for oemol in track(oemols, description=f"Writing {filename}"):
                 oechem.OEWriteMolecule(ofs, oemol)
-                
+
     # Write PDF report
-    write_pdf_report(oemols, os.path.join(results_path, 'ligands.pdf'), dataset_name)
+    write_pdf_report(oemols, os.path.join(results_path, "ligands.pdf"), dataset_name)
 
     # Write reference molecules
-    for filename in ['reference.sdf', 'reference.mol2']:
+    for filename in ["reference.sdf", "reference.mol2"]:
         with oechem.oemolostream(os.path.join(results_path, filename)) as ofs:
-            for refmol in track(refmols, description=f'Writing {filename}'):
-                oechem.OEWriteMolecule(ofs, refmol)    
+            for refmol in track(refmols, description=f"Writing {filename}"):
+                oechem.OEWriteMolecule(ofs, refmol)
 
     # Compile proteins
     import mdtraj as md
     import numpy as np
+
     proteins = list()
-    for oemol in track(oemols, description='Consolidating protein snapshots'):
-        RUN = oechem.OEGetSDData(oemol, 'RUN')
-        protein_pdb_filename = os.path.join(structures_path, f'{RUN}-old_protein.pdb')
+    for oemol in track(oemols, description="Consolidating protein snapshots"):
+        RUN = oechem.OEGetSDData(oemol, "RUN")
+        protein_pdb_filename = os.path.join(structures_path, f"{RUN}-old_protein.pdb")
         protein = md.load(protein_pdb_filename)
         proteins.append(protein)
 
     n_proteins = len(proteins)
     n_atoms = proteins[0].topology.n_atoms
-    n_dim = 3        
+    n_dim = 3
     xyz = np.zeros([n_proteins, n_atoms, n_dim], np.float32)
     for index, protein in enumerate(proteins):
-        xyz[index,:,:] = protein.xyz[0,:,:]
+        xyz[index, :, :] = protein.xyz[0, :, :]
     trajectory = md.Trajectory(xyz, proteins[0].topology)
-    trajectory.save(os.path.join(results_path, 'proteins.pdb'))
-            
+    trajectory.save(os.path.join(results_path, "proteins.pdb"))
