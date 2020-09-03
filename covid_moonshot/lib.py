@@ -8,7 +8,7 @@ import os
 import re
 from typing import List, Optional
 import joblib
-from tqdm.auto import tqdm
+from rich.progress import track
 from .analysis.plots import save_run_level_plots, save_summary_plots
 from .analysis.free_energy import get_run_analysis
 from .analysis.structures import save_representative_snapshots
@@ -217,7 +217,7 @@ def analyze_runs(
 
     with multiprocessing.Pool(num_procs) as pool:
         results_iter = pool.imap_unordered(try_process_run, run_details)
-        results = list(tqdm(results_iter, total=len(run_details)))
+        results = list(track(results_iter, total=len(run_details)))
 
     runs = [r for r in results if r is not None]
     num_failed = len(results) - len(runs)
