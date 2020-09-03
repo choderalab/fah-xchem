@@ -254,7 +254,7 @@ def plot_convergence(
 
 
 def plot_poor_convergence_fe_table(
-    runs: List[Run], energy_cutoff_kcal: float = 1.0,
+    runs: List[RunAnalysis], energy_cutoff_kcal: float = 1.0,
 ) -> plt.Figure:
     """
     Plot table of poorly converging free energy estimates with GEN
@@ -273,8 +273,8 @@ def plot_poor_convergence_fe_table(
 
     """
 
-    complex_phases = [run.complex_phase for run in runs.analysis]
-    job_ids = [run.details.job_id() for run in runs.details]
+    complex_phases = [run.complex_phase for run in runs]
+    job_ids = [run.details.job_id() for run in runs]
 
     std_dev_store = []
     jobid_store = []
@@ -501,7 +501,7 @@ def save_run_level_plots(
 
 
 def save_summary_plots(
-    runs: List[Run], path: str = os.curdir, file_format: str = "pdf",
+    runs: List[RunAnalysis], path: str = os.curdir, file_format: str = "pdf",
 ) -> None:
     """
     Save plots summarizing all runs.
@@ -526,7 +526,7 @@ def save_summary_plots(
     file_format : str
         File format for plot output
     """
-    binding_delta_fs = [run.binding.delta_f for run in runs.analysis]
+    binding_delta_fs = [run.binding.delta_f for run in runs]
 
     with save_plot(path, "relative_fe_dist", file_format):
         plot_relative_distribution(binding_delta_fs)
@@ -537,5 +537,5 @@ def save_summary_plots(
         plt.title("Cumulative distribution")
 
     with save_table_pdf(path, "poor_complex_convergence_fe_table"):
-        plot_poor_complex_convergence_fe_table(runs)
+        plot_poor_convergence_fe_table(runs)
         plt.title("Poor complex convergence table")
