@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import datetime as dt
-from typing import List, Optional
+from typing import Dict, List, Optional
 from dataclasses_json import dataclass_json
 
 
@@ -60,6 +60,59 @@ class RunAnalysis:
     complex_phase: PhaseAnalysis
     solvent_phase: PhaseAnalysis
     binding: Binding
+
+
+@dataclass_json
+@dataclass
+class CompoundSeriesMetadata:
+    name: str
+    description: str
+    creator: str
+    creation_date: dt.date
+    xchem_project: str
+    biological_assembly: str
+    protein_variant: str
+    temperature_kelvin: float
+    ionic_strength_millimolar: float
+    pH: float
+
+
+@dataclass_json
+@dataclass
+class Compound:
+    name: str
+    compound_id: str
+    smiles: str
+    is_racemic_mixture: bool
+    has_multiple_protonation_states: bool
+    has_multiple_tautomers: bool
+    experimental_data: Dict[str, str]
+
+
+@dataclass_json
+@dataclass
+class Molecule:
+    molecule_id: str
+    cid: str
+    smiles: str
+
+
+@dataclass_json
+@dataclass
+class Transformation:
+    run: str
+    initial_molecule: str
+    final_molecule: str
+    fragment_id: str
+
+
+@dataclass_json
+@dataclass
+class CompoundSeries:
+    metadata: CompoundSeriesMetadata
+    compounds: List[Compound]
+    molecules: List[Molecule]
+    transformations: List[Transformation]
 
 
 @dataclass_json
