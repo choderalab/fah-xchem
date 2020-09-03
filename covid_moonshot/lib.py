@@ -230,7 +230,7 @@ def analyze_runs(
     try:
         save_summary_plots(analysis, os.path.join(output_dir, "plots"))
     except ValueError as e:
-        logging.error(f"Failed to save summary plots: {e}")
+        logging.error("Failed to save summary plots: %s", e)
 
     try:
         save_postprocessing(
@@ -239,11 +239,11 @@ def analyze_runs(
             results_path=output_dir,
            )
     except ValueError as e:
-        logging.error(f"Failed postprocessing: {e}")
+        logging.error("Failed postprocessing: %s", e)
 
     try:
         save_reports(analysis, output_dir)
     except ValueError as e:
-        logging.error(f"Failed to save reports: {e}")
+        logging.error("Failed to save reports: %s", e)
 
     return analysis
