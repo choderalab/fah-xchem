@@ -8,6 +8,8 @@ Requires
 
 """
 
+from .core import Analysis
+
 
 def write_pdf_report(mollist, pdf_filename, iname):
     """
@@ -142,19 +144,11 @@ def RenderData(image, mol, tags):
         table.DrawText(cell, value)
 
 
-if __name__ == "__main__":
+def save_postprocessing(analysis: Analysis, dataset_name: str, results_path: str):
     import os
 
-    dataset_name = "2020-08-14-nucleophilic-displacement"
-    results_path = f"/home/server/covid-moonshot-analysis/results/{dataset_name}/complex13422/solvent13423/"
     structures_path = os.path.join(results_path, "structures")
-
-    # Load JSON file
-    json_filename = os.path.join(results_path, "analysis.json")
-    import json
-
-    with open(json_filename) as infile:
-        transformations = json.load(infile)
+    transformations = analysis.runs
 
     # Load all molecules, attaching properties
     # TODO: Generalize this to handle other than x -> 0 star map transformations
@@ -164,15 +158,14 @@ if __name__ == "__main__":
     oemols = list()  # target molecules
     refmols = list()  # reference molecules
     for transformation in track(transformations, description="Reading ligands"):
-        details = transformation["details"]
-        analysis = transformation["analysis"]
-        binding = analysis["binding"]
+        details = transformation.details
+        binding = transformation.analysis.binding
 
         # Don't load anything not predicted to bind better
-        if binding["delta_f"] >= 0.0:
+        if binding.delta_f >= 0.0:
             continue
 
-        run = details["directory"]
+        run = details.directory
 
         # Read target compound information
         protein_pdb_filename = os.path.join(structures_path, f"{run}-old_protein.pdb")
@@ -193,12 +186,12 @@ if __name__ == "__main__":
         refmols.append(refmol)
 
         # Set ligand title
-        title = details["start_title"]
+        title = details.start_title
         oemol.SetTitle(title)
         oechem.OESetSDData(oemol, "CID", title)
 
         # Set SMILES
-        smiles = details["start_smiles"]
+        smiles = details.start_smiles
         oechem.OESetSDData(oemol, "SMILES", smiles)
 
         # Set RUN
@@ -259,6 +252,9 @@ if __name__ == "__main__":
         protein_pdb_filename = os.path.join(structures_path, f"{RUN}-old_protein.pdb")
         protein = md.load(protein_pdb_filename)
         proteins.append(protein)
+
+    if not proteins:
+        raise ValueError("No protein snapshots found")
 
     n_proteins = len(proteins)
     n_atoms = proteins[0].topology.n_atoms

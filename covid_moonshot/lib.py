@@ -21,6 +21,7 @@ from .core import (
     Work,
 )
 from .extract_work import extract_work
+from .postprocess import save_postprocessing
 from .reports import save_reports
 
 
@@ -226,5 +227,10 @@ def analyze_runs(
 
     analysis = Analysis(dt.datetime.now(dt.timezone.utc), runs)
     save_summary_plots(analysis, os.path.join(output_dir, "plots"))
+    save_postprocessing(
+        analysis,
+        dataset_name="2020-08-14-nucleophilic-displacement",  # XXX
+        results_path=output_dir,
+    )
     save_reports(analysis, output_dir)
     return analysis
