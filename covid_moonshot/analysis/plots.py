@@ -5,10 +5,12 @@ import os
 import logging
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.font_manager import FontProperties
 import numpy as np
 import pandas as pd
 from typing import Generator, Iterable, List, Optional, Tuple
-from ..core import Analysis, Binding, PhaseAnalysis, RunAnalysis, Work
+from ..core import Analysis, Binding, PhaseAnalysis, Run, Work
 from .constants import KT_KCALMOL
 
 
@@ -251,6 +253,73 @@ def plot_convergence(
     return fig
 
 
+def plot_poor_convergence_fe_table(
+    runs: List[Run], energy_cutoff_kcal: float = 1.0,
+) -> Optional[plt.Figure]:
+    """
+    Plot table of poorly converging free energy estimates with GEN
+
+    Parameters
+    ----------
+    runs : list of Run
+        Relative free energies (in kT)
+    energy_cutoff_kcal : float
+        Cutoff to consider a result as poorly converged (in kcal/mol)
+
+    Returns
+    -------
+    Figure : Figure or None, optional
+        Figure containing the plot
+
+    """
+
+    std_dev_store = []
+    jobid_store = []
+
+    for run in runs:
+
+        complex_gens = run.analysis.complex_phase.gens
+        std_dev = np.std(
+            [
+                gen.free_energy.delta_f
+                for gen in complex_gens
+                if gen.free_energy is not None
+            ]
+        )
+
+        if std_dev * KT_KCALMOL >= energy_cutoff_kcal:
+
+            jobid_store.append(run.details.JOBID)  # JOBID X should = RUN X
+            std_dev_store.append(np.round(std_dev * KT_KCALMOL, 3))
+
+    # Create sorted 2D list for table input, from highest to lowest std_dev
+    data = [
+        [i, j]
+        for i, j in sorted(
+            zip(jobid_store, std_dev_store), key=lambda pair: pair[1], reverse=True
+        )
+    ]
+
+    if not data:
+        return None
+
+    else:
+        column_titles = ["RUN", "Complex phase standard deviation / kcal mol$^{-1}$"]
+        fig, ax = plt.subplots()
+        ax.axis("tight")
+        ax.axis("off")
+        table = ax.table(
+            cellText=data, colLabels=column_titles, loc="center", cellLoc="center",
+        )
+
+        # Make column headers bold
+        for (row, col), cell in table.get_celld().items():
+            if (row == 0) or (col == -1):
+                cell.set_text_props(fontproperties=FontProperties(weight="bold"))
+
+        return fig
+
+
 def plot_cumulative_distribution(
     relative_delta_fs: List[float],
     min_delta_f_kcal: Optional[float] = None,
@@ -319,6 +388,32 @@ def _plot_updated_timestamp(timestamp: dt.datetime) -> None:
         color="gray",
         horizontalalignment="center",
     )
+
+
+@contextmanager
+def save_table_pdf(path: str, name: str):
+    """
+    Context manager that creates a new figure on entry and saves the
+    figure using a specified name and path on exit.
+
+    Paramaters
+    ----------
+    path : str
+        Path prefix to use in constructing the result path
+    name : str
+        Basename to use in constructing the result path
+
+    """
+
+    # Make sure the directory exists
+    import os
+
+    os.makedirs(path, exist_ok=True)
+    file_name = os.path.join(path, os.extsep.join([name, "pdf"]))
+
+    with PdfPages(file_name) as pdf_plt:
+        yield
+        pdf_plt.savefig(bbox_inches="tight")
 
 
 @contextmanager
@@ -481,13 +576,14 @@ def save_summary_plots(
 
     Parameters
     ----------
-    runs : list of RunAnalysis
-        Results for all runs
+    runs : list of Run
+        Details and results for all runs
     path : str
         Where to write plot files
     file_format : str
         File format for plot output
     """
+
     binding_delta_fs = [run.analysis.binding.delta_f for run in analysis.runs]
 
     save_plot = partial(
@@ -501,3 +597,6 @@ def save_summary_plots(
     with save_plot(name="cumulative_fe_dist",):
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
+
+    with save_table_pdf(path, "poor_complex_convergence_fe_table"):
+        plot_poor_convergence_fe_table(analysis.runs)
