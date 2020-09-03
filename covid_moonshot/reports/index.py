@@ -5,7 +5,7 @@ import os
 from typing import List, Optional
 from jinja2 import Environment
 from ..analysis.constants import KT_KCALMOL
-from ..core import Binding, Run
+from ..core import Analysis, Binding
 from . import templates
 
 
@@ -47,10 +47,12 @@ def format_estimate_stderr(est: Estimate) -> str:
     return f"{round(est.stderr, prec):.{prec}f}"
 
 
-def get_index_html(runs: List[Run]) -> str:
+def get_index_html(analysis: Analysis) -> str:
     template = pkg_resources.read_text(templates, "index.html")
     environment = Environment()
     environment.filters["binding_estimate_kcal"] = binding_estimate_kcal
     environment.filters["format_estimate_point"] = format_estimate_point
     environment.filters["format_estimate_stderr"] = format_estimate_stderr
-    return environment.from_string(template).render(sprint=SPRINT_NUMBER, runs=runs)
+    return environment.from_string(template).render(
+        sprint=SPRINT_NUMBER, analysis=analysis
+    )
