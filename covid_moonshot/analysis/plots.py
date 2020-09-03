@@ -288,7 +288,7 @@ def plot_poor_convergence_fe_table(
 
             if std_dev * KT_KCALMOL >= energy_cutoff_kcal:
 
-                jobid_store.append(run.details.JOBID)
+                jobid_store.append(run.details.JOBID)  # JOBID X should = RUN X
                 std_dev_store.append(np.round(std_dev * KT_KCALMOL, 3))
 
         except AttributeError:  # skip if no delta_f recorded
@@ -297,7 +297,7 @@ def plot_poor_convergence_fe_table(
     # Create 2D list for table input
     data = [[i, j] for i, j in zip(jobid_store, std_dev_store)]
 
-    column_titles = ["JOBID", "Complex phase standard deviation / kcal mol$^{-1}$"]
+    column_titles = ["RUN", "Complex phase standard deviation / kcal mol$^{-1}$"]
 
     fig, ax = plt.subplots()
     ax.axis("tight")
