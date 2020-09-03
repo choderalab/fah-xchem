@@ -273,9 +273,6 @@ def plot_poor_convergence_fe_table(
 
     """
 
-    complex_phases = [run.analysis.complex_phase for run in runs]
-    job_ids = [run.details.JOBID for run in runs]
-
     std_dev_store = []
     jobid_store = []
 
