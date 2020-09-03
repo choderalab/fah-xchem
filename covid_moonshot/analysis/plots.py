@@ -44,19 +44,19 @@ def plot_work_distribution(
     )
 
     distplot(
-        forward_works,
+        np.array(forward_works) * KT_KCALMOL,
         color="cornflowerblue",
-        label=f"forward : N={len(forward_works)}",
+        label=f"forward : $N={len(forward_works)}$",
     )
 
     distplot(
-        -np.array(reverse_works),
+        -np.array(reverse_works) * KT_KCALMOL,
         color="hotpink",
-        label=f"reverse : N={len(reverse_works)}",
+        label=f"reverse : $N={len(reverse_works)}$",
     )
 
-    ax.axvline(delta_f, color="k", ls=":")
-    ax.set_xlabel(f"work / $k_B T$")
+    ax.axvline(delta_f * KT_KCALMOL, color="k", ls=":")
+    ax.set_xlabel(r"work / kcal mol$^{-1}$")
 
 
 def plot_work_distributions(
@@ -143,7 +143,7 @@ def plot_relative_distribution(
         color="hotpink",
         kde_kws=dict(shade=True),
         rug_kws=dict(alpha=0.5),
-        label=f"N={len(relative_delta_fs)}",
+        label=f"$N={len(relative_delta_fs)}$",
     )
     plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
 
@@ -240,12 +240,13 @@ def plot_convergence(
     )
 
     ax1.set_xticks([gen for gen in range(gens.max() + 1)])
+
     ax2.set_xlabel("GEN")
+    ax1.set_ylabel(r"$\Delta\Delta G$ / kcal mol$^{-1}$")
+    ax2.set_ylabel(r"$\Delta G$ / kcal mol$^{-1}$")
+
     ax1.legend()
     ax2.legend()
-
-    for ax in [ax1, ax2]:
-        ax.set_ylabel(r"Rel. $\Delta G$ / kcal mol$^{-1}$")
 
     return fig
 
@@ -300,7 +301,7 @@ def plot_cumulative_distribution(
         plt.text(
             marker_kcal - 0.5,
             0.8 * Y.max(),
-            rf"$N$ = {n_below}",
+            rf"$N={n_below}$",
             rotation=90,
             verticalalignment="center",
             color="green",
