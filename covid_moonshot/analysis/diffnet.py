@@ -88,10 +88,13 @@ def combine_relative_free_energies(results):
         # check for empty results
         if result['analysis']['binding']['delta_f'] is not None and \
            result['analysis']['binding']['ddelta_f'] is not None:
+           #  could just add all information from the JSON onto the nodes/edges
             graph.add_edge(result['details']['start_title'],
                            result['details']['end_title'],
                            f_ij=result['analysis']['binding']['delta_f'],
-                           f_dij=result['analysis']['binding']['ddelta_f'])
+                           f_dij=result['analysis']['binding']['ddelta_f'],
+                           complex_overlap=result['analysis']['complex_phase']['free_energy']['bar_overlap'],
+                           solvent_overlap=result['analysis']['solvent_phase']['free_energy']['bar_overlap'])
 
         # see if either ligand has an experimental affinity associated node
         for state in ['start', 'end']:
