@@ -278,18 +278,19 @@ def plot_poor_convergence_fe_table(
 
     for run in runs:
 
-        try:
+        complex_gens = run.analysis.complex_phase.gens
+        std_dev = np.std(
+            [
+                gen.free_energy.delta_f
+                for gen in complex_gens
+                if gen.free_energy is not None
+            ]
+        )
 
-            complex_gens = run.analysis.complex_phase.gens
-            std_dev = np.std([gen.free_energy.delta_f for gen in complex_gens])
+        if std_dev * KT_KCALMOL >= energy_cutoff_kcal:
 
-            if std_dev * KT_KCALMOL >= energy_cutoff_kcal:
-
-                jobid_store.append(run.details.JOBID)  # JOBID X should = RUN X
-                std_dev_store.append(np.round(std_dev * KT_KCALMOL, 3))
-
-        except AttributeError:  # skip if no delta_f recorded
-            continue
+            jobid_store.append(run.details.JOBID)  # JOBID X should = RUN X
+            std_dev_store.append(np.round(std_dev * KT_KCALMOL, 3))
 
     # Create sorted 2D list for table input, from highest to lowest std_dev
     data = [
