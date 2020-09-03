@@ -227,24 +227,11 @@ def analyze_runs(
         logging.warning("Failed to process %d RUNs out of %d", num_failed, len(results))
 
     analysis = Analysis(dt.datetime.now(dt.timezone.utc), runs)
-
-    try:
-        save_summary_plots(analysis, os.path.join(output_dir, "plots"))
-    except ValueError as e:
-        logging.error("Failed to save summary plots: %s", e)
-
-    try:
-        save_postprocessing(
-            analysis,
-            dataset_name="2020-08-14-nucleophilic-displacement",  # XXX
-            results_path=output_dir,
-        )
-    except ValueError as e:
-        logging.error("Failed postprocessing: %s", e)
-
-    try:
-        save_reports(analysis, output_dir)
-    except ValueError as e:
-        logging.error("Failed to save reports: %s", e)
-
+    save_summary_plots(analysis, os.path.join(output_dir, "plots"))
+    save_postprocessing(
+        analysis,
+        dataset_name="2020-08-14-nucleophilic-displacement",  # XXX
+        results_path=output_dir,
+    )
+    save_reports(analysis, output_dir)
     return analysis
