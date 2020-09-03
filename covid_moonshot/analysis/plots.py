@@ -359,16 +359,30 @@ def plot_cumulative_distribution(
     plt.ylabel("Cumulative $N$ ligands")
 
 
-def save_table(path: str, name: str, file_format: str):
+@contextmanager
+def save_table_pdf(path: str, name: str):
+    """
+    Context manager that creates a new figure on entry and saves the
+    figure using a specified name and path on exit.
+
+    Paramaters
+    ----------
+    path : str
+        Path prefix to use in constructing the result path
+    name : str
+        Basename to use in constructing the result path
+
+    """
 
     # Make sure the directory exists
     import os
 
     os.makedirs(path, exist_ok=True)
+    file_name = os.path.join(path, os.extsep.join([name, "pdf"]))
 
-    pdf_plt = PdfPages()
-    pdf_plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
-    pdf_plt.close()
+    with PdfPages(file_name) as pdf_plt:
+        yield
+        pdf_plt.savefig()
 
 
 @contextmanager
@@ -522,6 +536,6 @@ def save_summary_plots(
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
 
-    with save_table(path, "poor_complex_convergence_fe_table", file_format):
+    with save_table_pdf(path, "poor_complex_convergence_fe_table"):
         plot_poor_complex_convergence_fe_table(runs)
         plt.title("Poor complex convergence table")
