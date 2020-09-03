@@ -1,3 +1,4 @@
+import logging
 from .core import Analysis
 
 
@@ -211,7 +212,7 @@ def save_postprocessing(
         # Store compound
         oemols.append(oemol)
 
-    print(f"{len(oemols)} molecules read")
+    logging.info(f"{len(oemols)} molecules read")
 
     # Sort ligands in order of most favorable transformations
     import numpy as np
@@ -255,8 +256,12 @@ def save_postprocessing(
     for oemol in track(oemols, description="Consolidating protein snapshots"):
         RUN = oechem.OEGetSDData(oemol, "RUN")
         protein_pdb_filename = os.path.join(structures_path, f"{RUN}-old_protein.pdb")
-        protein = md.load(protein_pdb_filename)
-        proteins.append(protein)
+        try:
+            protein = md.load(protein_pdb_filename)
+            proteins.append(protein)
+        except IOError as e:
+            logging.warning("Failed to load protein snapshot: %s", e)
+            continue
 
     if not proteins:
         raise ValueError("No protein snapshots found")
