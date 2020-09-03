@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import datetime as dt
 from functools import partial
 import os
 import logging
@@ -8,12 +9,9 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.font_manager import FontProperties
 import numpy as np
 import pandas as pd
-from simtk.openmm import unit
-from openmmtools.constants import kB
-from typing import List, Optional, Tuple
-from ..core import Binding, PhaseAnalysis, Work, Run
-
-_kT_kcal = kB * 300 * unit.kelvin / unit.kilocalories_per_mole
+from typing import Generator, Iterable, List, Optional, Tuple
+from ..core import Analysis, Binding, PhaseAnalysis, Run, Work
+from .constants import KT_KCALMOL
 
 
 def plot_work_distribution(
@@ -48,19 +46,19 @@ def plot_work_distribution(
     )
 
     distplot(
-        forward_works,
+        np.array(forward_works) * KT_KCALMOL,
         color="cornflowerblue",
-        label=f"forward : N={len(forward_works)}",
+        label=f"forward : $N={len(forward_works)}$",
     )
 
     distplot(
-        -np.array(reverse_works),
+        -np.array(reverse_works) * KT_KCALMOL,
         color="hotpink",
-        label=f"reverse : N={len(reverse_works)}",
+        label=f"reverse : $N={len(reverse_works)}$",
     )
 
-    ax.axvline(delta_f, color="k", ls=":")
-    ax.set_xlabel(f"work / $k_B T$")
+    ax.axvline(delta_f * KT_KCALMOL, color="k", ls=":")
+    ax.set_xlabel(r"work / kcal mol$^{-1}$")
 
 
 def plot_work_distributions(
@@ -137,7 +135,7 @@ def plot_relative_distribution(
     valid_relative_delta_fs = _filter_inclusive(
         np.array(relative_delta_fs), min_delta_f, max_delta_f
     )
-    valid_relative_delta_fs_kcal = valid_relative_delta_fs * _kT_kcal
+    valid_relative_delta_fs_kcal = valid_relative_delta_fs * KT_KCALMOL
 
     sns.distplot(
         valid_relative_delta_fs_kcal,
@@ -147,7 +145,7 @@ def plot_relative_distribution(
         color="hotpink",
         kde_kws=dict(shade=True),
         rug_kws=dict(alpha=0.5),
-        label=f"N={len(relative_delta_fs)}",
+        label=f"$N={len(relative_delta_fs)}$",
     )
     plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
 
@@ -188,16 +186,16 @@ def plot_convergence(
     fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
 
     complex_delta_fs_kcal = pd.Series(
-        np.array(complex_delta_fs) * _kT_kcal, index=complex_gens,
+        np.array(complex_delta_fs) * KT_KCALMOL, index=complex_gens,
     )
     complex_delta_f_errs_kcal = pd.Series(
-        np.array(complex_delta_f_errs) * _kT_kcal, index=complex_gens,
+        np.array(complex_delta_f_errs) * KT_KCALMOL, index=complex_gens,
     )
     solvent_delta_fs_kcal = pd.Series(
-        np.array(solvent_delta_fs) * _kT_kcal, index=solvent_gens,
+        np.array(solvent_delta_fs) * KT_KCALMOL, index=solvent_gens,
     )
     solvent_delta_f_errs_kcal = pd.Series(
-        np.array(solvent_delta_f_errs) * _kT_kcal, index=solvent_gens,
+        np.array(solvent_delta_f_errs) * KT_KCALMOL, index=solvent_gens,
     )
 
     DDG_kcal = solvent_delta_fs_kcal - complex_delta_fs_kcal
@@ -228,7 +226,7 @@ def plot_convergence(
     gens = complex_delta_fs_kcal.index.union(solvent_delta_fs_kcal.index).values
 
     ax1.hlines(
-        binding_delta_f * _kT_kcal,
+        binding_delta_f * KT_KCALMOL,
         0,
         gens.max(),
         color="green",
@@ -237,19 +235,20 @@ def plot_convergence(
     )
     ax1.fill_between(
         [0, gens.max()],
-        (binding_delta_f - binding_delta_f_err * n_devs_bounds) * _kT_kcal,
-        (binding_delta_f + binding_delta_f_err * n_devs_bounds) * _kT_kcal,
+        (binding_delta_f - binding_delta_f_err * n_devs_bounds) * KT_KCALMOL,
+        (binding_delta_f + binding_delta_f_err * n_devs_bounds) * KT_KCALMOL,
         alpha=0.2,
         color="green",
     )
 
     ax1.set_xticks([gen for gen in range(gens.max() + 1)])
+
     ax2.set_xlabel("GEN")
+    ax1.set_ylabel(r"$\Delta\Delta G$ / kcal mol$^{-1}$")
+    ax2.set_ylabel(r"$\Delta G$ / kcal mol$^{-1}$")
+
     ax1.legend()
     ax2.legend()
-
-    for ax in [ax1, ax2]:
-        ax.set_ylabel(r"Rel. $\Delta G$ / kcal mol$^{-1}$")
 
     return fig
 
@@ -287,10 +286,10 @@ def plot_poor_convergence_fe_table(
             complex_gens = run.analysis.complex_phase.gens
             std_dev = np.std([gen.free_energy.delta_f for gen in complex_gens])
 
-            if std_dev * _kT_kcal >= energy_cutoff_kcal:
+            if std_dev * KT_KCALMOL >= energy_cutoff_kcal:
 
                 jobid_store.append(run.details.JOBID)
-                std_dev_store.append(np.round(std_dev * _kT_kcal, 3))
+                std_dev_store.append(np.round(std_dev * KT_KCALMOL, 3))
 
         except AttributeError:  # skip if no delta_f recorded
             continue
@@ -343,7 +342,7 @@ def plot_cumulative_distribution(
 
     """
 
-    relative_delta_fs_kcal = np.array(relative_delta_fs) * _kT_kcal
+    relative_delta_fs_kcal = np.array(relative_delta_fs) * KT_KCALMOL
 
     relative_delta_fs_kcal = _filter_inclusive(
         relative_delta_fs_kcal, min_delta_f_kcal, max_delta_f_kcal
@@ -365,13 +364,24 @@ def plot_cumulative_distribution(
         plt.text(
             marker_kcal - 0.5,
             0.8 * Y.max(),
-            rf"$N$ = {n_below}",
+            rf"$N={n_below}$",
             rotation=90,
             verticalalignment="center",
             color="green",
         )
     plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
     plt.ylabel("Cumulative $N$ ligands")
+
+
+def _plot_updated_timestamp(timestamp: dt.datetime) -> None:
+    fig = plt.gcf()
+    fig.text(
+        0.5,
+        0.03,
+        f"Updated {timestamp.isoformat()}",
+        color="gray",
+        horizontalalignment="center",
+    )
 
 
 @contextmanager
@@ -401,7 +411,12 @@ def save_table_pdf(path: str, name: str):
 
 
 @contextmanager
-def save_plot(path: str, name: str, file_format: str):
+def _save_plot(
+    path: str,
+    name: str,
+    file_formats: Iterable[str],
+    timestamp: Optional[dt.datetime] = None,
+) -> Generator:
     """
     Context manager that creates a new figure on entry and saves the
     figure using the specified name, format, and path on exit.
@@ -412,8 +427,12 @@ def save_plot(path: str, name: str, file_format: str):
         Path prefix to use in constructing the result path
     name : str
         Basename to use in constructing the result path
-    file_format : str
-        File extension of the result. Must be accepted by ``plt.savefig``
+    file_formats : iterable of str
+        File extensions with which to save the result. Elements must
+        be accepted by ``plt.savefig``
+    timestamp : datetime or None, optional
+        If given, draw a watermark with the timestamp at the bottom of
+        the figure
 
     Examples
     --------
@@ -428,8 +447,17 @@ def save_plot(path: str, name: str, file_format: str):
 
     plt.figure()
     yield
-    plt.tight_layout()
-    plt.savefig(os.path.join(path, os.extsep.join([name, file_format])))
+
+    if timestamp is not None:
+        plt.tight_layout(rect=(0, 0.05, 1, 1))  # leave space for timestamp on bottom
+        _plot_updated_timestamp(timestamp)
+    else:
+        plt.tight_layout()
+
+    for file_format in file_formats:
+        plt.savefig(
+            os.path.join(path, os.extsep.join([name, file_format])), transparent=True
+        )
 
 
 def save_run_level_plots(
@@ -438,7 +466,7 @@ def save_run_level_plots(
     solvent_phase: PhaseAnalysis,
     binding: Binding,
     path: str = os.curdir,
-    file_format: str = "pdf",
+    file_formats: Iterable[str] = ("pdf", "png"),
 ) -> None:
     """
     Save plots specific to a run.
@@ -469,7 +497,14 @@ def save_run_level_plots(
         File format for plot output
     """
 
-    with save_plot(path, f"RUN{run}", file_format):
+    save_plot = partial(
+        _save_plot,
+        path=path,
+        file_formats=file_formats,
+        timestamp=dt.datetime.now(dt.timezone.utc),
+    )
+
+    with save_plot(name=f"RUN{run}"):
         fig = plot_work_distributions(
             complex_forward_works=[
                 w for gen in complex_phase.gens for w in gen.forward_works
@@ -488,8 +523,7 @@ def save_run_level_plots(
         )
         fig.suptitle(f"RUN{run}")
 
-    with save_plot(path, f"RUN{run}-convergence", file_format):
-
+    with save_plot(name=f"RUN{run}-convergence"):
         # Filter to GENs for which free energy calculation is available
         complex_gens = [
             (gen.gen, gen.free_energy)
@@ -516,7 +550,9 @@ def save_run_level_plots(
 
 
 def save_summary_plots(
-    runs: List[Run], path: str = os.curdir, file_format: str = "pdf",
+    analysis: Analysis,
+    path: str = os.curdir,
+    file_formats: Iterable[str] = ("pdf", "png"),
 ) -> None:
     """
     Save plots summarizing all runs.
@@ -541,15 +577,20 @@ def save_summary_plots(
     file_format : str
         File format for plot output
     """
-    binding_delta_fs = [run.analysis.binding.delta_f for run in runs]
 
-    with save_plot(path, "relative_fe_dist", file_format):
+    binding_delta_fs = [run.analysis.binding.delta_f for run in analysis.runs]
+
+    save_plot = partial(
+        _save_plot, path=path, file_formats=file_formats, timestamp=analysis.updated_at
+    )
+
+    with save_plot(name="relative_fe_dist",):
         plot_relative_distribution(binding_delta_fs)
         plt.title("Relative free energy")
 
-    with save_plot(path, "cumulative_fe_dist", file_format):
+    with save_plot(name="cumulative_fe_dist",):
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
 
     with save_table_pdf(path, "poor_complex_convergence_fe_table"):
-        plot_poor_convergence_fe_table(runs)
+        plot_poor_convergence_fe_table(analysis.runs)
