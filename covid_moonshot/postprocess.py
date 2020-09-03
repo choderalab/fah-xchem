@@ -222,7 +222,7 @@ def save_postprocessing(
     )
 
     # Filter based on threshold
-    THRESHOLD = -0.5  # kcal/mol
+    THRESHOLD = -0.5  # kcal/mol # TODO: expose as a parameter
     sorted_indices = [
         index
         for index in sorted_indices
