@@ -10,7 +10,7 @@ import pandas as pd
 from simtk.openmm import unit
 from openmmtools.constants import kB
 from typing import List, Optional, Tuple
-from ..core import Binding, PhaseAnalysis, RunAnalysis, RunDetails, Work
+from ..core import Binding, PhaseAnalysis, Work, Run
 
 _kT_kcal = kB * 300 * unit.kelvin / unit.kilocalories_per_mole
 
@@ -254,7 +254,7 @@ def plot_convergence(
 
 
 def plot_poor_convergence_fe_table(
-    runs: List[RunAnalysis], energy_cutoff_kcal: float = 1.0,
+    runs: List[Run], energy_cutoff_kcal: float = 1.0,
 ) -> plt.Figure:
     """
     Plot table of poorly converging free energy estimates with GEN
@@ -273,23 +273,30 @@ def plot_poor_convergence_fe_table(
 
     """
 
-    complex_phases = [run.complex_phase for run in runs]
-    job_ids = [run.details.job_id() for run in runs]
+    complex_phases = [run.analysis.complex_phase for run in runs]
+    job_ids = [run.details.JOBID for run in runs]
 
     std_dev_store = []
     jobid_store = []
 
     for run in runs:
 
-        complex_gens = run.analysis.complex_phase.gens
-        std_dev = np.std([gen.free_energy.delta_f for gen in complex_gens])
+        try:
 
-        if std_dev * _kT_kcal >= energy_cutoff_kcal:
+            complex_gens = run.analysis.complex_phase.gens
+            std_dev = np.std([gen.free_energy.delta_f for gen in complex_gens])
 
-            jobid_store.append(int(run.details.run_id()))
-            std_dev_store.append(np.round(std_dev * _kT_kcal, 3))
+            if std_dev * _kT_kcal >= energy_cutoff_kcal:
 
-    data = list(zip(jobid_store, std_dev_store))
+                jobid_store.append(run.details.JOBID)
+                std_dev_store.append(np.round(std_dev * _kT_kcal, 3))
+        
+        except AttributeError: # skip if no delta_f recorded
+            continue
+
+    # Create 2D list for table input
+    data = [[i, j] for i, j in zip(jobid_store, std_dev_store)]
+
     column_titles = ["JOBID", "Complex phase standard deviation / kcal mol$^{-1}$"]
 
     fig, ax = plt.subplots()
@@ -501,7 +508,7 @@ def save_run_level_plots(
 
 
 def save_summary_plots(
-    runs: List[RunAnalysis], path: str = os.curdir, file_format: str = "pdf",
+    runs: List[Run], path: str = os.curdir, file_format: str = "pdf",
 ) -> None:
     """
     Save plots summarizing all runs.
@@ -526,7 +533,7 @@ def save_summary_plots(
     file_format : str
         File format for plot output
     """
-    binding_delta_fs = [run.binding.delta_f for run in runs]
+    binding_delta_fs = [run.analysis.binding.delta_f for run in runs]
 
     with save_plot(path, "relative_fe_dist", file_format):
         plot_relative_distribution(binding_delta_fs)
