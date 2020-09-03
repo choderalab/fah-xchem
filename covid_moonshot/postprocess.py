@@ -1,4 +1,5 @@
 import logging
+from .analysis.constants import KT_KCALMOL
 from .core import Analysis
 
 
@@ -204,10 +205,9 @@ def save_postprocessing(
         oechem.OESetSDData(oemol, "RUN", run)
 
         # Set free energy and uncertainty (in kcal/mol)
-        kT = 0.596  # kcal/mol at 300K # TODO: Replace this with info from the calculation
         # TODO: Improve this by writing appropriate digits of precision
-        oechem.OESetSDData(oemol, "DDG (kcal/mol)", f"{kT*binding.delta_f:.2f}")
-        oechem.OESetSDData(oemol, "dDDG (kcal/mol)", f"{kT*binding.ddelta_f:.2f}")
+        oechem.OESetSDData(oemol, "DDG (kcal/mol)", f"{KT_KCALMOL*binding.delta_f:.2f}")
+        oechem.OESetSDData(oemol, "dDDG (kcal/mol)", f"{KT_KCALMOL*binding.ddelta_f:.2f}")
 
         # Store compound
         oemols.append(oemol)
