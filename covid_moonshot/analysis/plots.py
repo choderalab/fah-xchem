@@ -5,6 +5,7 @@ import logging
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.font_manager import FontProperties
 import numpy as np
 import pandas as pd
 from simtk.openmm import unit
@@ -302,7 +303,14 @@ def plot_poor_convergence_fe_table(
     fig, ax = plt.subplots()
     ax.axis("tight")
     ax.axis("off")
-    table = ax.table(cellText=data, colLabels=column_titles, loc="center")
+    table = ax.table(
+        cellText=data, colLabels=column_titles, loc="center", cellLoc="center",
+    )
+
+    # Make column headers bold
+    for (row, col), cell in table.get_celld().items():
+        if (row == 0) or (col == -1):
+            cell.set_text_props(fontproperties=FontProperties(weight="bold"))
 
     return fig
 
@@ -389,7 +397,7 @@ def save_table_pdf(path: str, name: str):
 
     with PdfPages(file_name) as pdf_plt:
         yield
-        pdf_plt.savefig(bbox_inches='tight')
+        pdf_plt.savefig(bbox_inches="tight")
 
 
 @contextmanager
@@ -545,4 +553,3 @@ def save_summary_plots(
 
     with save_table_pdf(path, "poor_complex_convergence_fe_table"):
         plot_poor_convergence_fe_table(runs)
-        plt.title("Poor complex convergence table")
