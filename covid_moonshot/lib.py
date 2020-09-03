@@ -110,9 +110,10 @@ def analyze_run(
         and analysis.binding.delta_f >= max_binding_delta_f
     ):
         logging.warning(
-            f"Skipping snapshot for RUN {run}. "
-            f"Binding free energy estimate {analysis.binding.delta_f} "
-            f"exceeds threshold {max_binding_delta_f}."
+            "Skipping snapshot for RUN %d. Binding free energy estimate %g exceeds threshold %g",
+            run,
+            analysis.binding.delta_f,
+            max_binding_delta_f,
         )
     else:
         try:
@@ -237,7 +238,7 @@ def analyze_runs(
             analysis,
             dataset_name="2020-08-14-nucleophilic-displacement",  # XXX
             results_path=output_dir,
-           )
+        )
     except ValueError as e:
         logging.error("Failed postprocessing: %s", e)
 
