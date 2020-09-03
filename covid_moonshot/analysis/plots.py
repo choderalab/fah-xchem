@@ -348,7 +348,7 @@ def plot_bootstrapped_clones(
 
     plt.xlim(0, clones_per_gen + 10)
     plt.xlabel('Number of CLONEs')
-    plt.ylabel(r"Rel. $\Delta$G / kcal mol$^{-1}$")
+    plt.ylabel(r"$\Delta$G / kcal mol$^{-1}$")
     plt.legend(["complex", "solvent"], loc='best')
 
     return fig
