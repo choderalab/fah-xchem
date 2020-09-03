@@ -1,15 +1,19 @@
 import importlib.resources as pkg_resources
 from math import floor, isfinite, log10
 import os
-from typing import List, NamedTuple, Optional
+import requests
+from simplejson.errors import JSONDecodeError
+from typing import NamedTuple, Optional
 from jinja2 import Environment
 from ..analysis.constants import KT_KCALMOL
 from ..core import Analysis, Binding
 from . import templates
 
 
-# TODO: read from configuration
+# TODO: remove hardcoded values
 SPRINT_NUMBER = 3
+NUM_GENS = 2687 * 50 * 6  # sprint 3
+PROJECT = 13424
 
 
 class Estimate(NamedTuple):
@@ -53,12 +57,9 @@ class Progress(NamedTuple):
         return 100 * self.completed / self.total
 
 
-# TODO: remove hardcoded values
 def _get_progress(
-    project: int = 13424, api_url: str = "http://aws3.foldingathome.org/api/"
+    project: int, api_url: str = "http://aws3.foldingathome.org/api/"
 ) -> Progress:
-    import requests
-    from simplejson.errors import JSONDecodeError
 
     url = f"{api_url}/projects/{project}"
 
@@ -70,12 +71,7 @@ def _get_progress(
             f"Failed to get progress data from FAH server ({api_url})"
         ) from exc
 
-    # TODO: remove hardcoded values
-    # override while we are still shifting WUs
-    n_gens = 2687 * 50 * 6  # sprint 3
-    # wus_total = json["gens"]
-
-    return Progress(completed=json["gens_completed"], total=n_gens,)
+    return Progress(completed=json["gens_completed"], total=NUM_GENS)
 
 
 def get_index_html(analysis: Analysis) -> str:
@@ -85,5 +81,5 @@ def get_index_html(analysis: Analysis) -> str:
     environment.filters["format_estimate_point"] = format_estimate_point
     environment.filters["format_estimate_stderr"] = format_estimate_stderr
     return environment.from_string(template).render(
-        sprint=SPRINT_NUMBER, analysis=analysis, progress=_get_progress(),
+        sprint=SPRINT_NUMBER, analysis=analysis, progress=_get_progress(PROJECT)
     )
