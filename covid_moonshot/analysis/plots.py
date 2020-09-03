@@ -300,21 +300,24 @@ def plot_poor_convergence_fe_table(
         )
     ]
 
-    column_titles = ["RUN", "Complex phase standard deviation / kcal mol$^{-1}$"]
+    if not data:
+        return None
 
-    fig, ax = plt.subplots()
-    ax.axis("tight")
-    ax.axis("off")
-    table = ax.table(
-        cellText=data, colLabels=column_titles, loc="center", cellLoc="center",
-    )
+    else:
+        column_titles = ["RUN", "Complex phase standard deviation / kcal mol$^{-1}$"]
+        fig, ax = plt.subplots()
+        ax.axis("tight")
+        ax.axis("off")
+        table = ax.table(
+            cellText=data, colLabels=column_titles, loc="center", cellLoc="center",
+        )
 
-    # Make column headers bold
-    for (row, col), cell in table.get_celld().items():
-        if (row == 0) or (col == -1):
-            cell.set_text_props(fontproperties=FontProperties(weight="bold"))
+        # Make column headers bold
+        for (row, col), cell in table.get_celld().items():
+            if (row == 0) or (col == -1):
+                cell.set_text_props(fontproperties=FontProperties(weight="bold"))
 
-    return fig
+        return fig
 
 
 def plot_cumulative_distribution(
