@@ -230,7 +230,7 @@ def analyze_runs(
     save_summary_plots(analysis, os.path.join(output_dir, "plots"))
     save_postprocessing(
         analysis,
-        dataset_name="2020-08-14-nucleophilic-displacement",  # XXX
+        dataset_name="2020-08-14-nucleophilic-displacement",  # TODO: expose as a parameter
         results_path=output_dir,
     )
     save_reports(analysis, output_dir)
