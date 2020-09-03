@@ -31,7 +31,6 @@ def _ic50_to_dG(ic50, s_conc=375E-9, Km=40E-6):
 
 
 def separate_graphs(graphs):
-    import copy
     graphs_to_replace = []
     new_graphs = []
     # now need to check that all of the graphs are weakly connected
@@ -41,11 +40,7 @@ def separate_graphs(graphs):
             graphs_to_replace.append(name)
             for j, subgraph in enumerate(nx.weakly_connected_components(g)):
                 # this should perseve all necessary nodes/edges
-                new_g = copy.deepcopy(g)
-                new_g.remove_nodes_from([i for i in new_g.nodes()
-                                         if i not in subgraph])
-                # could name the new graphs something better
-                new_graphs[name+f'_{j}'] = new_g
+                new_graphs[name+f'_{j}'] = reduce_graph(g, subgraph)
     # now get rid of non-connected graphs
     for name in graphs_to_replace:
         del graphs[name]
@@ -54,6 +49,33 @@ def separate_graphs(graphs):
     graphs.update(new_graphs)
 
     return graphs
+
+
+def reduce_graph(g, nodes_to_keep):
+    """ Takes a big graph and retains only required nodes
+    This can be useful for minimising large graphs,
+    or breaking down unconnected graphs
+
+    Any information of the graph, nodes (to be kept), and edges (where both nodes are to be kept) are retained
+
+    Parameters
+    ----------
+    g : nx.DiGraph
+        Large graph to simplify
+    nodes_to_keep : list
+        List of nodes that should be retained
+
+    Returns
+    -------
+    nx.DiGraph
+        Smaller subset graph of g
+
+    """
+    import copy
+    new_g = copy.deepcopy(g)
+    new_g.remove_nodes_from([i for i in new_g.nodes()
+                             if i not in nodes_to_keep])
+    return new_g
 
 
 def combine_relative_free_energies(results):
@@ -102,9 +124,11 @@ def combine_relative_free_energies(results):
         f_i, C = stats.mle(graph)
         f_i = - f_i
         errs = np.diag(C)
-        mean_calc = np.mean(f_i)
+
         exp_values = [n[1]['exp_DG'] for n in graph.nodes(data=True)
                       if 'exp_DG' in n[1]]
+        calc_values = [f for f, n in zip(f_i, graph.nodes(data=True))
+                       if 'exp_DG' in n[1]]
         if len(exp_values) == 0:
             _logger.warning(f'No experimental value in graph {name}. \
             Results are only useful for relative comparisions \
@@ -112,13 +136,14 @@ def combine_relative_free_energies(results):
             be considered as absolute predictions')
             mean_expt = 0.
             for dg, dg_err, node in zip(f_i, errs, graph.nodes(data=True)):
-                node[1]['est_f_i'] = dg + mean_calc
+                node[1]['est_f_i'] = dg
                 node[1]['df_i'] = dg_err
         else:
             mean_expt = np.mean(exp_values)
+            mean_calc = np.mean(calc_values)
             for dg, dg_err, node in zip(f_i, errs, graph.nodes(data=True)):
                 # shift the calc RBFE to the known experimental values
-                node[1]['f_i'] = dg + mean_calc - mean_expt
+                node[1]['f_i'] = dg - mean_calc + mean_expt
                 node[1]['df_i'] = dg_err
 
     # not sure how to best return from this script
