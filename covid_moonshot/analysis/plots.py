@@ -290,8 +290,8 @@ def plot_poor_convergence_fe_table(
 
                 jobid_store.append(run.details.JOBID)
                 std_dev_store.append(np.round(std_dev * _kT_kcal, 3))
-        
-        except AttributeError: # skip if no delta_f recorded
+
+        except AttributeError:  # skip if no delta_f recorded
             continue
 
     # Create 2D list for table input
@@ -389,7 +389,7 @@ def save_table_pdf(path: str, name: str):
 
     with PdfPages(file_name) as pdf_plt:
         yield
-        pdf_plt.savefig()
+        pdf_plt.savefig(bbox_inches='tight')
 
 
 @contextmanager
