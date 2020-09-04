@@ -19,7 +19,7 @@ PROJECT = 13424
 
 class Estimate(NamedTuple):
     """
-    Representation of a estimated quantity with uncertainty
+    Representation of a quantity with uncertainty
 
     Parameters
     ----------
