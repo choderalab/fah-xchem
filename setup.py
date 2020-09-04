@@ -13,9 +13,9 @@ setup(
         "joblib>=0.16",
         "simplejson>=3.17",
         "mdtraj>=1.9.4",
-        "tqdm>=4.48",
         "matplotlib>=3.3",
         "seaborn>=0.10",
+        "rich>=6.0"
     ],
     entry_points={"console_scripts": ["covid-moonshot = covid_moonshot.app:main"]},
     author="Matt Wittmann",
