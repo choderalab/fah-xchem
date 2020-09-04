@@ -95,8 +95,8 @@ div.progress > div.progress-bar {
   <span class="updated">Last updated: {{ analysis.updated_at.isoformat() }}</span>
   <h2>Progress</h2>
   <div class="progress">
-    <div class="progress-bar" role="progressbar" style="width: {{ '%.2f' | format(progress.percent_complete()) }}%;">
-      {{ progress.percent_complete() }}%
+    <div class="progress-bar" role="progressbar" style="width: {{ progress.percent_complete() }}%;">
+      {{ '%.2f' | format(progress.percent_complete()) }}%
     </div>
   </div>
   <h2>Summary</h2>
