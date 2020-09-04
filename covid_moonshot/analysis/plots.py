@@ -315,7 +315,7 @@ def plot_bootstrapped_clones(
     complex_phase: PhaseAnalysis,
     solvent_phase: PhaseAnalysis,
     clones_per_gen: int,
-    n_gens: int,
+    n_gens: range,
     n_bootstrap: int = 100,
 ):
     """
@@ -329,8 +329,8 @@ def plot_bootstrapped_clones(
         results for solvent
     clones_per_gen : int
         Number of CLONEs per GEN
-    n_gens : int
-        Number of GENs
+    n_gens : range
+        Range of GENs for a RUN
     n_bootstrap : int
         Number of bootstrap values
 
@@ -542,7 +542,7 @@ def save_run_level_plots(
         )
         fig.suptitle(f"RUN{run}")
 
-    with save_plot(path, f"RUN{run}-bootstrapped CLONEs", fileformats):
+    with save_plot(name=f"RUN{run}-bootstrapped-CLONEs"):
 
         # Gather CLONES per GEN for run
         clones_per_gen = min(
