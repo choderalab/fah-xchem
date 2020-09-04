@@ -4,6 +4,7 @@ import os
 import requests
 from simplejson.errors import JSONDecodeError
 from typing import NamedTuple, Optional
+from urllib.parse import urljoin
 from jinja2 import Environment
 from ..analysis.constants import KT_KCALMOL
 from ..core import Analysis, Binding
@@ -61,14 +62,18 @@ def _get_progress(
     project: int, api_url: str = "http://aws3.foldingathome.org/api/"
 ) -> Progress:
 
-    url = f"{api_url}/projects/{project}"
+    url = urljoin(api_url, f"projects/{project}")
 
     try:
         response = requests.get(url=url)
+    except ConnectionError as exc:
+        raise RuntimeError(f"Request to FAH endpoint {url} failed") from exc
+
+    try:
         json = response.json()
-    except (ConnectionError, JSONDecodeError) as exc:
+    except JSONDecodeError as exc:
         raise RuntimeError(
-            f"Failed to get progress data from FAH server ({api_url})"
+            f"Failed to decode response from server: {response}"
         ) from exc
 
     return Progress(completed=json["gens_completed"], total=NUM_GENS)
