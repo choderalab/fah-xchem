@@ -18,10 +18,32 @@ PROJECT = 13424
 
 
 class Estimate(NamedTuple):
+    """
+    Representation of a estimated quantity with uncertainty
+
+    Parameters
+    ----------
+    point : float
+        Point estimate
+    stderr : float
+        Standard error
+    """
+
     point: float
     stderr: float
 
     def precision(self) -> Optional[int]:
+        """
+        Return precision of the estimate in decimal places. Positive
+        numbers indicate digits to the right of the decimal point;
+        negative number represent decimals to the left.
+
+        Returns
+        -------
+        int or None
+            If `point` and `stderr` are both finite, the precision in
+            decimal places. Otherwise, `None`.
+        """
         return -floor(log10(self.stderr)) if isfinite(self.stderr) else None
 
 
@@ -32,6 +54,11 @@ def binding_estimate_kcal(binding: Binding) -> Estimate:
 
 
 def format_estimate_point(est: Estimate) -> str:
+    """
+    Format a point estimate with appropriate precision given the
+    associated uncertainty. If the point estimate is negative, wrap
+    the result in a span tag with class `negative` for styling.
+    """
     prec = est.precision()
     if prec is None or not isfinite(est.point):
         return ""
@@ -44,6 +71,10 @@ def format_estimate_point(est: Estimate) -> str:
 
 
 def format_estimate_stderr(est: Estimate) -> str:
+    """
+    Format an uncertainty with appropriate precision (one significant
+    digit, by convention)
+    """
     prec = est.precision()
     if prec is None or not isfinite(est.point):
         return ""
@@ -61,6 +92,21 @@ class Progress(NamedTuple):
 def _get_progress(
     project: int, api_url: str = "http://aws3.foldingathome.org/api/"
 ) -> Progress:
+    """
+    Query a FAH work server for project status and return progress
+
+    Parameters
+    ----------
+    project : int
+        Project
+    api_url : str, optional
+        URL of the FAH work server API
+
+    Returns
+    -------
+    Progress
+        Number of completed and outstanding work units
+    """
     url = urljoin(api_url, f"projects/{project}")
     response = requests.get(url=url)
     json = response.json()
@@ -68,6 +114,19 @@ def _get_progress(
 
 
 def get_index_html(analysis: Analysis) -> str:
+    """
+    Return index page of html report summarizing analysis results
+
+    Parameters
+    ----------
+    analysis : Analysis
+        Analysis results
+
+    Returns
+    -------
+    str
+        Report html
+    """
     template = pkg_resources.read_text(templates, "index.html")
     environment = Environment()
     environment.filters["binding_estimate_kcal"] = binding_estimate_kcal
