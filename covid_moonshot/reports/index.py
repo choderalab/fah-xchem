@@ -61,21 +61,9 @@ class Progress(NamedTuple):
 def _get_progress(
     project: int, api_url: str = "http://aws3.foldingathome.org/api/"
 ) -> Progress:
-
     url = urljoin(api_url, f"projects/{project}")
-
-    try:
-        response = requests.get(url=url)
-    except ConnectionError as exc:
-        raise RuntimeError(f"Request to FAH endpoint {url} failed") from exc
-
-    try:
-        json = response.json()
-    except JSONDecodeError as exc:
-        raise RuntimeError(
-            f"Failed to decode response from server: {response}"
-        ) from exc
-
+    response = requests.get(url=url)
+    json = response.json()
     return Progress(completed=json["gens_completed"], total=NUM_GENS)
 
 
