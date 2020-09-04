@@ -105,7 +105,7 @@ def _get_progress(
     Returns
     -------
     Progress
-        Number of completed and outstanding work units
+        Number of completed and total work units
     """
     url = urljoin(api_url, f"projects/{project}")
     response = requests.get(url=url)
