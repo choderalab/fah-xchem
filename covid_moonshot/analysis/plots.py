@@ -332,7 +332,7 @@ def plot_bootstrapped_clones(
     n_gens : range
         Range of GENs for a RUN
     n_bootstrap : int
-        Number of bootstrap values
+        Number of bootstrap samples
 
     """
 
