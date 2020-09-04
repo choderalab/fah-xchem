@@ -6,6 +6,8 @@ import logging
 _logger = logging.getLogger("DiffNet")
 
 
+EXPERIMENTAL_ERROR = 0.5 ## pIC50
+
 def _ic50_to_dG(ic50, s_conc=375E-9, Km=40E-6):
     """Converts IC50 (in M units) to DG
 
@@ -115,6 +117,8 @@ def combine_relative_free_energies(results):
                             ic50 = 10**(-pIC50)
                             dg = _ic50_to_dG(ic50)
                             graph.nodes[title]['exp_DG'] = dg
+                            exp_dDG = _ic50_to_dG(10**(-EXPERIMENTAL_ERROR))
+                            graph.nodes[title]['exp_dDG'] = exp_dDG
 
     # TODO this can be wrapped in a function
     _logger.info(f'There are {len(graphs)} unique protein files used')
@@ -124,29 +128,23 @@ def combine_relative_free_energies(results):
 
     # now combine the relative simulations to get a per-ligand estimate
     for name, graph in graphs.items():
-        f_i, C = stats.mle(graph)
-        f_i = - f_i
+        f_i, C = stats.mle(graph, factor='f_ij', node_factor='exp_DG')
         errs = np.diag(C)
 
         exp_values = [n[1]['exp_DG'] for n in graph.nodes(data=True)
                       if 'exp_DG' in n[1]]
-        calc_values = [f for f, n in zip(f_i, graph.nodes(data=True))
-                       if 'exp_DG' in n[1]]
         if len(exp_values) == 0:
             _logger.warning(f'No experimental value in graph {name}. \
             Results are only useful for relative comparisions \
             within this set, NOT with other sets and should not \
             be considered as absolute predictions')
-            mean_expt = 0.
             for dg, dg_err, node in zip(f_i, errs, graph.nodes(data=True)):
-                node[1]['est_f_i'] = dg
-                node[1]['df_i'] = dg_err
+                node[1]['rel_f_i'] = dg
+                node[1]['rel_df_i'] = dg_err
         else:
-            mean_expt = np.mean(exp_values)
-            mean_calc = np.mean(calc_values)
             for dg, dg_err, node in zip(f_i, errs, graph.nodes(data=True)):
                 # shift the calc RBFE to the known experimental values
-                node[1]['f_i'] = dg - mean_calc + mean_expt
+                node[1]['f_i'] = dg
                 node[1]['df_i'] = dg_err
 
     # not sure how to best return from this script
