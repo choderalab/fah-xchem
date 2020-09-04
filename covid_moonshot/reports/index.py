@@ -36,7 +36,7 @@ class Estimate(NamedTuple):
         """
         Return precision of the estimate in decimal places. Positive
         numbers indicate digits to the right of the decimal point;
-        negative number represent decimals to the left.
+        negative number represent digits to the left.
 
         Returns
         -------
