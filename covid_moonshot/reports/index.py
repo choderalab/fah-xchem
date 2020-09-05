@@ -86,7 +86,7 @@ class Progress(NamedTuple):
     total: int
 
     def percent_complete(self) -> float:
-        return 100 * self.completed / self.total
+        return min(100.0, 100.0 * self.completed / self.total)
 
 
 def _get_progress(
