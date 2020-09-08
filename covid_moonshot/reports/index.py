@@ -12,9 +12,9 @@ from . import templates
 
 
 # TODO: remove hardcoded values
-SPRINT_NUMBER = 3
-NUM_GENS = 2687 * 50 * 6  # sprint 3
-PROJECT = 13424
+SPRINT_NUMBER = 4
+NUM_GENS = 10000 * 30 * 6  # sprint 4
+PROJECT = 13426
 
 
 class Estimate(NamedTuple):
