@@ -1,5 +1,7 @@
 name: test
 channels:
+  - conda-forge
+  - omnia
 dependencies:
     # Base depends
   - python
