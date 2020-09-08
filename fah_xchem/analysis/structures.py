@@ -47,7 +47,7 @@ def load_trajectory(
     # Load trajectory
     pdbfile_path = os.path.join(project_path, "RUNS", f"RUN{run}", "hybrid_complex.pdb")
 
-    # TODO: Reuse path logic from xchem_infrastructure.lib
+    # TODO: Reuse path logic from fah_xchem.lib
     trajectory_path = os.path.join(
         project_data_path,
         f"RUN{run}",

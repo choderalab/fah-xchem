@@ -4,4 +4,4 @@ API Documentation
 .. autosummary::
    :toctree: autosummary
 
-   xchem_infrastructure.canvas
+   fah_xchem.canvas

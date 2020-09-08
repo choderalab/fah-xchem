@@ -2,5 +2,5 @@ include LICENSE
 include MANIFEST.in
 include versioneer.py
 
-graft xchem_infrastructure
+graft fah_xchem
 global-exclude *.py[cod] __pycache__ *.so

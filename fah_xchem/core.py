@@ -80,7 +80,7 @@ class Run(BaseModel):
     Examples
     --------
     >>> import json
-    >>> from xchem_infrastructure import Run
+    >>> from fah_xchem import Run
 
     >>> # Extract results for RUN0, complex phase
     >>> run = results[0]

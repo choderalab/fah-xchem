@@ -1,5 +1,5 @@
 """
-xchem-infrastructure
+fah-xchem
 Tools and infrastructure for automated compound discovery using Folding@home
 """
 import sys
@@ -21,7 +21,7 @@ except:
 
 setup(
     # Self-descriptive entries which should always be present
-    name="xchem_infrastructure",
+    name="fah_xchem",
     author="Chodera Lab",
     author_email="matt.wittmann@choderalab.edu",
     description=short_description[0],
@@ -63,5 +63,5 @@ setup(
     # python_requires=">=3.5",          # Python version restrictions
     # Manual control if final package is compressible or not, set False to prevent the .egg from being made
     # zip_safe=False,
-    entry_points={"console_scripts": ["xchem = xchem_infrastructure.app:main"]},
+    entry_points={"console_scripts": ["fah-xchem = fah_xchem.app:main"]},
 )

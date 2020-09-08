@@ -17,12 +17,12 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
-import xchem_infrastructure
+import fah_xchem
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'xchem-infrastructure'
+project = 'fah-xchem'
 copyright = ("2020, Chodera Lab. Project structure based on the "
              "Computational Molecular Science Python Cookiecutter version 1.3")
 author = 'Chodera Lab'
@@ -117,7 +117,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'xchem_infrastructuredoc'
+htmlhelp_basename = 'fah_xchemdoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -144,8 +144,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'xchem_infrastructure.tex', 'xchem-infrastructure Documentation',
-     'xchem_infrastructure', 'manual'),
+    (master_doc, 'fah_xchem.tex', 'fah-xchem Documentation',
+     'fah_xchem', 'manual'),
 ]
 
 
@@ -154,7 +154,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'xchem_infrastructure', 'xchem-infrastructure Documentation',
+    (master_doc, 'fah_xchem', 'fah-xchem Documentation',
      [author], 1)
 ]
 
@@ -165,8 +165,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'xchem_infrastructure', 'xchem-infrastructure Documentation',
-     author, 'xchem_infrastructure', 'Tools and infrastructure for automated compound discovery using Folding@home',
+    (master_doc, 'fah_xchem', 'fah-xchem Documentation',
+     author, 'fah_xchem', 'Tools and infrastructure for automated compound discovery using Folding@home',
      'Miscellaneous'),
 ]
 

@@ -1,4 +1,4 @@
 Getting Started
 ===============
 
-This page details how to get started with xchem-infrastructure. 
+This page details how to get started with fah-xchem. 
