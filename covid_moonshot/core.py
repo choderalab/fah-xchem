@@ -102,7 +102,7 @@ class Transformation:
     run: str
     initial_molecule: str
     final_molecule: str
-    fragment_id: str
+    xchem_fragment_id: str
 
 
 @dataclass_json
