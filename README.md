@@ -1,8 +1,8 @@
 fah-xchem
 ==============================
 [//]: # (Badges)
-[![GitHub Actions Build Status](https://github.com/REPLACE_WITH_OWNER_ACCOUNT/fah-xchem/workflows/CI/badge.svg)](https://github.com/REPLACE_WITH_OWNER_ACCOUNT/fah_xchem/actions?query=branch%3Amaster+workflow%3ACI)
-[![codecov](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/fah-xchem/branch/master/graph/badge.svg)](https://codecov.io/gh/REPLACE_WITH_OWNER_ACCOUNT/fah-xchem/branch/master)
+[![GitHub Actions Build Status](https://github.com/choderalab/fah-xchem/workflows/CI/badge.svg)](https://github.com/choderalab/fah_xchem/actions?query=branch%3Amaster+workflow%3ACI)
+[![codecov](https://codecov.io/gh/choderalab/fah-xchem/branch/master/graph/badge.svg)](https://codecov.io/gh/choderalab/fah-xchem/branch/master)
 
 
 Tools and infrastructure for automated compound discovery using Folding@home
