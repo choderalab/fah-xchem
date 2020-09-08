@@ -4,6 +4,7 @@ setup(
     name="covid_moonshot",
     version="0.1",
     packages=find_packages(),
+    setup_requires=["pytest-runner"],
     install_requires=[
         "pandas>=1.1",
         "dataclasses-json>=0.5",
