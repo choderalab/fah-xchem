@@ -1,3 +1,5 @@
+import datetime as dt
+import sys
 from covid_moonshot.core import (
     CompoundSeries,
     CompoundSeriesMetadata,
@@ -6,14 +8,13 @@ from covid_moonshot.core import (
     Transformation,
 )
 import pytest
-import sys
 
 compound_series = CompoundSeries(
     metadata=CompoundSeriesMetadata(
         name="2020-08-20-benzotriazoles",
         description="Sprint 3: Prioritization of benzotriazole derivatives",
         creator="John D. Chodera",
-        creation_date="Thu Aug 20 03:25:55 UTC 2020",
+        creation_date=dt.datetime(2020, 9, 8, 10, 14, 48, 607238),
         xchem_project="Mpro",
         biological_assembly="monomer",
         protein_variant="thiolate",

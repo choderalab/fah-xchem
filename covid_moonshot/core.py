@@ -85,7 +85,7 @@ class Compound:
     is_racemic_mixture: bool
     has_multiple_protonation_states: bool
     has_multiple_tautomers: bool
-    experimental_data: Dict[str, str]
+    experimental_data: Dict[str, float]
 
 
 @dataclass_json
