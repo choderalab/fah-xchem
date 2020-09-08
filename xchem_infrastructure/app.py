@@ -65,7 +65,7 @@ def analyze_runs_cli(
     )
 
     with open(os.path.join(output_dir, "analysis.json"), "w") as output_file:
-        output_file.write(analysis.to_json())
+        output_file.write(analysis.json())
 
 
 def main():

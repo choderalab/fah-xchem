@@ -45,7 +45,7 @@ setup(
     # Required packages, pulls from pip if needed; do not use for Conda deployment
     install_requires=[
         "pandas>=1.1",
-        "dataclasses-json>=0.5",
+        "pydantic>=1.6",
         "pymbar>=3.0",
         "fire>=0.3",
         "jinja2>=2.11",
