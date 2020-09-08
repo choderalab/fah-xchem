@@ -2,8 +2,6 @@ import functools
 import logging
 from typing import List, Optional, Tuple
 import numpy as np
-from pymbar import BAR
-from pymbar.mbar import MBAR
 from ..core import (
     Binding,
     FreeEnergy,
@@ -92,6 +90,7 @@ def get_bar_overlap(works: np.ndarray) -> float:
     float
         overlap
     """
+    from pymbar.mbar import MBAR
 
     n = len(works)
     u_kn = np.block([[works["forward"], np.zeros(n)], [np.zeros(n), works["reverse"]]])
@@ -126,6 +125,8 @@ def get_free_energy(
         If `min_num_work_values` is given and the number of work
         values is less than this.
     """
+
+    from pymbar import BAR
 
     if min_num_work_values is not None and len(works) < min_num_work_values:
         raise InsufficientDataError(
