@@ -14,7 +14,7 @@ dependencies:
   - codecov
 
   - numpy
-  - dataclasses-json
+  - dataclasses_json
   - joblib
   - rich
   - seaborn
