@@ -10,6 +10,15 @@ dependencies:
   - pytest-cov
   - codecov
 
+  - numpy
+  - dataclasses-json
+  - joblib
+  - rich
+  - seaborn
+  - openmm
+  - openmmtools
+  - simplejson
+
     # Pip-only installs
   #- pip:
   #  - codecov
