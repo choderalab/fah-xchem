@@ -545,12 +545,12 @@ def save_run_level_plots(
     with save_plot(name=f"RUN{run}-bootstrapped-CLONEs"):
 
         # Gather CLONES per GEN for run
-        clones_per_gen = min(
-            [len(works.forward_works) for works in solvent_phase.gens]
-            + [len(works.reverse_works) for works in solvent_phase.gens]
-            + [len(works.forward_works) for works in complex_phase.gens]
-            + [len(works.reverse_works) for works in complex_phase.gens]
-        )
+        clones_per_gen = min([
+            len(works)
+            for phase in [solvent_phase, complex_phase]
+            for gen in phase.gens
+            for works in [gen.forward_works, gen.reverse_works]
+            )
 
         n_gens = range(10, clones_per_gen, 10)
 
