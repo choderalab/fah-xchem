@@ -61,7 +61,7 @@ jobs:
       shell: bash -l {0}
 
       run: |
-        pytest -v --cov=xchem_infrastructure --cov-report=xml --color=yes xchem_infrastructure/tests/
+        pytest -v --cov=fah_xchem --cov-report=xml --color=yes fah_xchem/tests/
 
     - name: CodeCov
       uses: codecov/codecov-action@v1
