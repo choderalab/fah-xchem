@@ -14,7 +14,7 @@ def analyze_runs_cli(
     max_binding_delta_f: Optional[float] = None,
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = 8,
-) -> str:
+):
     """
     Run free energy analysis and return input augmented with analysis
     results for all runs.
