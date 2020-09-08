@@ -81,9 +81,6 @@ class CompoundSeriesMetadata:
 class Compound:
     compound_id: str
     smiles: str
-    is_racemic_mixture: bool
-    has_multiple_protonation_states: bool
-    has_multiple_tautomers: bool
     experimental_data: Dict[str, float]
 
 
