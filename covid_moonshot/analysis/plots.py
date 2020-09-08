@@ -11,6 +11,7 @@ from pymbar import BAR
 from typing import Generator, Iterable, List, Optional, Tuple
 from ..core import Analysis, Binding, PhaseAnalysis, RunAnalysis, Work
 from .constants import KT_KCALMOL
+from .free_energy import bootstrap
 
 
 def plot_work_distribution(
@@ -339,51 +340,27 @@ def plot_bootstrapped_clones(
     fig, ax = plt.subplots()
 
     for n in n_gens:
-
         # bootstrap
-        fes = []
 
-        for _ in range(n_bootstrap):
+        complex_fes = bootstrap(
+            free_energies=complex_phase.gens,
+            n_bootstrap=n_bootstrap,
+            clones_per_gen=clones_per_gen,
+            gen_number=n,
+        )
 
-            random_indices = np.random.choice(clones_per_gen, n)
+        plt.scatter(n, np.mean(complex_fes), color="red", label="complex")
+        plt.errorbar(n, np.mean(complex_fes), yerr=np.std(complex_fes), c="red")
 
-            subset_f = [
-                works.forward_works[x]
-                for x in random_indices
-                for works in complex_phase.gens
-            ]
-            subset_r = [
-                works.reverse_works[x]
-                for x in random_indices
-                for works in complex_phase.gens
-            ]
+        solvent_fes = bootstrap(
+            free_energies=solvent_phase.gens,
+            n_bootstrap=n_bootstrap,
+            clones_per_gen=clones_per_gen,
+            gen_number=n,
+        )
 
-            fe, _ = BAR(np.asarray(subset_f), np.asarray(subset_r))
-            fes.append(fe * KT_KCALMOL)
-
-        plt.scatter(n, np.mean(fes), color="red", label="complex")
-        plt.errorbar(n, np.mean(fes), yerr=np.std(fes), c="red")
-
-        fes = []
-
-        for _ in range(n_bootstrap):
-
-            random_indices = np.random.choice(clones_per_gen, n)
-            subset_f = [
-                works.forward_works[x]
-                for x in random_indices
-                for works in solvent_phase.gens
-            ]
-            subset_r = [
-                works.reverse_works[x]
-                for x in random_indices
-                for works in solvent_phase.gens
-            ]
-            fe, _ = BAR(np.asarray(subset_f), np.asarray(subset_r))
-            fes.append(fe * KT_KCALMOL)
-
-        plt.scatter(n, np.mean(fes), color="blue", label="solvent")
-        plt.errorbar(n, np.mean(fes), yerr=np.std(fes), c="blue")
+        plt.scatter(n, np.mean(solvent_fes), color="blue", label="solvent")
+        plt.errorbar(n, np.mean(solvent_fes), yerr=np.std(solvent_fes), c="blue")
 
     plt.xlim(0, clones_per_gen + 10)
     plt.xlabel("Number of CLONEs")
@@ -545,12 +522,14 @@ def save_run_level_plots(
     with save_plot(name=f"RUN{run}-bootstrapped-CLONEs"):
 
         # Gather CLONES per GEN for run
-        clones_per_gen = min([
-            len(works)
-            for phase in [solvent_phase, complex_phase]
-            for gen in phase.gens
-            for works in [gen.forward_works, gen.reverse_works]
-            )
+        clones_per_gen = min(
+            [
+                len(works)
+                for phase in [solvent_phase, complex_phase]
+                for gen in phase.gens
+                for works in [gen.forward_works, gen.reverse_works]
+            ]
+        )
 
         n_gens = range(10, clones_per_gen, 10)
 
