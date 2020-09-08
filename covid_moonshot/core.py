@@ -70,8 +70,7 @@ class CompoundSeriesMetadata:
     creator: str
     creation_date: dt.date
     xchem_project: str
-    biological_assembly: str
-    protein_variant: str
+    receptor_variant: Dict[str, str]
     temperature_kelvin: float
     ionic_strength_millimolar: float
     pH: float
