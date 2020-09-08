@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 from pymbar import BAR
 from pymbar.mbar import MBAR
-from covid_moonshot.core import (
+from ..core import (
     Binding,
     FreeEnergy,
     GenAnalysis,

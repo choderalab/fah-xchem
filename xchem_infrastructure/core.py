@@ -99,7 +99,7 @@ class Run:
     Examples
     --------
     >>> import json
-    >>> from covid_moonshot import Run
+    >>> from xchem_infrastructure import Run
 
     >>> # Extract results for RUN0, complex phase
     >>> run = results[0]

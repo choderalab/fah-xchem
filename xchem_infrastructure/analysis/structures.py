@@ -15,7 +15,7 @@ import tempfile
 from typing import Dict, List, Optional
 import joblib
 import mdtraj as md
-from covid_moonshot.core import Work
+from ..core import Work
 
 
 def load_trajectory(
@@ -47,7 +47,7 @@ def load_trajectory(
     # Load trajectory
     pdbfile_path = os.path.join(project_path, "RUNS", f"RUN{run}", "hybrid_complex.pdb")
 
-    # TODO: Reuse path logic from covid_moonshot.lib
+    # TODO: Reuse path logic from xchem_infrastructure.lib
     trajectory_path = os.path.join(
         project_data_path,
         f"RUN{run}",
