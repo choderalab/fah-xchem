@@ -7,6 +7,7 @@ import fah_xchem
 import pytest
 import sys
 
+
 def test_fah_xchem_imported():
     """Sample test, will always pass so long as import statement worked"""
     assert "fah_xchem" in sys.modules
