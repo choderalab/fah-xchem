@@ -21,7 +21,7 @@ jobs:
       - name: Check formatting
         uses: lgeiger/black-action@v1.0.1
         with:
-          args: ". --check"
+          args: "fah_xchem --check"
 
   test:
     name: Test on ${{ matrix.os }}, Python ${{ matrix.python-version }}
