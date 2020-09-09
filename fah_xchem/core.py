@@ -1,19 +1,15 @@
-from dataclasses import dataclass
+import datetime as dt
 from typing import List, Optional
-from dataclasses_json import dataclass_json
+from pydantic import BaseModel
 
 
-@dataclass_json
-@dataclass
-class ResultPath:
+class ResultPath(BaseModel):
     path: str
     clone: int
     gen: int
 
 
-@dataclass_json
-@dataclass
-class Work:
+class Work(BaseModel):
     path: ResultPath
     forward_work: float
     reverse_work: float
@@ -21,49 +17,37 @@ class Work:
     reverse_final_potential: float
 
 
-@dataclass_json
-@dataclass
-class FreeEnergy:
+class FreeEnergy(BaseModel):
     delta_f: float
     ddelta_f: float
     bar_overlap: float
     num_work_values: int
 
 
-@dataclass_json
-@dataclass
-class GenAnalysis:
+class GenAnalysis(BaseModel):
     gen: int
     free_energy: Optional[FreeEnergy]
     forward_works: List[float]
     reverse_works: List[float]
 
 
-@dataclass_json
-@dataclass
-class PhaseAnalysis:
+class PhaseAnalysis(BaseModel):
     free_energy: FreeEnergy
     gens: List[GenAnalysis]
 
 
-@dataclass_json
-@dataclass
-class Binding:
+class Binding(BaseModel):
     delta_f: float
     ddelta_f: float
 
 
-@dataclass_json
-@dataclass
-class RunAnalysis:
+class RunAnalysis(BaseModel):
     complex_phase: PhaseAnalysis
     solvent_phase: PhaseAnalysis
     binding: Binding
 
 
-@dataclass_json
-@dataclass
-class RunDetails:
+class RunDetails(BaseModel):
     JOBID: int
     directory: str
     end: int
@@ -82,9 +66,7 @@ class RunDetails:
         return self.JOBID
 
 
-@dataclass_json
-@dataclass
-class Run:
+class Run(BaseModel):
     """
     Results of free energy analysis for a single run.
 
@@ -98,7 +80,7 @@ class Run:
     Examples
     --------
     >>> import json
-    >>> from covid_moonshot import Run
+    >>> from fah_xchem import Run
 
     >>> # Extract results for RUN0, complex phase
     >>> run = results[0]
@@ -111,5 +93,11 @@ class Run:
     >>> # Extract works for specific gen
     >>> forward_works = phase.gens[0].forward_works
     """
+
     details: RunDetails
     analysis: RunAnalysis
+
+
+class Analysis(BaseModel):
+    updated_at: dt.datetime
+    runs: List[Run]
