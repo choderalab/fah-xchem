@@ -76,7 +76,7 @@ def plot_work_distributions(
         rug_kws=dict(alpha=0.5),
         fill=True,
         palette=["cornflowerblue", "hotpink"],
-        facet_kws=dict(sharex=False),
+        facet_kws=dict(sharex=False, sharey=False),
     ).set_xlabels(r"work / kcal mol$^{-1}$")
 
     for phase, delta_f, forward_works, reverse_works in phases:
