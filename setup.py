@@ -41,7 +41,7 @@ setup(
     # Allows `setup.py test` to work correctly with pytest
     setup_requires=[] + pytest_runner,
     # Additional entries you may want simply uncomment the lines you want and fill in the data
-    url="https://github.com/choderalab/covid-moonshot-infra",
+    url="https://github.com/choderalab/fah-xchem",
     # Required packages, pulls from pip if needed; do not use for Conda deployment
     install_requires=[
         "pandas>=1.1",
