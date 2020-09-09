@@ -85,8 +85,7 @@ def plot_work_distributions(
         ax.text(
             0.05,
             0.8,
-            f"$N_F={len(forward_works)}$\n"
-            f"$N_R={len(reverse_works)}$",
+            f"$N_F={len(forward_works)}$\n$N_R={len(reverse_works)}$",
             transform=ax.transAxes,
         )
 
