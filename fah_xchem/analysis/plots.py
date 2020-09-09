@@ -507,7 +507,6 @@ def _save_plot(
 
     os.makedirs(path, exist_ok=True)
 
-    plt.figure()
     yield
 
     if timestamp is not None:
@@ -520,6 +519,8 @@ def _save_plot(
         plt.savefig(
             os.path.join(path, os.extsep.join([name, file_format])), transparent=True
         )
+
+    fig.close()
 
 
 def save_run_level_plots(
