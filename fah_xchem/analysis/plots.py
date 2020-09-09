@@ -23,7 +23,6 @@ def plot_work_distributions(
     solvent_forward_works: List[float],
     solvent_reverse_works: List[float],
     solvent_delta_f: float,
-    figsize: Tuple[float, float] = (7.5, 3.25),
 ) -> plt.Figure:
     """
     Plot work distributions complex and solvent side by side
@@ -76,6 +75,7 @@ def plot_work_distributions(
         rug_kws=dict(alpha=0.5),
         fill=True,
         palette=["cornflowerblue", "hotpink"],
+        height=3.25,
         facet_kws=dict(sharex=False, sharey=False),
     ).set_xlabels(r"work / kcal mol$^{-1}$")
 
@@ -84,13 +84,8 @@ def plot_work_distributions(
         ax.axvline(delta_f * KT_KCALMOL, color="k", ls=":")
         ax.text(
             0.05,
-            0.95,
-            f"$N_F={len(forward_works)}$",
-            transform=ax.transAxes,
-        )
-        ax.text(
-            0.05,
-            0.88,
+            0.8,
+            f"$N_F={len(forward_works)}$\n"
             f"$N_R={len(reverse_works)}$",
             transform=ax.transAxes,
         )
