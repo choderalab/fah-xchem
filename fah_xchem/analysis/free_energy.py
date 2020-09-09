@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 from pymbar import BAR
 from pymbar.mbar import MBAR
-from covid_moonshot.core import (
+from ..core import (
     Binding,
     FreeEnergy,
     GenAnalysis,
@@ -14,6 +14,7 @@ from covid_moonshot.core import (
 )
 
 from .constants import KT_KCALMOL
+
 
 class InsufficientDataError(ValueError):
     pass
@@ -46,7 +47,9 @@ def mask_outliers(a: np.ndarray, max_value: float, max_n_devs: float) -> np.ndar
 
 
 def filter_work_values(
-    works: np.ndarray, max_value: float = 1e4, max_n_devs: float = 5,
+    works: np.ndarray,
+    max_value: float = 1e4,
+    max_n_devs: float = 5,
 ) -> np.ndarray:
     """Remove pairs of works when either is determined to be an outlier.
 
@@ -269,7 +272,9 @@ def get_phase_analysis(
 
 
 def get_run_analysis(
-    run: int, complex_works: List[Work], solvent_works: List[Work],
+    run: int,
+    complex_works: List[Work],
+    solvent_works: List[Work],
 ) -> RunAnalysis:
 
     try:
@@ -309,14 +314,10 @@ def bootstrap(
         random_indices = np.random.choice(clones_per_gen, gen_number)
 
         subset_f = [
-            works.forward_works[x]
-            for x in random_indices
-            for works in free_energies
+            works.forward_works[x] for x in random_indices for works in free_energies
         ]
         subset_r = [
-            works.reverse_works[x]
-            for x in random_indices
-            for works in free_energies
+            works.reverse_works[x] for x in random_indices for works in free_energies
         ]
         fe, _ = BAR(np.asarray(subset_f), np.asarray(subset_r))
         fes.append(fe * KT_KCALMOL)

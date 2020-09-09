@@ -16,53 +16,6 @@ from .constants import KT_KCALMOL
 from .free_energy import bootstrap
 
 
-def plot_work_distribution(
-    ax: plt.Axes,
-    forward_works: List[float],
-    reverse_works: List[float],
-    delta_f: float,
-) -> None:
-    """
-    Plot a single work distribution
-
-    Parameters
-    ----------
-    ax : AxesSubplot
-       Axes on which to draw the plot
-    forward_works : list of float
-       Forward work values (in kT)
-    reverse_works : list of float
-       Reverse work values (in kT)
-    delta_f : float
-       Free energy estimate (in kT)
-    """
-
-    distplot = partial(
-        sns.distplot,
-        hist=False,
-        kde=True,
-        rug=True,
-        ax=ax,
-        kde_kws=dict(shade=True),
-        rug_kws=dict(alpha=0.5),
-    )
-
-    distplot(
-        np.array(forward_works) * KT_KCALMOL,
-        color="cornflowerblue",
-        label=f"forward : $N={len(forward_works)}$",
-    )
-
-    distplot(
-        -np.array(reverse_works) * KT_KCALMOL,
-        color="hotpink",
-        label=f"reverse : $N={len(reverse_works)}$",
-    )
-
-    ax.axvline(delta_f * KT_KCALMOL, color="k", ls=":")
-    ax.set_xlabel(r"work / kcal mol$^{-1}$")
-
-
 def plot_work_distributions(
     complex_forward_works: List[float],
     complex_reverse_works: List[float],
@@ -70,7 +23,6 @@ def plot_work_distributions(
     solvent_forward_works: List[float],
     solvent_reverse_works: List[float],
     solvent_delta_f: float,
-    figsize: Tuple[float, float] = (7.5, 3.25),
 ) -> plt.Figure:
     """
     Plot work distributions complex and solvent side by side
@@ -90,23 +42,54 @@ def plot_work_distributions(
         Figure containing the plot
     """
 
-    fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=figsize)
+    phases = [
+        ("complex", complex_delta_f, complex_forward_works, complex_reverse_works),
+        ("solvent", solvent_delta_f, solvent_forward_works, solvent_reverse_works),
+    ]
 
-    plot_work_distribution(
-        ax1, complex_forward_works, complex_reverse_works, complex_delta_f
+    df = pd.DataFrame.from_records(
+        [
+            {
+                "phase": phase,
+                "direction": direction,
+                "work_kcal": work * KT_KCALMOL
+                if direction == "forward"
+                else -work * KT_KCALMOL,
+            }
+            for phase, _, forward_works, reverse_works in phases
+            for direction, works in [
+                ("forward", forward_works),
+                ("reverse", reverse_works),
+            ]
+            for work in works
+        ]
     )
-    ax1.set_title("complex")
 
-    plot_work_distribution(
-        ax2, solvent_forward_works, solvent_reverse_works, solvent_delta_f
-    )
-    ax2.set_title("solvent")
+    g = sns.displot(
+        data=df,
+        col="phase",
+        hue="direction",
+        x="work_kcal",
+        kind="kde",
+        rug=True,
+        rug_kws=dict(alpha=0.5),
+        fill=True,
+        palette=["cornflowerblue", "hotpink"],
+        height=3.25,
+        facet_kws=dict(sharex=False, sharey=False),
+    ).set_xlabels(r"work / kcal mol$^{-1}$")
 
-    fig.subplots_adjust(top=0.9, wspace=0.15)
-    ax1.legend()
-    ax2.legend()
+    for phase, delta_f, forward_works, reverse_works in phases:
+        ax = g.axes_dict[phase]
+        ax.axvline(delta_f * KT_KCALMOL, color="k", ls=":")
+        ax.text(
+            0.05,
+            0.8,
+            f"$N_F={len(forward_works)}$\n$N_R={len(reverse_works)}$",
+            transform=ax.transAxes,
+        )
 
-    return fig
+    return g.fig
 
 
 def _filter_inclusive(
@@ -139,13 +122,12 @@ def plot_relative_distribution(
     )
     valid_relative_delta_fs_kcal = valid_relative_delta_fs * KT_KCALMOL
 
-    sns.distplot(
+    sns.displot(
         valid_relative_delta_fs_kcal,
-        hist=False,
-        kde=True,
+        kind="kde",
         rug=True,
         color="hotpink",
-        kde_kws=dict(shade=True),
+        fill=True,
         rug_kws=dict(alpha=0.5),
         label=f"$N={len(relative_delta_fs)}$",
     )
@@ -188,16 +170,20 @@ def plot_convergence(
     fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
 
     complex_delta_fs_kcal = pd.Series(
-        np.array(complex_delta_fs) * KT_KCALMOL, index=complex_gens,
+        np.array(complex_delta_fs) * KT_KCALMOL,
+        index=complex_gens,
     )
     complex_delta_f_errs_kcal = pd.Series(
-        np.array(complex_delta_f_errs) * KT_KCALMOL, index=complex_gens,
+        np.array(complex_delta_f_errs) * KT_KCALMOL,
+        index=complex_gens,
     )
     solvent_delta_fs_kcal = pd.Series(
-        np.array(solvent_delta_fs) * KT_KCALMOL, index=solvent_gens,
+        np.array(solvent_delta_fs) * KT_KCALMOL,
+        index=solvent_gens,
     )
     solvent_delta_f_errs_kcal = pd.Series(
-        np.array(solvent_delta_f_errs) * KT_KCALMOL, index=solvent_gens,
+        np.array(solvent_delta_f_errs) * KT_KCALMOL,
+        index=solvent_gens,
     )
 
     DDG_kcal = solvent_delta_fs_kcal - complex_delta_fs_kcal
@@ -256,7 +242,8 @@ def plot_convergence(
 
 
 def plot_poor_convergence_fe_table(
-    runs: List[Run], energy_cutoff_kcal: float = 1.0,
+    runs: List[Run],
+    energy_cutoff_kcal: float = 1.0,
 ) -> Optional[plt.Figure]:
     """
     Plot table of poorly converging free energy estimates with GEN
@@ -311,7 +298,10 @@ def plot_poor_convergence_fe_table(
         ax.axis("tight")
         ax.axis("off")
         table = ax.table(
-            cellText=data, colLabels=column_titles, loc="center", cellLoc="center",
+            cellText=data,
+            colLabels=column_titles,
+            loc="center",
+            cellLoc="center",
         )
 
         # Make column headers bold
@@ -506,24 +496,26 @@ def _save_plot(
     >>>     plt.plot(np.cos(np.linspace(-np.pi, np.pi)))
     >>>     plt.title("My cool plot")
     """
-    # Make sure the directory exists
-    import os
 
-    os.makedirs(path, exist_ok=True)
+    try:
+        yield
 
-    plt.figure()
-    yield
+        if timestamp is not None:
+            plt.tight_layout(rect=(0, 0.05, 1, 1))  # leave space for timestamp
+            _plot_updated_timestamp(timestamp)
+        else:
+            plt.tight_layout()
 
-    if timestamp is not None:
-        plt.tight_layout(rect=(0, 0.05, 1, 1))  # leave space for timestamp on bottom
-        _plot_updated_timestamp(timestamp)
-    else:
-        plt.tight_layout()
+        # Make sure the directory exists
+        os.makedirs(path, exist_ok=True)
 
-    for file_format in file_formats:
-        plt.savefig(
-            os.path.join(path, os.extsep.join([name, file_format])), transparent=True
-        )
+        for file_format in file_formats:
+            plt.savefig(
+                os.path.join(path, os.extsep.join([name, file_format])),
+                transparent=True,
+            )
+    finally:
+        plt.close()
 
 
 def save_run_level_plots(
@@ -672,11 +664,15 @@ def save_summary_plots(
         _save_plot, path=path, file_formats=file_formats, timestamp=analysis.updated_at
     )
 
-    with save_plot(name="relative_fe_dist",):
+    with save_plot(
+        name="relative_fe_dist",
+    ):
         plot_relative_distribution(binding_delta_fs)
         plt.title("Relative free energy")
 
-    with save_plot(name="cumulative_fe_dist",):
+    with save_plot(
+        name="cumulative_fe_dist",
+    ):
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
 

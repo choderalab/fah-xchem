@@ -14,7 +14,7 @@ def analyze_runs_cli(
     max_binding_delta_f: Optional[float] = None,
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = 8,
-) -> str:
+):
     """
     Run free energy analysis and return input augmented with analysis
     results for all runs.
@@ -65,7 +65,7 @@ def analyze_runs_cli(
     )
 
     with open(os.path.join(output_dir, "analysis.json"), "w") as output_file:
-        output_file.write(analysis.to_json())
+        output_file.write(analysis.json())
 
 
 def main():

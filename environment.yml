@@ -1,0 +1,25 @@
+name: fah-xchem
+channels:
+  - conda-forge
+  - defaults
+  - omnia
+  - openeye
+dependencies:
+  - fire
+  - jinja2
+  - joblib
+  - matplotlib
+  - mdtraj
+  - numpy >= 1.19
+  - openeye-toolkits
+  - openmm
+  - openmmtools
+  - pandas >= 1.1
+  - perses
+  - pydantic
+  - pymbar
+  - python >= 3.6
+  - rich
+  - seaborn
+  - simplejson
+

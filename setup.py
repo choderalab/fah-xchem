@@ -1,12 +1,51 @@
+"""
+fah-xchem
+Tools and infrastructure for automated compound discovery using Folding@home
+"""
+import sys
 from setuptools import setup, find_packages
+import versioneer
+
+short_description = __doc__.split("\n")
+
+# from https://github.com/pytest-dev/pytest-runner#conditional-requirement
+needs_pytest = {"pytest", "test", "ptr"}.intersection(sys.argv)
+pytest_runner = ["pytest-runner"] if needs_pytest else []
+
+try:
+    with open("README.md", "r") as handle:
+        long_description = handle.read()
+except:
+    long_description = "\n".join(short_description[2:])
+
 
 setup(
-    name="covid_moonshot",
-    version="0.1",
+    # Self-descriptive entries which should always be present
+    name="fah_xchem",
+    author="Chodera Lab",
+    author_email="matt.wittmann@choderalab.edu",
+    description=short_description[0],
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
+    license="MIT",
+    # Which Python importable modules should be included when your package is installed
+    # Handled automatically by setuptools. Use 'exclude' to prevent some specific
+    # subpackage(s) from being added, if needed
     packages=find_packages(),
+    # Optional include package data to ship with your package
+    # Customize MANIFEST.in if the general case does not suit your needs
+    # Comment out this line to prevent the files from being packaged with your software
+    include_package_data=True,
+    # Allows `setup.py test` to work correctly with pytest
+    setup_requires=[] + pytest_runner,
+    # Additional entries you may want simply uncomment the lines you want and fill in the data
+    url="https://github.com/choderalab/fah-xchem",
+    # Required packages, pulls from pip if needed; do not use for Conda deployment
     install_requires=[
         "pandas>=1.1",
-        "dataclasses-json>=0.5",
+        "pydantic>=1.6",
         "pymbar>=3.0",
         "fire>=0.3",
         "jinja2>=2.11",
@@ -15,11 +54,14 @@ setup(
         "mdtraj>=1.9.4",
         "matplotlib>=3.3",
         "seaborn>=0.10",
-        "rich>=6.0"
+        "rich>=6.0",
     ],
-    entry_points={"console_scripts": ["covid-moonshot = covid_moonshot.app:main"]},
-    author="Matt Wittmann",
-    author_email="matt.wittmann@choderalab.org",
-    description="Tools and infrastructure for automating COVID Moonshot analysis",
-    url="https://github.com/choderalab/covid-moonshot-infra",
+    # platforms=['Linux',
+    #            'Mac OS-X',
+    #            'Unix',
+    #            'Windows'],            # Valid platforms your code works on, adjust to your flavor
+    # python_requires=">=3.5",          # Python version restrictions
+    # Manual control if final package is compressible or not, set False to prevent the .egg from being made
+    # zip_safe=False,
+    entry_points={"console_scripts": ["fah-xchem = fah_xchem.app:main"]},
 )
