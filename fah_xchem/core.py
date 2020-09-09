@@ -73,8 +73,9 @@ class Compound(BaseModel):
 
 class Transformation(BaseModel):
     run: str
-    initial_molecule: str
-    final_molecule: str
+    compound_id: str
+    initial_molecule_id: str
+    final_molecule_id: str
     xchem_fragment_id: str
 
 

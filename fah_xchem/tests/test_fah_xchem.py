@@ -44,20 +44,27 @@ def compound_series():
                 compound_id="MAT-POS-f42f3716-2",
                 smiles="Cc1ccncc1NC(=O)Cc1cc(Cl)cc(-c2ccc(S(C)(=O)=O)cc2Cl)c1",
                 experimental_data={"pIC50": 4.324},
-                molecules=[],
+                molecules=[
+                    Molecule(
+                        molecule_id="MAT-POS-f42f3716-2-1",
+                        smiles="Cc1ccncc1NC(=O)Cc1cc(Cl)cc(-c2ccc(C3CC3(F)F)cc2)c1",
+                    ),
+                ],
             ),
         ],
         transformations=[
             Transformation(
                 run="RUN0",
-                initial_molecule="MAT-POS-f42f3716-1-1",
-                final_molecule="MAT-POS-f42f3716-1-2",
+                compound_id="MAT-POS-f42f3716-1",
+                initial_molecule_id="MAT-POS-f42f3716-1-1",
+                final_molecule_id="MAT-POS-f42f3716-1-2",
                 xchem_fragment_id="x10789",
             ),
             Transformation(
                 run="RUN1",
-                initial_molecule="MAT-POS-f42f3716-1-1",
-                final_molecule="MAT-POS-f42f3716-1-3",
+                compound_id="MAT-POS-f42f3716-2",
+                initial_molecule_id="MAT-POS-f42f3716-2-1",
+                final_molecule_id="MAT-POS-f42f3716-2-3",
                 xchem_fragment_id="x10789",
             ),
         ],
