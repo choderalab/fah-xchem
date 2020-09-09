@@ -9,9 +9,11 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.font_manager import FontProperties
 import numpy as np
 import pandas as pd
+from pymbar import BAR
 from typing import Generator, Iterable, List, Optional, Tuple
 from ..core import Analysis, Binding, PhaseAnalysis, Run, Work
 from .constants import KT_KCALMOL
+from .free_energy import bootstrap
 
 
 def plot_work_distribution(
@@ -379,6 +381,64 @@ def plot_cumulative_distribution(
     plt.ylabel("Cumulative $N$ ligands")
 
 
+def plot_bootstrapped_clones(
+    complex_phase: PhaseAnalysis,
+    solvent_phase: PhaseAnalysis,
+    clones_per_gen: int,
+    n_gens: range,
+    n_bootstrap: int = 100,
+):
+    """
+    Plot free energy convergence with number of CLONEs
+
+    Parameters
+    ----------
+    complex_phase : PhaseAnalysis
+        results for complex
+    solvent_phase : PhaseAnalysis
+        results for solvent
+    clones_per_gen : int
+        Number of CLONEs per GEN
+    n_gens : range
+        Range of GENs for a RUN
+    n_bootstrap : int
+        Number of bootstrap samples
+
+    """
+
+    fig, ax = plt.subplots()
+
+    for n in n_gens:
+        # bootstrap
+
+        complex_fes = bootstrap(
+            free_energies=complex_phase.gens,
+            n_bootstrap=n_bootstrap,
+            clones_per_gen=clones_per_gen,
+            gen_number=n,
+        )
+
+        plt.scatter(n, np.mean(complex_fes), color="red", label="complex")
+        plt.errorbar(n, np.mean(complex_fes), yerr=np.std(complex_fes), c="red")
+
+        solvent_fes = bootstrap(
+            free_energies=solvent_phase.gens,
+            n_bootstrap=n_bootstrap,
+            clones_per_gen=clones_per_gen,
+            gen_number=n,
+        )
+
+        plt.scatter(n, np.mean(solvent_fes), color="blue", label="solvent")
+        plt.errorbar(n, np.mean(solvent_fes), yerr=np.std(solvent_fes), c="blue")
+
+    plt.xlim(0, clones_per_gen + 10)
+    plt.xlabel("Number of CLONEs")
+    plt.ylabel(r"$\Delta$G / kcal mol$^{-1}$")
+    plt.legend(["complex", "solvent"], loc="best")
+
+    return fig
+
+
 def _plot_updated_timestamp(timestamp: dt.datetime) -> None:
     fig = plt.gcf()
     fig.text(
@@ -551,6 +611,28 @@ def save_run_level_plots(
             solvent_delta_f_errs=[fe.ddelta_f for _, fe in solvent_gens],
             binding_delta_f=binding.delta_f,
             binding_delta_f_err=binding.ddelta_f,
+        )
+        fig.suptitle(f"RUN{run}")
+
+    with save_plot(name=f"RUN{run}-bootstrapped-CLONEs"):
+
+        # Gather CLONES per GEN for run
+        clones_per_gen = min(
+            [
+                len(works)
+                for phase in [solvent_phase, complex_phase]
+                for gen in phase.gens
+                for works in [gen.forward_works, gen.reverse_works]
+            ]
+        )
+
+        n_gens = range(10, clones_per_gen, 10)
+
+        fig = plot_bootstrapped_clones(
+            complex_phase=complex_phase,
+            solvent_phase=solvent_phase,
+            clones_per_gen=clones_per_gen,
+            n_gens=n_gens,
         )
         fig.suptitle(f"RUN{run}")
 
