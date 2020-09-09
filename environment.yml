@@ -20,6 +20,6 @@ dependencies:
   - pymbar
   - python >= 3.6
   - rich
-  - seaborn
+  - seaborn >= 0.11
   - simplejson
 
