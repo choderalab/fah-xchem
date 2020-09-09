@@ -71,7 +71,7 @@ def list_results(project_data_path: str, run: int) -> List[ResultPath]:
             )
             return None
 
-        return ResultPath(path, clone=int(match["clone"]), gen=int(match["gen"]))
+        return ResultPath(path=path, clone=int(match["clone"]), gen=int(match["gen"]))
 
     results = [result_path(path) for path in paths]
     return [r for r in results if r is not None]
@@ -80,7 +80,7 @@ def list_results(project_data_path: str, run: int) -> List[ResultPath]:
 def read_run_details(run_details_json_file: str) -> List[RunDetails]:
     with open(run_details_json_file, "r") as f:
         runs = json.load(f)
-    return [RunDetails.from_dict(r) for r in runs.values()]
+    return [RunDetails.parse_obj(r) for r in runs.values()]
 
 
 def analyze_run(
@@ -226,7 +226,7 @@ def analyze_runs(
     if num_failed > 0:
         logging.warning("Failed to process %d RUNs out of %d", num_failed, len(results))
 
-    analysis = Analysis(dt.datetime.now(dt.timezone.utc), runs)
+    analysis = Analysis(updated_at=dt.datetime.now(dt.timezone.utc), runs=runs)
     save_summary_plots(analysis, os.path.join(output_dir, "plots"))
     save_postprocessing(
         analysis,

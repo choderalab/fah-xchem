@@ -15,7 +15,7 @@ import tempfile
 from typing import Dict, List, Optional
 import joblib
 import mdtraj as md
-from covid_moonshot.core import Work
+from ..core import Work
 
 
 def load_trajectory(
@@ -47,7 +47,7 @@ def load_trajectory(
     # Load trajectory
     pdbfile_path = os.path.join(project_path, "RUNS", f"RUN{run}", "hybrid_complex.pdb")
 
-    # TODO: Reuse path logic from covid_moonshot.lib
+    # TODO: Reuse path logic from fah_xchem.lib
     trajectory_path = os.path.join(
         project_data_path,
         f"RUN{run}",
@@ -85,7 +85,9 @@ def load_fragment(fragment_id: str) -> md.Trajectory:
     """
 
     # TODO: Put this in the covid-moonshot path, or generalize to an arbitrary file
-    fragment = md.load(f"/home/server/server2/projects/available/covid-moonshot/receptors/monomer/Mpro-{fragment_id}_0_bound-protein-thiolate.pdb")
+    fragment = md.load(
+        f"/home/server/server2/projects/available/covid-moonshot/receptors/monomer/Mpro-{fragment_id}_0_bound-protein-thiolate.pdb"
+    )
 
     return fragment
 
@@ -236,7 +238,10 @@ def get_stored_atom_indices(project_path: str, run: int):
 
 
 def slice_snapshot(
-    snapshot: md.Trajectory, project_path: str, run: int, cache_dir: Optional[str],
+    snapshot: md.Trajectory,
+    project_path: str,
+    run: int,
+    cache_dir: Optional[str],
 ) -> Dict[str, md.Trajectory]:
     """
     Slice snapshot to specified state in-place
@@ -321,13 +326,13 @@ def save_representative_snapshots(
     -------
     None
     """
-    for ligand in ['old', 'new']:
-        if ligand == 'old':
+    for ligand in ["old", "new"]:
+        if ligand == "old":
             work = min(works, key=lambda w: w.reverse_work)
-            frame = 3 # TODO: Magic numbers
+            frame = 3  # TODO: Magic numbers
         else:
             work = min(works, key=lambda w: w.forward_work)
-            frame = 1 # TODO: Magic numbers
+            frame = 1  # TODO: Magic numbers
 
         # Extract representative snapshot
         sliced_snapshots, components = extract_snapshot(
@@ -342,20 +347,21 @@ def save_representative_snapshots(
         )
 
         # Write protein PDB
-        name = f'{ligand}_protein'
+        name = f"{ligand}_protein"
         sliced_snapshots["protein"].save(
             os.path.join(snapshot_output_path, f"RUN{run}-{name}.pdb")
         )
 
         # Write old and new complex PDBs
-        name = f'{ligand}_complex'
+        name = f"{ligand}_complex"
         sliced_snapshots[name].save(
             os.path.join(snapshot_output_path, f"RUN{run}-{name}.pdb")
         )
 
         # Write ligand SDFs
         from openeye import oechem
-        name = f'{ligand}_ligand'
+
+        name = f"{ligand}_ligand"
         with oechem.oemolostream(
             os.path.join(snapshot_output_path, f"RUN{run}-{name}.sdf")
         ) as ofs:

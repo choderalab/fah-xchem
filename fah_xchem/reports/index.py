@@ -1,4 +1,3 @@
-import importlib.resources as pkg_resources
 from math import floor, isfinite, log10
 import os
 import requests
@@ -8,7 +7,6 @@ from urllib.parse import urljoin
 from jinja2 import Environment
 from ..analysis.constants import KT_KCALMOL
 from ..core import Analysis, Binding
-from . import templates
 
 
 # TODO: remove hardcoded values
@@ -127,7 +125,14 @@ def get_index_html(analysis: Analysis) -> str:
     str
         Report html
     """
-    template = pkg_resources.read_text(templates, "index.html")
+
+    template_filename = os.path.join(
+        os.path.dirname(__file__), "templates", "index.html"
+    )
+
+    with open(template_filename, "r") as template_file:
+        template = template_file.read()
+
     environment = Environment()
     environment.filters["binding_estimate_kcal"] = binding_estimate_kcal
     environment.filters["format_estimate_point"] = format_estimate_point

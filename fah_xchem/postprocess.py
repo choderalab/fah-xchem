@@ -207,7 +207,9 @@ def save_postprocessing(
         # Set free energy and uncertainty (in kcal/mol)
         # TODO: Improve this by writing appropriate digits of precision
         oechem.OESetSDData(oemol, "DDG (kcal/mol)", f"{KT_KCALMOL*binding.delta_f:.2f}")
-        oechem.OESetSDData(oemol, "dDDG (kcal/mol)", f"{KT_KCALMOL*binding.ddelta_f:.2f}")
+        oechem.OESetSDData(
+            oemol, "dDDG (kcal/mol)", f"{KT_KCALMOL*binding.ddelta_f:.2f}"
+        )
 
         # Store compound
         oemols.append(oemol)
