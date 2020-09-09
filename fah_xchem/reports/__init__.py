@@ -1,6 +1,6 @@
 import os
 from typing import List
-from ..core import Analysis
+from ..models import Analysis
 from .index import get_index_html
 from .molecules import save_molecule_images
 

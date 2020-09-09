@@ -1,15 +1,21 @@
 import datetime as dt
-from typing import List, Optional
+from typing import Dict, List, Optional
 from pydantic import BaseModel
 
 
-class ResultPath(BaseModel):
+class ModelWithConfig(BaseModel):
+    class Config:
+        allow_mutation = False
+        extra = "forbid"
+
+
+class ResultPath(ModelWithConfig):
     path: str
     clone: int
     gen: int
 
 
-class Work(BaseModel):
+class Work(ModelWithConfig):
     path: ResultPath
     forward_work: float
     reverse_work: float
@@ -17,37 +23,75 @@ class Work(BaseModel):
     reverse_final_potential: float
 
 
-class FreeEnergy(BaseModel):
+class FreeEnergy(ModelWithConfig):
     delta_f: float
     ddelta_f: float
     bar_overlap: float
     num_work_values: int
 
 
-class GenAnalysis(BaseModel):
+class GenAnalysis(ModelWithConfig):
     gen: int
     free_energy: Optional[FreeEnergy]
     forward_works: List[float]
     reverse_works: List[float]
 
 
-class PhaseAnalysis(BaseModel):
+class PhaseAnalysis(ModelWithConfig):
     free_energy: FreeEnergy
     gens: List[GenAnalysis]
 
 
-class Binding(BaseModel):
+class Binding(ModelWithConfig):
     delta_f: float
     ddelta_f: float
 
 
-class RunAnalysis(BaseModel):
+class RunAnalysis(ModelWithConfig):
     complex_phase: PhaseAnalysis
     solvent_phase: PhaseAnalysis
     binding: Binding
 
 
-class RunDetails(BaseModel):
+class CompoundSeriesMetadata(ModelWithConfig):
+    name: str
+    description: str
+    creator: str
+    creation_date: dt.date
+    xchem_project: str
+    receptor_variant: Dict[str, str]
+    temperature_kelvin: float
+    ionic_strength_millimolar: float
+    pH: float
+
+
+class Molecule(ModelWithConfig):
+    molecule_id: str
+    smiles: str
+
+
+class Compound(ModelWithConfig):
+    compound_id: str
+    smiles: str
+    experimental_data: Dict[str, float]
+    molecules: List[Molecule]
+
+
+class Transformation(BaseModel):
+    run: str
+    compound_id: str
+    initial_molecule_id: str
+    final_molecule_id: str
+    xchem_fragment_id: str
+
+
+class CompoundSeries(ModelWithConfig):
+    metadata: CompoundSeriesMetadata
+    compounds: List[Compound]
+    transformations: List[Transformation]
+
+
+class RunDetails(ModelWithConfig):
     JOBID: int
     directory: str
     end: int
@@ -66,7 +110,7 @@ class RunDetails(BaseModel):
         return self.JOBID
 
 
-class Run(BaseModel):
+class Run(ModelWithConfig):
     """
     Results of free energy analysis for a single run.
 
@@ -98,6 +142,6 @@ class Run(BaseModel):
     analysis: RunAnalysis
 
 
-class Analysis(BaseModel):
+class Analysis(ModelWithConfig):
     updated_at: dt.datetime
     runs: List[Run]

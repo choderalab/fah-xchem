@@ -12,7 +12,8 @@ from rich.progress import track
 from .analysis.plots import save_run_level_plots, save_summary_plots
 from .analysis.free_energy import get_run_analysis
 from .analysis.structures import save_representative_snapshots
-from .core import (
+from .extract_work import extract_work
+from .models import (
     Analysis,
     ResultPath,
     Run,
@@ -20,7 +21,6 @@ from .core import (
     RunDetails,
     Work,
 )
-from .extract_work import extract_work
 from .postprocess import save_postprocessing
 from .reports import save_reports
 

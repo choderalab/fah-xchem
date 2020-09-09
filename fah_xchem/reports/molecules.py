@@ -1,6 +1,6 @@
 import os
 from typing import List
-from ..core import RunDetails
+from ..models import RunDetails
 
 
 def save_molecule_images(
