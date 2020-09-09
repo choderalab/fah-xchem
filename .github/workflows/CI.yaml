@@ -18,6 +18,9 @@ jobs:
     name: Linting
     runs-on: ubuntu-latest
     steps:
+      - name: Debugging
+        run: |
+          ls -l
       - name: Check formatting
         uses: lgeiger/black-action@v1.0.1
         with:
