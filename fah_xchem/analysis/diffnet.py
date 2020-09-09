@@ -55,7 +55,7 @@ def separate_graphs(graphs):
 
 
 def reduce_graph(g, nodes_to_keep):
-    """ Takes a big graph and retains only required nodes
+    """Takes a big graph and retains only required nodes
     This can be useful for minimising large graphs,
     or breaking down unconnected graphs
 
