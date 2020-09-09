@@ -1,5 +1,5 @@
 import pandas as pd
-from .core import ResultPath, Work
+from .models import ResultPath, Work
 
 
 def _is_header_line(line: str) -> bool:

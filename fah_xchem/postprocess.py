@@ -1,6 +1,6 @@
 import logging
 from .analysis.constants import KT_KCALMOL
-from .core import Analysis
+from .models import Analysis
 
 
 def write_pdf_report(mollist, pdf_filename, iname):

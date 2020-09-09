@@ -5,7 +5,7 @@ Unit and regression test for the fah_xchem package.
 # Import package, test suite, and other packages as needed
 import pytest
 import sys
-from fah_xchem.core import *
+from fah_xchem.models import *
 
 
 @pytest.fixture
