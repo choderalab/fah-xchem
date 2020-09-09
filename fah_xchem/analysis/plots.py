@@ -520,7 +520,7 @@ def _save_plot(
             os.path.join(path, os.extsep.join([name, file_format])), transparent=True
         )
 
-    plt.gcf().close()
+    plt.close()
 
 
 def save_run_level_plots(
