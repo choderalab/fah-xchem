@@ -16,53 +16,6 @@ from .constants import KT_KCALMOL
 from .free_energy import bootstrap
 
 
-def plot_work_distribution(
-    ax: plt.Axes,
-    forward_works: List[float],
-    reverse_works: List[float],
-    delta_f: float,
-) -> None:
-    """
-    Plot a single work distribution
-
-    Parameters
-    ----------
-    ax : AxesSubplot
-       Axes on which to draw the plot
-    forward_works : list of float
-       Forward work values (in kT)
-    reverse_works : list of float
-       Reverse work values (in kT)
-    delta_f : float
-       Free energy estimate (in kT)
-    """
-
-    distplot = partial(
-        sns.distplot,
-        hist=False,
-        kde=True,
-        rug=True,
-        ax=ax,
-        kde_kws=dict(shade=True),
-        rug_kws=dict(alpha=0.5),
-    )
-
-    distplot(
-        np.array(forward_works) * KT_KCALMOL,
-        color="cornflowerblue",
-        label=f"forward : $N={len(forward_works)}$",
-    )
-
-    distplot(
-        -np.array(reverse_works) * KT_KCALMOL,
-        color="hotpink",
-        label=f"reverse : $N={len(reverse_works)}$",
-    )
-
-    ax.axvline(delta_f * KT_KCALMOL, color="k", ls=":")
-    ax.set_xlabel(r"work / kcal mol$^{-1}$")
-
-
 def plot_work_distributions(
     complex_forward_works: List[float],
     complex_reverse_works: List[float],
@@ -90,23 +43,59 @@ def plot_work_distributions(
         Figure containing the plot
     """
 
-    fig, (ax1, ax2) = plt.subplots(ncols=2, nrows=1, figsize=figsize)
+    phases = [
+        ("complex", complex_delta_f, complex_forward_works, complex_reverse_works),
+        ("solvent", solvent_delta_f, solvent_forward_works, solvent_reverse_works),
+    ]
 
-    plot_work_distribution(
-        ax1, complex_forward_works, complex_reverse_works, complex_delta_f
+    df = pd.DataFrame.from_records(
+        [
+            {
+                "phase": phase,
+                "direction": direction,
+                "work_kcal": work * KT_KCALMOL
+                if direction == "forward"
+                else -work * KT_KCALMOL,
+            }
+            for phase, _, forward_works, reverse_works in phases
+            for direction, works in [
+                ("forward", forward_works),
+                ("reverse", reverse_works),
+            ]
+            for work in works
+        ]
     )
-    ax1.set_title("complex")
 
-    plot_work_distribution(
-        ax2, solvent_forward_works, solvent_reverse_works, solvent_delta_f
-    )
-    ax2.set_title("solvent")
+    g = sns.displot(
+        data=df,
+        col="phase",
+        hue="direction",
+        x="work_kcal",
+        kind="kde",
+        rug=True,
+        rug_kws=dict(alpha=0.5),
+        fill=True,
+        palette=["cornflowerblue", "hotpink"],
+        facet_kws=dict(sharex=False),
+    ).set_xlabels(r"work / kcal mol$^{-1}$")
 
-    fig.subplots_adjust(top=0.9, wspace=0.15)
-    ax1.legend()
-    ax2.legend()
+    for phase, delta_f, forward_works, reverse_works in phases:
+        ax = g.axes_dict[phase]
+        ax.axvline(delta_f * KT_KCALMOL, color="k", ls=":")
+        ax.text(
+            0.05,
+            0.95,
+            f"$N_F={len(forward_works)}$",
+            transform=ax.transAxes,
+        )
+        ax.text(
+            0.05,
+            0.88,
+            f"$N_R={len(reverse_works)}$",
+            transform=ax.transAxes,
+        )
 
-    return fig
+    return g.fig
 
 
 def _filter_inclusive(
@@ -139,13 +128,12 @@ def plot_relative_distribution(
     )
     valid_relative_delta_fs_kcal = valid_relative_delta_fs * KT_KCALMOL
 
-    sns.distplot(
+    sns.displot(
         valid_relative_delta_fs_kcal,
-        hist=False,
-        kde=True,
+        kind="kde",
         rug=True,
         color="hotpink",
-        kde_kws=dict(shade=True),
+        fill=True,
         rug_kws=dict(alpha=0.5),
         label=f"$N={len(relative_delta_fs)}$",
     )
