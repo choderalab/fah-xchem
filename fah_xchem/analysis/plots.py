@@ -188,16 +188,20 @@ def plot_convergence(
     fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
 
     complex_delta_fs_kcal = pd.Series(
-        np.array(complex_delta_fs) * KT_KCALMOL, index=complex_gens,
+        np.array(complex_delta_fs) * KT_KCALMOL,
+        index=complex_gens,
     )
     complex_delta_f_errs_kcal = pd.Series(
-        np.array(complex_delta_f_errs) * KT_KCALMOL, index=complex_gens,
+        np.array(complex_delta_f_errs) * KT_KCALMOL,
+        index=complex_gens,
     )
     solvent_delta_fs_kcal = pd.Series(
-        np.array(solvent_delta_fs) * KT_KCALMOL, index=solvent_gens,
+        np.array(solvent_delta_fs) * KT_KCALMOL,
+        index=solvent_gens,
     )
     solvent_delta_f_errs_kcal = pd.Series(
-        np.array(solvent_delta_f_errs) * KT_KCALMOL, index=solvent_gens,
+        np.array(solvent_delta_f_errs) * KT_KCALMOL,
+        index=solvent_gens,
     )
 
     DDG_kcal = solvent_delta_fs_kcal - complex_delta_fs_kcal
@@ -256,7 +260,8 @@ def plot_convergence(
 
 
 def plot_poor_convergence_fe_table(
-    runs: List[Run], energy_cutoff_kcal: float = 1.0,
+    runs: List[Run],
+    energy_cutoff_kcal: float = 1.0,
 ) -> Optional[plt.Figure]:
     """
     Plot table of poorly converging free energy estimates with GEN
@@ -311,7 +316,10 @@ def plot_poor_convergence_fe_table(
         ax.axis("tight")
         ax.axis("off")
         table = ax.table(
-            cellText=data, colLabels=column_titles, loc="center", cellLoc="center",
+            cellText=data,
+            colLabels=column_titles,
+            loc="center",
+            cellLoc="center",
         )
 
         # Make column headers bold
@@ -672,11 +680,15 @@ def save_summary_plots(
         _save_plot, path=path, file_formats=file_formats, timestamp=analysis.updated_at
     )
 
-    with save_plot(name="relative_fe_dist",):
+    with save_plot(
+        name="relative_fe_dist",
+    ):
         plot_relative_distribution(binding_delta_fs)
         plt.title("Relative free energy")
 
-    with save_plot(name="cumulative_fe_dist",):
+    with save_plot(
+        name="cumulative_fe_dist",
+    ):
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
 

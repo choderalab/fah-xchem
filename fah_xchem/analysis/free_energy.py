@@ -45,7 +45,9 @@ def mask_outliers(a: np.ndarray, max_value: float, max_n_devs: float) -> np.ndar
 
 
 def filter_work_values(
-    works: np.ndarray, max_value: float = 1e4, max_n_devs: float = 5,
+    works: np.ndarray,
+    max_value: float = 1e4,
+    max_n_devs: float = 5,
 ) -> np.ndarray:
     """Remove pairs of works when either is determined to be an outlier.
 
@@ -271,7 +273,9 @@ def get_phase_analysis(
 
 
 def get_run_analysis(
-    run: int, complex_works: List[Work], solvent_works: List[Work],
+    run: int,
+    complex_works: List[Work],
+    solvent_works: List[Work],
 ) -> RunAnalysis:
 
     try:
