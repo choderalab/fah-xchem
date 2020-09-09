@@ -20,6 +20,7 @@ dependencies:
   - seaborn
   - openmm
   - openmmtools
+  - pymbar
   - simplejson
 
     # Pip-only installs
