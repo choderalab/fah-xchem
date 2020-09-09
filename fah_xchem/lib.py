@@ -8,7 +8,7 @@ import os
 import re
 from typing import List, Optional
 import joblib
-from tqdm.auto import tqdm
+from rich.progress import track
 from .analysis.plots import save_run_level_plots, save_summary_plots
 from .analysis.free_energy import get_run_analysis
 from .analysis.structures import save_representative_snapshots
@@ -21,6 +21,7 @@ from .core import (
     Work,
 )
 from .extract_work import extract_work
+from .postprocess import save_postprocessing
 from .reports import save_reports
 
 
@@ -70,7 +71,7 @@ def list_results(project_data_path: str, run: int) -> List[ResultPath]:
             )
             return None
 
-        return ResultPath(path, clone=int(match["clone"]), gen=int(match["gen"]))
+        return ResultPath(path=path, clone=int(match["clone"]), gen=int(match["gen"]))
 
     results = [result_path(path) for path in paths]
     return [r for r in results if r is not None]
@@ -79,7 +80,7 @@ def list_results(project_data_path: str, run: int) -> List[ResultPath]:
 def read_run_details(run_details_json_file: str) -> List[RunDetails]:
     with open(run_details_json_file, "r") as f:
         runs = json.load(f)
-    return [RunDetails.from_dict(r) for r in runs.values()]
+    return [RunDetails.parse_obj(r) for r in runs.values()]
 
 
 def analyze_run(
@@ -109,9 +110,10 @@ def analyze_run(
         and analysis.binding.delta_f >= max_binding_delta_f
     ):
         logging.warning(
-            f"Skipping snapshot for RUN {run}. "
-            f"Binding free energy estimate {analysis.binding.delta_f} "
-            f"exceeds threshold {max_binding_delta_f}."
+            "Skipping snapshot for RUN %d. Binding free energy estimate %g exceeds threshold %g",
+            run,
+            analysis.binding.delta_f,
+            max_binding_delta_f,
         )
     else:
         try:
@@ -216,7 +218,7 @@ def analyze_runs(
 
     with multiprocessing.Pool(num_procs) as pool:
         results_iter = pool.imap_unordered(try_process_run, run_details)
-        results = list(tqdm(results_iter, total=len(run_details)))
+        results = list(track(results_iter, total=len(run_details)))
 
     runs = [r for r in results if r is not None]
     num_failed = len(results) - len(runs)
@@ -224,7 +226,12 @@ def analyze_runs(
     if num_failed > 0:
         logging.warning("Failed to process %d RUNs out of %d", num_failed, len(results))
 
-    analysis = Analysis(dt.datetime.now(dt.timezone.utc), runs)
+    analysis = Analysis(updated_at=dt.datetime.now(dt.timezone.utc), runs=runs)
     save_summary_plots(analysis, os.path.join(output_dir, "plots"))
+    save_postprocessing(
+        analysis,
+        dataset_name="2020-08-14-nucleophilic-displacement",  # TODO: expose as a parameter
+        results_path=output_dir,
+    )
     save_reports(analysis, output_dir)
     return analysis

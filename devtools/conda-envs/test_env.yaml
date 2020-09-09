@@ -1,0 +1,29 @@
+name: test
+channels:
+  - conda-forge
+  - defaults
+  - omnia
+dependencies:
+    # Base depends
+  - python
+  - pip
+
+    # Testing
+  - pytest
+  - pytest-cov
+  - codecov
+
+  - numpy
+  - pydantic
+  - joblib
+  - rich
+  - seaborn
+  - openmm
+  - openmmtools
+  - pymbar
+  - simplejson
+
+    # Pip-only installs
+  #- pip:
+  #  - codecov
+
