@@ -14,6 +14,15 @@ on:
     - cron: "0 0 * * *"
 
 jobs:
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check formatting
+        uses: lgeiger/black-action@v1.0.1
+        with:
+          args: "fah_xchem --check"
+
   test:
     name: Test on ${{ matrix.os }}, Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
@@ -31,11 +40,6 @@ jobs:
         uname -a
         df -h
         ulimit -a
-
-    - name: Lint
-      uses: lgeiger/black-action@v1.0.1
-      with:
-        args: "fah_xchem --check"
 
     # More info on options: https://github.com/goanpeca/setup-miniconda
     - uses: goanpeca/setup-miniconda@v1
