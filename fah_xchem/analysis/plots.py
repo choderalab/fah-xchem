@@ -502,25 +502,26 @@ def _save_plot(
     >>>     plt.plot(np.cos(np.linspace(-np.pi, np.pi)))
     >>>     plt.title("My cool plot")
     """
-    # Make sure the directory exists
-    import os
 
-    os.makedirs(path, exist_ok=True)
+    try:
+        yield
 
-    yield
+        if timestamp is not None:
+            plt.tight_layout(rect=(0, 0.05, 1, 1))  # leave space for timestamp
+            _plot_updated_timestamp(timestamp)
+        else:
+            plt.tight_layout()
 
-    if timestamp is not None:
-        plt.tight_layout(rect=(0, 0.05, 1, 1))  # leave space for timestamp on bottom
-        _plot_updated_timestamp(timestamp)
-    else:
-        plt.tight_layout()
+        # Make sure the directory exists
+        os.makedirs(path, exist_ok=True)
 
-    for file_format in file_formats:
-        plt.savefig(
-            os.path.join(path, os.extsep.join([name, file_format])), transparent=True
-        )
-
-    plt.close()
+        for file_format in file_formats:
+            plt.savefig(
+                os.path.join(path, os.extsep.join([name, file_format])),
+                transparent=True,
+            )
+    finally:
+        plt.close()
 
 
 def save_run_level_plots(
