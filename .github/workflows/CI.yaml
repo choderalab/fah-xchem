@@ -63,6 +63,11 @@ jobs:
       run: |
         pytest -v --cov=fah_xchem --cov-report=xml --color=yes fah_xchem/tests/
 
+    - name: Lint
+      uses: lgeiger/black-action@v1.0.1
+      with:
+        args: "fah_xchem --check"
+
     - name: CodeCov
       uses: codecov/codecov-action@v1
       with:
