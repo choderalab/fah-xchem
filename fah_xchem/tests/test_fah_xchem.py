@@ -28,9 +28,6 @@ def compound_series():
             Compound(
                 compound_id="MAT-POS-f42f3716-1",
                 smiles="Cc1ccncc1NC(=O)Cc1cc(Cl)cc(-c2ccc(C3CC3(F)F)cc2)c1",
-                is_racemic_mixture=False,
-                has_multiple_protonation_states=True,
-                has_multiple_tautomers=False,
                 experimental_data={"pIC50": 4.324},
             ),
             Compound(
