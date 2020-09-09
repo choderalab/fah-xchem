@@ -59,16 +59,16 @@ class CompoundSeriesMetadata(BaseModel):
     pH: float
 
 
+class Molecule(BaseModel):
+    molecule_id: str
+    smiles: str
+
+
 class Compound(BaseModel):
     compound_id: str
     smiles: str
     experimental_data: Dict[str, float]
-
-
-class Molecule(BaseModel):
-    molecule_id: str
-    cid: str
-    smiles: str
+    molecules: List[Molecule]
 
 
 class Transformation(BaseModel):
@@ -81,7 +81,6 @@ class Transformation(BaseModel):
 class CompoundSeries(BaseModel):
     metadata: CompoundSeriesMetadata
     compounds: List[Compound]
-    molecules: List[Molecule]
     transformations: List[Transformation]
 
 

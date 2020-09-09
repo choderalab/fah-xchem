@@ -29,23 +29,22 @@ def compound_series():
                 compound_id="MAT-POS-f42f3716-1",
                 smiles="Cc1ccncc1NC(=O)Cc1cc(Cl)cc(-c2ccc(C3CC3(F)F)cc2)c1",
                 experimental_data={"pIC50": 4.324},
+                molecules=[
+                    Molecule(
+                        molecule_id="MAT-POS-f42f3716-1-1",
+                        smiles="Cc1ccncc1NC(=O)Cc1cc(Cl)cc(-c2ccc(C3CC3(F)F)cc2)c1",
+                    ),
+                    Molecule(
+                        molecule_id="MAT-POS-f42f3716-1-2",
+                        smiles="Cc1ccn[H+]cc1NC(=O)Cc1cc(Cl)cc(-c2ccc(C3CC3(F)F)cc2)c1",
+                    ),
+                ],
             ),
             Compound(
                 compound_id="MAT-POS-f42f3716-2",
                 smiles="Cc1ccncc1NC(=O)Cc1cc(Cl)cc(-c2ccc(S(C)(=O)=O)cc2Cl)c1",
                 experimental_data={"pIC50": 4.324},
-            ),
-        ],
-        molecules=[
-            Molecule(
-                molecule_id="MAT-POS-f42f3716-1-1",
-                cid="MAT-POS-f42f3716-1",
-                smiles="Cc1ccncc1NC(=O)Cc1cc(Cl)cc(-c2ccc(C3CC3(F)F)cc2)c1",
-            ),
-            Molecule(
-                molecule_id="MAT-POS-f42f3716-1-2",
-                cid="MAT-POS-f42f3716-1",
-                smiles="Cc1ccn[H+]cc1NC(=O)Cc1cc(Cl)cc(-c2ccc(C3CC3(F)F)cc2)c1",
+                molecules=[],
             ),
         ],
         transformations=[
