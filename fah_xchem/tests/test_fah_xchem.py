@@ -60,7 +60,7 @@ def compound_series():
         ],
         transformations=[
             Transformation(
-                run=0,
+                run_id=0,
                 initial_microstate=CompoundMicrostate(
                     compound_id="MAT-POS-f42f3716-1",
                     microstate_id="MAT-POS-f42f3716-1-1",
@@ -72,7 +72,7 @@ def compound_series():
                 xchem_fragment_id="x10789",
             ),
             Transformation(
-                run=1,
+                run_id=1,
                 initial_microstate=CompoundMicrostate(
                     compound_id="MAT-POS-f42f3716-2",
                     microstate_id="MAT-POS-f42f3716-2-1",

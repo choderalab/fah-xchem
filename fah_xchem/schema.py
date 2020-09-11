@@ -42,7 +42,7 @@ class CompoundMicrostate(Model):
 
 
 class Transformation(Model):
-    run: int
+    run_id: int
     initial_microstate: CompoundMicrostate
     final_microstate: CompoundMicrostate
     xchem_fragment_id: str
