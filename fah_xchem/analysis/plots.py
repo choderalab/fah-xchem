@@ -52,9 +52,7 @@ def plot_work_distributions(
             {
                 "phase": phase,
                 "direction": direction,
-                "work_kcal": work * KT_KCALMOL
-                if direction == "forward"
-                else -work * KT_KCALMOL,
+                "work": work if direction == "forward" else -work,
             }
             for phase, _, forward_works, reverse_works in phases
             for direction, works in [
@@ -64,6 +62,8 @@ def plot_work_distributions(
             for work in works
         ]
     )
+
+    df["work_kcal"] = df["work"] * KT_KCALMOL
 
     g = sns.displot(
         data=df,
