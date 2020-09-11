@@ -84,7 +84,6 @@ def plot_work_distributions(
         ax.axvline(delta_f * KT_KCALMOL, color="k", ls=":")
         ax.set_title(
             f"{phase} ($N={len(forward_works)}$)",
-            transform=ax.transAxes,
         )
 
     return g.fig
