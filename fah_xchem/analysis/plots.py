@@ -132,6 +132,7 @@ def plot_relative_distribution(
         label=f"$N={len(relative_delta_fs)}$",
     )
     plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
+    plt.legend()
 
 
 def plot_convergence(
