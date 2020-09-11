@@ -14,7 +14,7 @@ class CompoundSeriesMetadata(Model):
     name: str
     description: str
     creator: str
-    creation_date: dt.date
+    created_at: dt.date
     xchem_project: str
     receptor_variant: Dict[str, str]
     temperature_kelvin: float
