@@ -15,7 +15,7 @@ def compound_series():
             name="2020-08-20-benzotriazoles",
             description="Sprint 3: Prioritization of benzotriazole derivatives",
             creator="John D. Chodera",
-            creation_date=dt.datetime(2020, 9, 8, 10, 14, 48, 607238),
+            created_at=dt.datetime(2020, 9, 8, 10, 14, 48, 607238),
             xchem_project="Mpro",
             receptor_variant=dict(
                 biological_assembly="monomer", protein_variant="thiolate"
