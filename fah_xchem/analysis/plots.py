@@ -82,10 +82,8 @@ def plot_work_distributions(
     for phase, delta_f, forward_works, reverse_works in phases:
         ax = g.axes_dict[phase]
         ax.axvline(delta_f * KT_KCALMOL, color="k", ls=":")
-        ax.text(
-            0.05,
-            0.8,
-            f"$N_F={len(forward_works)}$\n$N_R={len(reverse_works)}$",
+        ax.set_title(
+            f"{phase} ($N={len(forward_works)}$)",
             transform=ax.transAxes,
         )
 
