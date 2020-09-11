@@ -5,7 +5,7 @@ import fire
 from .lib import analyze_runs
 
 
-def analyze_runs_cli(
+def run(
     run_details_json_file: str,
     complex_project_path: str,
     complex_project_data_path: str,
@@ -70,4 +70,4 @@ def analyze_runs_cli(
 
 def main():
     logging.basicConfig(level=logging.WARNING)
-    fire.Fire({"analyze_runs": analyze_runs_cli})
+    fire.Fire(run)
