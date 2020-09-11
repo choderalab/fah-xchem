@@ -46,7 +46,13 @@ class Transformation(Model):
     xchem_fragment_id: str
 
 
+class Projects(Model):
+    complex_phase: int
+    solvent_phase: int
+
+
 class CompoundSeries(Model):
     metadata: CompoundSeriesMetadata
+    projects: Projects
     compounds: List[Compound]
     transformations: List[Transformation]

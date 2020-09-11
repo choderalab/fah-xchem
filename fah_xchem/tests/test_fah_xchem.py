@@ -24,6 +24,7 @@ def compound_series():
             ionic_strength_millimolar=70,
             pH=7.4,
         ),
+        projects=Projects(complex_phase=12345, solvent_phase=12346),
         compounds=[
             Compound(
                 compound_id="MAT-POS-f42f3716-1",
