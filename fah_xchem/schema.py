@@ -20,6 +20,8 @@ class CompoundSeriesMetadata(Model):
     temperature_kelvin: float
     ionic_strength_millimolar: float
     pH: float
+    complex_project_id: int
+    solvent_project_id: int
 
 
 class Microstate(Model):
@@ -46,13 +48,7 @@ class Transformation(Model):
     xchem_fragment_id: str
 
 
-class Projects(Model):
-    complex_phase: int
-    solvent_phase: int
-
-
 class CompoundSeries(Model):
     metadata: CompoundSeriesMetadata
     compounds: List[Compound]
-    projects: Projects
     transformations: List[Transformation]

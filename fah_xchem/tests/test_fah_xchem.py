@@ -23,6 +23,8 @@ def compound_series():
             temperature_kelvin=300,
             ionic_strength_millimolar=70,
             pH=7.4,
+            complex_project_id=12345,
+            solvent_project_id=12346,
         ),
         compounds=[
             Compound(
@@ -56,7 +58,6 @@ def compound_series():
                 ],
             ),
         ],
-        projects=Projects(complex_phase=12345, solvent_phase=12346),
         transformations=[
             Transformation(
                 run=0,
