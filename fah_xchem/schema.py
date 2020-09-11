@@ -50,22 +50,3 @@ class CompoundSeries(Model):
     metadata: CompoundSeriesMetadata
     compounds: List[Compound]
     transformations: List[Transformation]
-
-
-class ServerConfig(Model):
-    projects_path: str
-    data_path: str
-
-
-class AnalysisConfig(Model):
-    max_binding_delta_f: Optional[float] = None
-    min_num_work_values: Optional[int] = 40
-    work_precision_decimals: Optional[int] = 3
-
-
-class Config(Model):
-    server: ServerConfig
-    complex_project: int
-    solvent_project: int
-    analysis: AnalysisConfig
-    output_dir: str
