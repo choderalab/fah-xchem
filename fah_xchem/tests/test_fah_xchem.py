@@ -23,7 +23,7 @@ def compound_series():
             temperature_kelvin=300,
             ionic_strength_millimolar=70,
             pH=7.4,
-            fah_project_ids=ProjectIds(complex_phase=12345, solvent_phase=12346),
+            fah_projects=ProjectSet(complex_phase=12345, solvent_phase=12346),
         ),
         compounds=[
             Compound(

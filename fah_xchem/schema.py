@@ -10,7 +10,7 @@ class Model(BaseModel):
         extra = "forbid"
 
 
-class ProjectIds(Model):
+class ProjectSet(Model):
     complex_phase: int
     solvent_phase: int
 
@@ -25,7 +25,7 @@ class CompoundSeriesMetadata(Model):
     temperature_kelvin: float
     ionic_strength_millimolar: float
     pH: float
-    fah_project_ids: ProjectIds
+    fah_projects: ProjectSet
 
 
 class Microstate(Model):
