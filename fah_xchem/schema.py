@@ -53,6 +53,6 @@ class Projects(Model):
 
 class CompoundSeries(Model):
     metadata: CompoundSeriesMetadata
-    projects: Projects
     compounds: List[Compound]
+    projects: Projects
     transformations: List[Transformation]
