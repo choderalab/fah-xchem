@@ -23,13 +23,15 @@ def compound_series():
             temperature_kelvin=300,
             ionic_strength_millimolar=70,
             pH=7.4,
-            fah_projects=ProjectSet(complex_phase=12345, solvent_phase=12346),
+            fah_projects=ProjectPair(complex_phase=12345, solvent_phase=12346),
         ),
         compounds=[
             Compound(
-                compound_id="MAT-POS-f42f3716-1",
-                smiles="Cc1ccncc1NC(=O)Cc1cc(Cl)cc(-c2ccc(C3CC3(F)F)cc2)c1",
-                experimental_data={"pIC50": 4.324},
+                metadata=CompoundMetadata(
+                    compound_id="MAT-POS-f42f3716-1",
+                    smiles="Cc1ccncc1NC(=O)Cc1cc(Cl)cc(-c2ccc(C3CC3(F)F)cc2)c1",
+                    experimental_data={"pIC50": 4.324},
+                ),
                 microstates=[
                     Microstate(
                         microstate_id="MAT-POS-f42f3716-1-1",
@@ -42,9 +44,11 @@ def compound_series():
                 ],
             ),
             Compound(
-                compound_id="MAT-POS-f42f3716-2",
-                smiles="Cc1ccncc1NC(=O)Cc1cc(Cl)cc(-c2ccc(S(C)(=O)=O)cc2Cl)c1",
-                experimental_data={"pIC50": 4.324},
+                metadata=CompoundMetadata(
+                    compound_id="MAT-POS-f42f3716-2",
+                    smiles="Cc1ccncc1NC(=O)Cc1cc(Cl)cc(-c2ccc(S(C)(=O)=O)cc2Cl)c1",
+                    experimental_data={"pIC50": 4.324},
+                ),
                 microstates=[
                     Microstate(
                         microstate_id="MAT-POS-f42f3716-2-1",
