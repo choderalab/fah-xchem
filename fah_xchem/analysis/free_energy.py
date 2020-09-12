@@ -300,26 +300,3 @@ def get_run_analysis(
     )
 
 
-def bootstrap(
-    free_energies: List[FreeEnergy],
-    n_bootstrap: int,
-    clones_per_gen: int,
-    gen_number: int,
-) -> List[float]:
-
-    fes = []
-
-    for _ in range(n_bootstrap):
-
-        random_indices = np.random.choice(clones_per_gen, gen_number)
-
-        subset_f = [
-            works.forward_works[x] for x in random_indices for works in free_energies
-        ]
-        subset_r = [
-            works.reverse_works[x] for x in random_indices for works in free_energies
-        ]
-        fe, _ = BAR(np.asarray(subset_f), np.asarray(subset_r))
-        fes.append(fe * KT_KCALMOL)
-
-    return fes

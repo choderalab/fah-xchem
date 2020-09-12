@@ -11,9 +11,8 @@ import numpy as np
 import pandas as pd
 from pymbar import BAR
 from typing import Generator, Iterable, List, Optional, Tuple
-from ..core import Analysis, Binding, PhaseAnalysis, Run, Work
+from ..core import Analysis, Binding, FreeEnergy, PhaseAnalysis, Run, Work
 from .constants import KT_KCALMOL
-from .free_energy import bootstrap
 
 
 def plot_work_distributions(
@@ -369,6 +368,31 @@ def plot_cumulative_distribution(
     plt.ylabel("Cumulative $N$ ligands")
 
 
+def _bootstrap(
+    free_energies: List[FreeEnergy],
+    n_bootstrap: int,
+    clones_per_gen: int,
+    gen_number: int,
+) -> List[float]:
+
+    fes = []
+
+    for _ in range(n_bootstrap):
+
+        random_indices = np.random.choice(clones_per_gen, gen_number)
+
+        subset_f = [
+            works.forward_works[x] for x in random_indices for works in free_energies
+        ]
+        subset_r = [
+            works.reverse_works[x] for x in random_indices for works in free_energies
+        ]
+        fe, _ = BAR(np.asarray(subset_f), np.asarray(subset_r))
+        fes.append(fe * KT_KCALMOL)
+
+    return fes
+
+
 def plot_bootstrapped_clones(
     complex_phase: PhaseAnalysis,
     solvent_phase: PhaseAnalysis,
@@ -399,7 +423,7 @@ def plot_bootstrapped_clones(
     for n in n_gens:
         # bootstrap
 
-        complex_fes = bootstrap(
+        complex_fes = _bootstrap(
             free_energies=complex_phase.gens,
             n_bootstrap=n_bootstrap,
             clones_per_gen=clones_per_gen,
@@ -409,7 +433,7 @@ def plot_bootstrapped_clones(
         plt.scatter(n, np.mean(complex_fes), color="red", label="complex")
         plt.errorbar(n, np.mean(complex_fes), yerr=np.std(complex_fes), c="red")
 
-        solvent_fes = bootstrap(
+        solvent_fes = _bootstrap(
             free_energies=solvent_phase.gens,
             n_bootstrap=n_bootstrap,
             clones_per_gen=clones_per_gen,
