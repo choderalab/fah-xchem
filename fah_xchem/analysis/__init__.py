@@ -2,7 +2,7 @@ from collections import defaultdict
 from functools import partial
 import logging
 from math import sqrt
-from typing import List, Optional
+from typing import Optional
 
 from ..fah_utils import list_results
 from ..schema import (
@@ -19,6 +19,7 @@ from ..schema import (
     Transformation,
     TransformationAnalysis,
 )
+from .diffnet import combine_free_energies
 from .exceptions import AnalysisError, DataValidationError
 from .extract_work import extract_work_pair
 from .free_energy import compute_relative_free_energy
@@ -90,16 +91,6 @@ def analyze_transformation(
     )
 
 
-def analyze_compounds(
-    compounds: List[Compound], transformations: List[TransformationAnalysis]
-) -> List[CompoundAnalysis]:
-    """
-    Run DiffNet analysis
-    # TODO
-    """
-    return []
-
-
 def analyze_compound_series(
     series: CompoundSeries,
     config: AnalysisConfig,
@@ -119,7 +110,7 @@ def analyze_compound_series(
         for transformation in series.transformations
     ]
 
-    compounds = analyze_compounds(series.compounds, transformations)
+    compounds = combine_free_energies(series.compounds, transformations)
 
     return CompoundSeriesAnalysis(
         metadata=series.metadata, compounds=compounds, transformations=transformations

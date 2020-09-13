@@ -55,6 +55,7 @@ setup(
         "matplotlib>=3.3",
         "seaborn>=0.11",
         "rich>=6.0",
+        "networkx"
     ],
     # platforms=['Linux',
     #            'Mac OS-X',

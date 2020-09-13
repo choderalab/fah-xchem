@@ -48,6 +48,9 @@ class CompoundMicrostate(Model):
     compound_id: str
     microstate_id: str
 
+    def __hash__(self):
+        return hash((self.compound_id, self.microstate_id))
+
 
 class Transformation(Model):
     run_id: int
@@ -104,6 +107,7 @@ class MicrostateAnalysis(Model):
 class CompoundAnalysis(Model):
     metadata: CompoundMetadata
     microstates: List[MicrostateAnalysis]
+    absolute_free_energy: PointEstimate
 
 
 class CompoundSeriesAnalysis(Model):
