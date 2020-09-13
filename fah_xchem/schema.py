@@ -113,7 +113,7 @@ class CompoundSeriesAnalysis(Model):
 
 
 class AnalysisConfig(Model):
-    pass
+    min_num_work_values: Optional[int] = None
 
 
 class FahConfig(Model):
