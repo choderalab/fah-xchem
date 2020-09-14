@@ -51,7 +51,6 @@ class RunDetails(BaseModel):
     JOBID: int
     directory: str
     end: int
-    end_pIC50: float
     end_smiles: str
     end_title: str
     ff: str
@@ -61,6 +60,8 @@ class RunDetails(BaseModel):
     start_smiles: str
     start_title: str
     target: str
+    end_pIC50: float = None
+    start_pIC50: float = None
 
     def run_id(self) -> int:
         return self.JOBID
