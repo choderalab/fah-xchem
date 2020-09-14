@@ -25,6 +25,7 @@ from .exceptions import AnalysisError, DataValidationError
 from .extract_work import extract_work_pair
 from .free_energy import compute_relative_free_energy
 from .plots import generate_plots
+from .report import generate_report
 
 
 def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisConfig):
@@ -128,5 +129,5 @@ def generate_artifacts(
         timestamp=timestamp,
         output_dir=os.path.join(output_dir, "plots"),
     )
-    # generate_report(analysis, output_dir)
+    generate_report(analysis, output_dir)
     # generate_webpage(analysis, output_dir)
