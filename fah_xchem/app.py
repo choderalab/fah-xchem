@@ -7,6 +7,7 @@ import logging
 import fire
 from typing import Callable
 
+import fah_xchem
 from .analysis import analyze_compound_series
 from .schema import (
     AnalysisConfig,
@@ -32,15 +33,16 @@ def _get_config(
         return cls()
     else:
         logging.info("Reading %s from '%s'", description, config_file)
-        with open(config_file, "r") as f:
-            config = cls.parse_obj(decoder(f.read()))
+        with open(config_file, "r") as infile:
+            config = cls.parse_obj(decoder(infile.read()))
 
     logging.info("Using %s: %s", description, config)
     return config
 
 
-def run(
+def run_analysis(
     compound_series_file: str,
+    generate_artifacts: bool = True,
     config_file: Optional[str] = None,
     fah_projects_dir: str = "projects",
     fah_data_dir: str = "data",
@@ -59,6 +61,9 @@ def run(
     compound_series_file : str
         JSON file containing configuration for the compound series in
         the form of a serialized `CompoundSeries` object
+    generate_artifacts : bool
+        If `True`, generate additional artifacts (including plots, pdf
+        report, and html webpage) in the output directory
     config_file : str, optional
         JSON file containing configuration for the analysis in the
         form of a serialized `AnalysisConfig` object
@@ -89,14 +94,29 @@ def run(
         num_procs=num_procs,
     )
 
-    output = TimestampedAnalysis(
-        as_of=dt.datetime.now(dt.timezone.utc), analysis=analysis
-    )
+    timestamp = dt.datetime.now(dt.timezone.utc)
+    output = TimestampedAnalysis(as_of=timestamp, analysis=analysis)
 
     os.makedirs(output_dir, exist_ok=True)
     with open(os.path.join(output_dir, "analysis.json"), "w") as output_file:
         output_file.write(output.json())
 
+    if generate_artifacts:
+        fah_xchem.analysis.generate_artifacts(
+            analysis=analysis, timestamp=timestamp, output_dir=output_dir
+        )
+
+
+def generate_artifacts(
+    compound_series_analysis_file: str, output_dir: str = "results"
+) -> None:
+    with open(compound_series_analysis_file, "r") as infile:
+        tsa = TimestampedAnalysis.parse_obj(infile.read())
+
+    return fah_xchem.analysis.generate_artifacts(
+        analysis=tsa.analysis, timestamp=tsa.as_of, output_dir=output_dir
+    )
+
 
 def main():
-    fire.Fire(run)
+    fire.Fire({"run_analysis": run_analysis, "generate_artifacts": generate_artifacts})

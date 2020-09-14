@@ -1,5 +1,5 @@
 import functools
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -136,11 +136,11 @@ def _get_bar_overlap(works: np.ndarray) -> float:
 
 def compute_relative_free_energy(
     work_pairs: List[WorkPair], min_num_work_values: Optional[int] = None
-):
+) -> Tuple[RelativeFreeEnergy, List[WorkPair]]:
     """
     Parameters
     ----------
-    works : list of SimulatedWork
+    work_pairs : list of WorkPair
         Simulated forward and reverse work values
     min_num_work_values : int or None, optional
         Minimum number of valid work value pairs required for
@@ -148,8 +148,8 @@ def compute_relative_free_energy(
 
     Returns
     -------
-    FreeEnergy
-        Results of free energy compuation
+    (RelativeFreeEnergy, list of WorkPair)
+        Results of free energy compuation and remaining works after filtering
 
     Raises
     ------
@@ -184,6 +184,9 @@ def compute_relative_free_energy(
     if not np.isfinite(bar_overlap):
         raise InvalidResultError(f"BAR overlap computation returned {bar_overlap}")
 
-    return RelativeFreeEnergy(
-        delta_f=delta_f, bar_overlap=bar_overlap, num_work_pairs=len(works),
+    return (
+        RelativeFreeEnergy(
+            delta_f=delta_f, bar_overlap=bar_overlap, num_work_pairs=len(works)
+        ),
+        [WorkPair(forward=fw, reverse=rw) for fw, rw in works],
     )

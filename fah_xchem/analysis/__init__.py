@@ -1,14 +1,14 @@
 from collections import defaultdict
+import datetime as dt
 from functools import partial
 import logging
 from math import sqrt
-from typing import Optional
+import os
+from typing import List, Optional
 
 from ..fah_utils import list_results
 from ..schema import (
     AnalysisConfig,
-    Compound,
-    CompoundAnalysis,
     CompoundSeries,
     CompoundSeriesAnalysis,
     FahConfig,
@@ -18,11 +18,13 @@ from ..schema import (
     ProjectPair,
     Transformation,
     TransformationAnalysis,
+    WorkPair,
 )
 from .diffnet import combine_free_energies
 from .exceptions import AnalysisError, DataValidationError
 from .extract_work import extract_work_pair
 from .free_energy import compute_relative_free_energy
+from .plots import generate_plots
 
 
 def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisConfig):
@@ -48,17 +50,18 @@ def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisCon
         compute_relative_free_energy, min_num_work_values=config.min_num_work_values
     )
 
-    # TODO: rounding for raw work data?
+    free_energy, _ = compute_relative_free_energy_partial(work_pairs=all_works)
+
+    def get_gen_analysis(gen: int, works: List[WorkPair]) -> GenAnalysis:
+        free_energy, filtered_works = compute_relative_free_energy_partial(
+            work_pairs=works
+        )
+        # TODO: round raw work output?
+        return GenAnalysis(gen=gen, works=filtered_works, free_energy=free_energy)
+
     return PhaseAnalysis(
-        free_energy=compute_relative_free_energy_partial(work_pairs=all_works),
-        gens=[
-            GenAnalysis(
-                gen=gen,
-                works=works,
-                free_energy=compute_relative_free_energy_partial(work_pairs=works),
-            )
-            for gen, works in works_by_gen.items()
-        ],
+        free_energy=free_energy,
+        gens=[get_gen_analysis(gen, works) for gen, works in works_by_gen.items()],
     )
 
 
@@ -115,3 +118,15 @@ def analyze_compound_series(
     return CompoundSeriesAnalysis(
         metadata=series.metadata, compounds=compounds, transformations=transformations
     )
+
+
+def generate_artifacts(
+    analysis: CompoundSeriesAnalysis, timestamp: dt.datetime, output_dir: str
+) -> None:
+    generate_plots(
+        analysis=analysis,
+        timestamp=timestamp,
+        output_dir=os.path.join(output_dir, "plots"),
+    )
+    # generate_report(analysis, output_dir)
+    # generate_webpage(analysis, output_dir)
