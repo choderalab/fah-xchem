@@ -92,7 +92,7 @@ div.progress > div.progress-bar {
 </head>
 <body>
   <h1>COVID Moonshot Sprint {{ sprint }} Analysis</h1>
-  <span class="updated">Last updated: {{ analysis.updated_at.isoformat() }}</span>
+  <span class="updated">Last updated: {{ timestamp.isoformat() }}</span>
   <h2>Progress</h2>
   <div class="progress">
     <div class="progress-bar" role="progressbar" style="width: {{ progress.percent_complete() }}%;">
@@ -127,35 +127,35 @@ div.progress > div.progress-bar {
       <th colspan=2>Work distributions</th>
       <th colspan=2>Convergence</th>
     </tr>
-    {% for run in (analysis.runs | sort(attribute="analysis.binding.delta_f"))[:20] %}
+    {% for transformation in (series.transformations | sort(attribute="binding_free_energy.point"))[:20] %}
     <tr>
       <td class="rank">{{ loop.index }}</td>
-      <td >RUN{{ run.details.run_id() }}</td>
-      <td>{{ run.details.start_title }}</td>
+      <td >RUN{{ transformation.transformation.run_id }}</td>
+      <td>{{ transformation.transformation.initial_microstate.microstate_id }}</td>
       <td class="thumbnail">
-        <a href="images/RUN{{ run.details.run_id() }}.svg">
-          <img src="images/RUN{{ run.details.run_id() }}.svg" alt="molecule" title="{{ run.details.start_smiles }}">
+        <a href="molecule_images/{{ transformation.transformation.initial_microstate.microstate_id }}.svg">
+          <img src="molecule_images/{{ transformation.transformation.initial_microstate.microstate_id }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles }}">
         </a>
       </td>
-      <td><a href="structures/RUN{{ run.details.run_id() }}-old_ligand.sdf">[sdf]</a></td>
-      <td><a href="structures/RUN{{ run.details.run_id() }}-old_protein.pdb">[pdb]</a></td>
+      <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_ligand.sdf">[sdf]</a></td>
+      <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_protein.pdb">[pdb]</a></td>
       <td class="binding">
         <span class="estimate">
-          <span class="point">{{ run.analysis.binding | binding_estimate_kcal | format_estimate_point }}</span>
-          <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | format_estimate_stderr }}</span>
+          <span class="point">{{ (transformation.binding_free_energy * KT_KCALMOL) | format_point }}</span>
+          <span class="stderr"> ± {{ (transformation.binding_free_energy * KT_KCALMOL) | format_stderr }}</span>
         </span>
       </td>
       <td class="thumbnail">
-        <a href="plots/RUN{{ run.details.run_id() }}.png">
-          <img src="plots/RUN{{ run.details.run_id() }}.png" alt="work distributions">
+        <a href="plots/RUN{{ transformation.transformation.run_id }}.png">
+          <img src="plots/RUN{{ transformation.transformation.run_id }}.png" alt="work distributions">
         </a>
-      <td><a href="plots/RUN{{ run.details.run_id() }}.pdf">[pdf]</a></td>
+      <td><a href="plots/RUN{{ transformation.transformation.run_id }}.pdf">[pdf]</a></td>
       </td>
       <td class="thumbnail">
-        <a href="plots/RUN{{ run.details.run_id() }}-convergence.png">
-          <img src="plots/RUN{{ run.details.run_id() }}-convergence.png" alt="convergence plot">
+        <a href="plots/RUN{{ transformation.transformation.run_id }}-convergence.png">
+          <img src="plots/RUN{{ transformation.transformation.run_id }}-convergence.png" alt="convergence plot">
         </a>
-      <td><a href="plots/RUN{{ run.details.run_id() }}-convergence.pdf">[pdf]</a></td>
+      <td><a href="plots/RUN{{ transformation.transformation.run_id }}-convergence.pdf">[pdf]</a></td>
       </td>
     </tr>
     {% endfor %}
@@ -171,30 +171,30 @@ div.progress > div.progress-bar {
       <th>Work distributions</th>
       <th>Convergence</th>
     </tr>
-    {% for run in analysis.runs | sort(attribute="analysis.binding.delta_f") %}
+    {% for transformation in series.transformations | sort(attribute="binding_free_energy.point") %}
     <tr>
       <td class="rank">{{ loop.index }}</td>
-      <td >RUN{{ run.details.run_id() }}</td>
-      <td>{{ run.details.start_title }}</td>
-      <td class="smiles">{{ run.details.start_smiles }}</td>
-      <td><a href="images/RUN{{ run.details.run_id() }}.svg">[svg]</a></td>
-      <td><a href="structures/RUN{{ run.details.run_id() }}-old_ligand.sdf">[sdf]</a></td>
-      <td><a href="structures/RUN{{ run.details.run_id() }}-old_protein.pdb">[pdb]</a></td>
+      <td >RUN{{ transformation.transformation.run_id }}</td>
+      <td>{{ transformation.transformation.initial_microstate.microstate_id }}</td>
+      <td class="smiles">{{  microstate_detail[transformation.transformation.initial_microstate][1].smiles }}</td>
+      <td><a href="images/RUN{{ transformation.transformation.run_id }}.svg">[svg]</a></td>
+      <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_ligand.sdf">[sdf]</a></td>
+      <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_protein.pdb">[pdb]</a></td>
       <td class="binding">
         <span class="estimate">
-          <span class="point">{{ run.analysis.binding | binding_estimate_kcal | format_estimate_point }}</span>
-          <span class="stderr"> ± {{ run.analysis.binding | binding_estimate_kcal | format_estimate_stderr }}</span>
+          <span class="point">{{ (transformation.binding_free_energy * KT_KCALMOL) | format_point }}</span>
+          <span class="stderr"> ± {{ (transformation.binding_free_energy * KT_KCALMOL) | format_stderr }}</span>
         </span>
       </td>
       <td>
         works
-        <a href="plots/RUN{{ run.details.run_id() }}.png">[png]</a>
-        <a href="plots/RUN{{ run.details.run_id() }}.pdf">[pdf]</a>
+        <a href="plots/RUN{{ transformation.transformation.run_id }}.png">[png]</a>
+        <a href="plots/RUN{{ transformation.transformation.run_id }}.pdf">[pdf]</a>
       </td>
       <td>
         convergence
-        <a href="plots/RUN{{ run.details.run_id() }}-convergence.png">[png]</a>
-        <a href="plots/RUN{{ run.details.run_id() }}-convergence.pdf">[pdf]</a>
+        <a href="plots/RUN{{ transformation.transformation.run_id }}-convergence.png">[png]</a>
+        <a href="plots/RUN{{ transformation.transformation.run_id }}-convergence.pdf">[pdf]</a>
       </td>
     </tr>
     {% endfor %}

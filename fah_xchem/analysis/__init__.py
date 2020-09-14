@@ -2,7 +2,6 @@ from collections import defaultdict
 import datetime as dt
 from functools import partial
 import logging
-from math import sqrt
 import os
 from typing import List, Optional
 
@@ -14,7 +13,6 @@ from ..schema import (
     FahConfig,
     GenAnalysis,
     PhaseAnalysis,
-    PointEstimate,
     ProjectPair,
     Transformation,
     TransformationAnalysis,
@@ -26,6 +24,7 @@ from .extract_work import extract_work_pair
 from .free_energy import compute_relative_free_energy
 from .plots import generate_plots
 from .report import generate_report
+from .website import generate_website
 
 
 def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisConfig):
@@ -82,14 +81,8 @@ def analyze_transformation(
 
     return TransformationAnalysis(
         transformation=transformation,
-        binding_free_energy=PointEstimate(
-            point=solvent_phase.free_energy.delta_f.point
-            - complex_phase.free_energy.delta_f.point,
-            stderr=sqrt(
-                solvent_phase.free_energy.delta_f.stderr ** 2
-                + complex_phase.free_energy.delta_f.stderr ** 2
-            ),
-        ),
+        binding_free_energy=solvent_phase.free_energy.delta_f
+        - complex_phase.free_energy.delta_f,
         complex_phase=complex_phase,
         solvent_phase=solvent_phase,
     )
@@ -130,4 +123,4 @@ def generate_artifacts(
         output_dir=os.path.join(output_dir, "plots"),
     )
     generate_report(analysis, output_dir)
-    # generate_webpage(analysis, output_dir)
+    generate_website(series_analysis=analysis, path=output_dir, timestamp=timestamp)

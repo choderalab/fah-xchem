@@ -1,6 +1,6 @@
 import logging
-from math import log, sqrt
-from typing import Dict, List
+from math import log
+from typing import Dict, List, Optional
 
 
 from ..schema import (
@@ -40,13 +40,12 @@ def pIC50_to_dG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> floa
 
 
 def estimate_expected_value(
-    estimates: List[PointEstimate], weights: List[float]
-) -> PointEstimate:
-    pairs = zip(weights, estimates)
-    return PointEstimate(
-        point=sum(weight * estimate.point for weight, estimate in pairs),
-        stderr=sqrt(sum((weight * estimate.stderr) ** 2 for weight, estimate in pairs)),
-    )
+    estimates: List[PointEstimate], probs: List[float]
+) -> Optional[PointEstimate]:
+    terms = [estimate * prob for estimate, prob in zip(estimates, probs)]
+    if not terms:
+        return None
+    return sum(terms)  # type: ignore
 
 
 # TODO
@@ -82,8 +81,7 @@ def get_compound_analysis(
 
 
 def combine_free_energies(
-    compounds: List[Compound],
-    transformations: List[TransformationAnalysis],
+    compounds: List[Compound], transformations: List[TransformationAnalysis],
 ) -> List[CompoundAnalysis]:
 
     from arsenic import stats

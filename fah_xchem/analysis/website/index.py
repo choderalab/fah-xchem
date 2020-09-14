@@ -1,12 +1,15 @@
+import datetime as dt
 from math import floor, isfinite, log10
 import os
 import requests
+from urllib.parse import urljoin
+
+from jinja2 import Environment
 from simplejson.errors import JSONDecodeError
 from typing import NamedTuple, Optional
-from urllib.parse import urljoin
-from jinja2 import Environment
-from ..analysis.constants import KT_KCALMOL
-from ..core import Analysis, Binding
+
+from ...schema import CompoundMicrostate, CompoundSeriesAnalysis, PointEstimate
+from ..constants import KT_KCALMOL
 
 
 # TODO: remove hardcoded values
@@ -15,49 +18,13 @@ NUM_GENS = 2687 * 50 * 6  # sprint 3
 PROJECT = 13424
 
 
-class Estimate(NamedTuple):
-    """
-    Representation of a quantity with uncertainty
-
-    Parameters
-    ----------
-    point : float
-        Point estimate
-    stderr : float
-        Standard error
-    """
-
-    point: float
-    stderr: float
-
-    def precision(self) -> Optional[int]:
-        """
-        Return precision of the estimate in decimal places. Positive
-        numbers represent digits to the right of the decimal point;
-        negative number represent digits to the left.
-
-        Returns
-        -------
-        int or None
-            If `point` and `stderr` are both finite, the precision in
-            decimal places. Otherwise, `None`.
-        """
-        return -floor(log10(self.stderr)) if isfinite(self.stderr) else None
-
-
-def binding_estimate_kcal(binding: Binding) -> Estimate:
-    return Estimate(
-        point=binding.delta_f * KT_KCALMOL, stderr=binding.ddelta_f * KT_KCALMOL
-    )
-
-
-def format_estimate_point(est: Estimate) -> str:
+def format_point(est: PointEstimate) -> str:
     """
     Format a point estimate with appropriate precision given the
     associated uncertainty. If the point estimate is negative, wrap
     the result in a span tag with class `negative` for styling.
     """
-    prec = est.precision()
+    prec = est.precision_decimals()
     if prec is None or not isfinite(est.point):
         return ""
     rounded = round(est.point, prec)
@@ -68,12 +35,12 @@ def format_estimate_point(est: Estimate) -> str:
     )
 
 
-def format_estimate_stderr(est: Estimate) -> str:
+def format_stderr(est: PointEstimate) -> str:
     """
     Format an uncertainty with appropriate precision (one significant
     digit, by convention)
     """
-    prec = est.precision()
+    prec = est.precision_decimals()
     if prec is None or not isfinite(est.point):
         return ""
     return f"{round(est.stderr, prec):.{prec}f}"
@@ -111,7 +78,7 @@ def _get_progress(
     return Progress(completed=json["gens_completed"], total=NUM_GENS)
 
 
-def get_index_html(analysis: Analysis) -> str:
+def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> str:
     """
     Return index page of html report summarizing analysis results
 
@@ -134,9 +101,21 @@ def get_index_html(analysis: Analysis) -> str:
         template = template_file.read()
 
     environment = Environment()
-    environment.filters["binding_estimate_kcal"] = binding_estimate_kcal
-    environment.filters["format_estimate_point"] = format_estimate_point
-    environment.filters["format_estimate_stderr"] = format_estimate_stderr
+    environment.filters["format_point"] = format_point
+    environment.filters["format_stderr"] = format_stderr
     return environment.from_string(template).render(
-        sprint=SPRINT_NUMBER, analysis=analysis, progress=_get_progress(PROJECT)
+        sprint=SPRINT_NUMBER,
+        series=series,
+        microstate_detail={
+            CompoundMicrostate(
+                compound_id=compound.metadata.compound_id,
+                microstate_id=microstate.microstate.microstate_id,
+            ): (compound, microstate)
+            for compound in series.compounds
+            for microstate in compound.microstates
+        },
+        timestamp=timestamp,
+        # progress=_get_progress(PROJECT),
+        progress=Progress(completed=75, total=100),
+        KT_KCALMOL=KT_KCALMOL
     )

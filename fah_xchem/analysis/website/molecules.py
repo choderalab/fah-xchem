@@ -1,17 +1,17 @@
 import os
 from typing import List
-from ..core import RunDetails
+from ...schema import Microstate
 
 
-def save_molecule_images(
-    runs: List[RunDetails], path: str, file_format: str = "svg"
+def generate_molecule_images(
+    microstates: List[Microstate], path: str, file_format: str = "svg"
 ) -> None:
     os.makedirs(path, exist_ok=True)
-    for run in runs:
+    for microstate in microstates:
         render_molecule(
-            smiles=run.start_smiles,
+            smiles=microstate.smiles,
             filename=os.path.join(
-                path, os.extsep.join([f"RUN{run.run_id()}", file_format])
+                path, os.extsep.join([microstate.microstate_id, file_format])
             ),
         )
 

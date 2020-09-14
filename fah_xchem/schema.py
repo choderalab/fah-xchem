@@ -74,6 +74,28 @@ class PointEstimate(Model):
     point: float
     stderr: float
 
+    def __add__(self, other: "PointEstimate") -> "PointEstimate":
+        from math import sqrt
+
+        return PointEstimate(
+            point=self.point + other.point,
+            stderr=sqrt(self.stderr ** 2 + other.stderr ** 2),
+        )
+
+    def __neg__(self) -> "PointEstimate":
+        return PointEstimate(point=-self.point, stderr=self.stderr)
+
+    def __sub__(self, other: "PointEstimate"):
+        return self + -other
+
+    def __mul__(self, c: float) -> "PointEstimate":
+        return PointEstimate(point=c * self.point, stderr=c * self.stderr)
+
+    def precision_decimals(self) -> Optional[int]:
+        from math import floor, isfinite, log10
+
+        return -floor(log10(self.stderr)) if isfinite(self.stderr) else None
+
 
 class RelativeFreeEnergy(Model):
     delta_f: PointEstimate
