@@ -1,11 +1,11 @@
 import datetime as dt
-from math import floor, isfinite, log10
+from math import isfinite
+import logging
 import os
 import requests
 from urllib.parse import urljoin
 
 from jinja2 import Environment
-from simplejson.errors import JSONDecodeError
 from typing import NamedTuple, Optional
 
 from ...schema import CompoundMicrostate, CompoundSeriesAnalysis, PointEstimate

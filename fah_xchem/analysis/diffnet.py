@@ -69,6 +69,21 @@ def combine_free_energies(
     compounds: List[Compound],
     transformations: List[TransformationAnalysis],
 ) -> List[CompoundAnalysis]:
+    """
+    Perform DiffNet MLE analysis to compute free energies for all
+    microstates given experimental free energies for a subset, and
+    relative free energies of transformations.
+
+    Parameters
+    ----------
+    compounds : list of Compound
+    transformations : list of Transformation
+
+    Returns
+    -------
+    List of CompoundAnalysis
+        Result of DiffNet MLE analysis
+    """
 
     from arsenic import stats
     import networkx as nx
@@ -112,6 +127,7 @@ def combine_free_energies(
 
             graph.nodes[node]["exp_DG"] = pIC50_to_dG(pIC50)
 
+    # TODO: support disconnected graphs
     if not nx.is_weakly_connected(graph):
         sizes = [len(g) for g in nx.weakly_connected_components(graph)]
         raise AnalysisError(

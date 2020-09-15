@@ -1,4 +1,5 @@
 import functools
+from math import isfinite
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -173,7 +174,7 @@ def compute_relative_free_energy(
 
     delta_f = _get_bar_free_energy(works)
 
-    if not np.isfinite(delta_f.point) or not np.isfinite(delta_f.stderr):
+    if not isfinite(delta_f.point) or not isfinite(delta_f.stderr):
         raise InvalidResultError(
             f"BAR free energy computation returned "
             f"{delta_f.point} ± {delta_f.stderr}"
@@ -181,7 +182,7 @@ def compute_relative_free_energy(
 
     bar_overlap = _get_bar_overlap(works)
 
-    if not np.isfinite(bar_overlap):
+    if not isfinite(bar_overlap):
         raise InvalidResultError(f"BAR overlap computation returned {bar_overlap}")
 
     return (
