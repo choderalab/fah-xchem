@@ -118,14 +118,14 @@ def combine_free_energies(
                 microstate_id=microstate.microstate_id,
             )
 
-            if node not in graph:
-                raise AnalysisError(
-                    f"Compound microstate '{node.microstate_id}' has "
-                    f"experimental data, but does not appear in any "
-                    f"transformation"
+            if node in graph:
+                graph.nodes[node]["exp_DG"] = pIC50_to_dG(pIC50)
+            else:
+                logging.warning(
+                    "Compound microstate '%s' has experimental data, "
+                    "but does not appear in any transformation",
+                    node.microstate_id,
                 )
-
-            graph.nodes[node]["exp_DG"] = pIC50_to_dG(pIC50)
 
     # TODO: support disconnected graphs
     if not nx.is_weakly_connected(graph):
