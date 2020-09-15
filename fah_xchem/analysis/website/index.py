@@ -117,5 +117,5 @@ def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> st
         timestamp=timestamp,
         # progress=_get_progress(PROJECT),
         progress=Progress(completed=75, total=100),
-        KT_KCALMOL=KT_KCALMOL
+        KT_KCALMOL=KT_KCALMOL,
     )

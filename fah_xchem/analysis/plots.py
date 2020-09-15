@@ -86,9 +86,7 @@ def plot_work_distributions(
     for phase, delta_f, forward_works, reverse_works in phases:
         ax = g.axes_dict[phase]
         ax.axvline(delta_f * KT_KCALMOL, color="k", ls=":")
-        ax.set_title(
-            f"{phase} ($N={len(forward_works)}$)",
-        )
+        ax.set_title(f"{phase} ($N={len(forward_works)}$)",)
 
     return g.fig
 
@@ -172,20 +170,16 @@ def plot_convergence(
     fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
 
     complex_delta_fs_kcal = pd.Series(
-        np.array(complex_delta_fs) * KT_KCALMOL,
-        index=complex_gens,
+        np.array(complex_delta_fs) * KT_KCALMOL, index=complex_gens,
     )
     complex_delta_f_errs_kcal = pd.Series(
-        np.array(complex_delta_f_errs) * KT_KCALMOL,
-        index=complex_gens,
+        np.array(complex_delta_f_errs) * KT_KCALMOL, index=complex_gens,
     )
     solvent_delta_fs_kcal = pd.Series(
-        np.array(solvent_delta_fs) * KT_KCALMOL,
-        index=solvent_gens,
+        np.array(solvent_delta_fs) * KT_KCALMOL, index=solvent_gens,
     )
     solvent_delta_f_errs_kcal = pd.Series(
-        np.array(solvent_delta_f_errs) * KT_KCALMOL,
-        index=solvent_gens,
+        np.array(solvent_delta_f_errs) * KT_KCALMOL, index=solvent_gens,
     )
 
     DDG_kcal = solvent_delta_fs_kcal - complex_delta_fs_kcal
@@ -244,8 +238,7 @@ def plot_convergence(
 
 
 def plot_poor_convergence_fe_table(
-    transformations: List[TransformationAnalysis],
-    energy_cutoff_kcal: float = 1.0,
+    transformations: List[TransformationAnalysis], energy_cutoff_kcal: float = 1.0,
 ) -> Optional[plt.Figure]:
     """
     Plot table of poorly converging free energy estimates with GEN
@@ -300,10 +293,7 @@ def plot_poor_convergence_fe_table(
         ax.axis("tight")
         ax.axis("off")
         table = ax.table(
-            cellText=data,
-            colLabels=column_titles,
-            loc="center",
-            cellLoc="center",
+            cellText=data, colLabels=column_titles, loc="center", cellLoc="center",
         )
 
         # Make column headers bold
@@ -374,10 +364,7 @@ def plot_cumulative_distribution(
 
 
 def _bootstrap(
-    gens: List[GenAnalysis],
-    n_bootstrap: int,
-    clones_per_gen: int,
-    gen_number: int,
+    gens: List[GenAnalysis], n_bootstrap: int, clones_per_gen: int, gen_number: int,
 ) -> List[float]:
 
     fes = []
@@ -588,23 +575,16 @@ def generate_plots(
     ]
 
     save_plot = partial(
-        _save_plot,
-        path=output_dir,
-        file_formats=file_formats,
-        timestamp=timestamp,
+        _save_plot, path=output_dir, file_formats=file_formats, timestamp=timestamp,
     )
 
     # Summary plots
 
-    with save_plot(
-        name="relative_fe_dist",
-    ):
+    with save_plot(name="relative_fe_dist",):
         plot_relative_distribution(binding_delta_fs)
         plt.title("Relative free energy")
 
-    with save_plot(
-        name="cumulative_fe_dist",
-    ):
+    with save_plot(name="cumulative_fe_dist",):
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
 
