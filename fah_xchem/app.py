@@ -111,7 +111,7 @@ def generate_artifacts(
     compound_series_analysis_file: str, output_dir: str = "results"
 ) -> None:
     with open(compound_series_analysis_file, "r") as infile:
-        tsa = TimestampedAnalysis.parse_obj(infile.read())
+        tsa = TimestampedAnalysis.parse_obj(json.load(infile))
 
     return fah_xchem.analysis.generate_artifacts(
         analysis=tsa.analysis, timestamp=tsa.as_of, output_dir=output_dir
