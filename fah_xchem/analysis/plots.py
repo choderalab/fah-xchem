@@ -52,9 +52,7 @@ def plot_work_distributions(
             {
                 "phase": phase,
                 "direction": direction,
-                "work_kcal": work * KT_KCALMOL
-                if direction == "forward"
-                else -work * KT_KCALMOL,
+                "work": work if direction == "forward" else -work,
             }
             for phase, _, forward_works, reverse_works in phases
             for direction, works in [
@@ -64,6 +62,8 @@ def plot_work_distributions(
             for work in works
         ]
     )
+
+    df["work_kcal"] = df["work"] * KT_KCALMOL
 
     g = sns.displot(
         data=df,
@@ -82,11 +82,8 @@ def plot_work_distributions(
     for phase, delta_f, forward_works, reverse_works in phases:
         ax = g.axes_dict[phase]
         ax.axvline(delta_f * KT_KCALMOL, color="k", ls=":")
-        ax.text(
-            0.05,
-            0.8,
-            f"$N_F={len(forward_works)}$\n$N_R={len(reverse_works)}$",
-            transform=ax.transAxes,
+        ax.set_title(
+            f"{phase} ($N={len(forward_works)}$)",
         )
 
     return g.fig
@@ -132,6 +129,7 @@ def plot_relative_distribution(
         label=f"$N={len(relative_delta_fs)}$",
     )
     plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
+    plt.legend()
 
 
 def plot_convergence(

@@ -53,7 +53,7 @@ setup(
         "simplejson>=3.17",
         "mdtraj>=1.9.4",
         "matplotlib>=3.3",
-        "seaborn>=0.10",
+        "seaborn>=0.11",
         "rich>=6.0",
     ],
     # platforms=['Linux',
