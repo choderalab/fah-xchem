@@ -46,6 +46,18 @@ def format_stderr(est: PointEstimate) -> str:
     return f"{round(est.stderr, prec):.{prec}f}"
 
 
+def maybe_postera_link(microstate: CompoundMicrostate) -> str:
+    """
+    If `compound_id` matches regex, link to Postera compound details
+    """
+    import re
+
+    match = re.match("^[A-Z]{3}-[A-Z]{3}-[0-9a-f]{8}-[0-9]$", microstate.compound_id)
+    if not match:
+        return microstate.microstate_id
+    return f'<a href="https://postera.ai/covid/submissions/{microstate.compound_id}">{microstate.microstate_id}</a>'
+
+
 class Progress(NamedTuple):
     completed: int
     total: int
@@ -101,8 +113,11 @@ def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> st
         template = template_file.read()
 
     environment = Environment()
+
     environment.filters["format_point"] = format_point
     environment.filters["format_stderr"] = format_stderr
+    environment.filters["maybe_postera_link"] = maybe_postera_link
+
     return environment.from_string(template).render(
         sprint=SPRINT_NUMBER,
         series=series,

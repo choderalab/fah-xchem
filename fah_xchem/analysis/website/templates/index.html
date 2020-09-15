@@ -128,7 +128,7 @@ div.progress > div.progress-bar {
     <tr>
       <td class="rank">{{ loop.index }}</td>
       <td >RUN{{ transformation.transformation.run_id }}</td>
-      <td>{{ transformation.transformation.initial_microstate.microstate_id }}</td>
+      <td>{{ transformation.transformation.initial_microstate | maybe_postera_link}}</td>
       <td class="thumbnail">
         <a href="molecule_images/{{ transformation.transformation.initial_microstate.microstate_id }}.svg">
           <img src="molecule_images/{{ transformation.transformation.initial_microstate.microstate_id }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles }}">
@@ -136,7 +136,7 @@ div.progress > div.progress-bar {
       </td>
       <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_ligand.sdf">[sdf]</a></td>
       <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_protein.pdb">[pdb]</a></td>
-      <td>{{ transformation.transformation.final_microstate.microstate_id }}</td>
+      <td>{{ transformation.transformation.final_microstate | maybe_postera_link }}</td>
       <td class="thumbnail">
         <a href="molecule_images/{{ transformation.transformation.final_microstate.microstate_id }}.svg">
           <img src="molecule_images/{{ transformation.transformation.final_microstate.microstate_id }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.final_microstate][1].smiles }}">
@@ -178,11 +178,11 @@ div.progress > div.progress-bar {
     <tr>
       <td class="rank">{{ loop.index }}</td>
       <td >RUN{{ transformation.transformation.run_id }}</td>
-      <td>{{ transformation.transformation.initial_microstate.microstate_id }}
+      <td>{{ transformation.transformation.initial_microstate | maybe_postera_link }}
       <td class="smiles">{{  microstate_detail[transformation.transformation.initial_microstate][1].smiles }}</td>
       <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_ligand.sdf">[sdf]</a></td>
       <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_protein.pdb">[pdb]</a></td>
-      <td>{{ transformation.transformation.final_microstate.microstate_id }}</td>
+      <td>{{ transformation.transformation.final_microstate | maybe_postera_link }}</td>
       <td class="smiles">{{  microstate_detail[transformation.transformation.final_microstate][1].smiles }}</td>
       <td><a href="images/RUN{{ transformation.transformation.run_id }}.svg">[svg]</a></td>
       <td class="binding">
