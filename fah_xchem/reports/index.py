@@ -6,7 +6,7 @@ from typing import NamedTuple, Optional
 from urllib.parse import urljoin
 from jinja2 import Environment
 from ..analysis.constants import KT_KCALMOL
-from ..core import Analysis, Binding
+from ..models import Analysis, Binding
 
 
 # TODO: remove hardcoded values

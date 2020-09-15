@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from pymbar import BAR
 from typing import Generator, Iterable, List, Optional, Tuple
-from ..core import Analysis, Binding, PhaseAnalysis, Run, Work
+from ..models import Analysis, Binding, PhaseAnalysis, Run, Work
 from .constants import KT_KCALMOL
 from .free_energy import bootstrap
 

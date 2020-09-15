@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 from pymbar import BAR
 from pymbar.mbar import MBAR
-from ..core import (
+from ..models import (
     Binding,
     FreeEnergy,
     GenAnalysis,

@@ -15,7 +15,7 @@ import tempfile
 from typing import Dict, List, Optional
 import joblib
 import mdtraj as md
-from ..core import Work
+from ..models import Work
 
 
 def load_trajectory(
