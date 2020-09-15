@@ -2,6 +2,7 @@ from collections import defaultdict
 import datetime as dt
 from functools import partial
 import logging
+import multiprocessing
 import os
 from typing import List, Optional
 
@@ -88,6 +89,16 @@ def analyze_transformation(
     )
 
 
+def analyze_transformation_or_warn(
+    transformation: Transformation, **kwargs
+) -> Optional[TransformationAnalysis]:
+    try:
+        return analyze_transformation(transformation, **kwargs)
+    except AnalysisError as exc:
+        logging.warning("Failed to analyze RUN%d: %s", transformation.run_id, exc)
+        return None
+
+
 def analyze_compound_series(
     series: CompoundSeries,
     config: AnalysisConfig,
@@ -96,16 +107,31 @@ def analyze_compound_series(
     num_procs: Optional[int] = None,
 ) -> CompoundSeriesAnalysis:
 
-    # TODO: multiprocessing, progress bar
-    transformations = [
-        analyze_transformation(
-            transformation=transformation,
-            projects=series.metadata.fah_projects,
-            server=server,
-            config=config,
+    from rich.progress import track
+
+    with multiprocessing.Pool(num_procs) as pool:
+        results_iter = pool.imap_unordered(
+            partial(
+                analyze_transformation_or_warn,
+                projects=series.metadata.fah_projects,
+                server=server,
+                config=config,
+            ),
+            series.transformations,
         )
-        for transformation in series.transformations
-    ]
+        transformations = [
+            result
+            for result in track(results_iter, total=len(series.transformations))
+            if result is not None
+        ]
+
+    num_failed = len(series.transformations) - len(transformations)
+    if num_failed > 0:
+        logging.warning(
+            "Failed to process %d transformations out of %d",
+            num_failed,
+            len(series.transformations),
+        )
 
     compounds = combine_free_energies(series.compounds, transformations)
 
