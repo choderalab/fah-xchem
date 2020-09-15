@@ -1,7 +1,8 @@
 import logging
 from math import log
-from typing import Dict, List, Optional
+from typing import List
 
+import numpy as np
 
 from ..schema import (
     Compound,
@@ -39,50 +40,33 @@ def pIC50_to_dG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> floa
     return log(Ki)
 
 
-def estimate_expected_value(
-    estimates: List[PointEstimate], probs: List[float]
-) -> Optional[PointEstimate]:
-    terms = [estimate * prob for estimate, prob in zip(estimates, probs)]
-    if not terms:
-        return None
-    return sum(terms)  # type: ignore
+def ensemble_free_energy(
+    free_energies: np.ndarray, stderrs: np.ndarray
+) -> PointEstimate:
+    """
+    Return expected value of the ensemble free energy, with microstate
+    weights given by $e^{-G_i}$.
 
+    Parameters
+    ----------
+    free_energies : array_like
+        Microstate free energies
+    errs : array_like
+        Standard errors
+    """
+    g = free_energies  # alias
+    x = np.sum(g * np.exp(-g))  # numerator of expected value
+    z = np.sum(np.exp(-g))  # partition function
 
-# TODO
-def get_ensemble_average(free_energies: List[PointEstimate]) -> PointEstimate:
-    return free_energies[0]
+    # derivatives wrt g_i
+    dz = -np.exp(-g)
+    dx = dz * (g - 1)
 
-
-def get_compound_analysis(
-    compound: Compound,
-    absolute_free_energy_by_microstate: Dict[CompoundMicrostate, PointEstimate],
-) -> CompoundAnalysis:
-
-    microstates = [
-        MicrostateAnalysis(
-            microstate=microstate,
-            absolute_free_energy=absolute_free_energy_by_microstate[
-                CompoundMicrostate(
-                    compound_id=compound.metadata.compound_id,
-                    microstate_id=microstate.microstate_id,
-                )
-            ],
-        )
-        for microstate in compound.microstates
-    ]
-
-    return CompoundAnalysis(
-        metadata=compound.metadata,
-        microstates=microstates,
-        absolute_free_energy=get_ensemble_average(
-            [ms.absolute_free_energy for ms in microstates]
-        ),
-    )
+    return PointEstimate(point=x / z, stderr=np.dot(dx / z - x * dz / z ** 2, stderrs))
 
 
 def combine_free_energies(
-    compounds: List[Compound],
-    transformations: List[TransformationAnalysis],
+    compounds: List[Compound], transformations: List[TransformationAnalysis],
 ) -> List[CompoundAnalysis]:
 
     from arsenic import stats
@@ -136,12 +120,27 @@ def combine_free_energies(
     f_i, C = stats.mle(graph, factor="f_ij", node_factor="exp_DG")
     errs = np.diag(C)
 
-    absolute_free_energy_by_microstate = {
+    free_energy_by_microstate = {
         microstate: PointEstimate(point=delta_f, stderr=ddelta_f)
         for microstate, delta_f, ddelta_f in zip(graph.nodes(), f_i, errs)
     }
 
     return [
-        get_compound_analysis(compound, absolute_free_energy_by_microstate)
+        CompoundAnalysis(
+            metadata=compound.metadata,
+            microstates=[
+                MicrostateAnalysis(
+                    microstate=microstate,
+                    free_energy=free_energy_by_microstate[
+                        CompoundMicrostate(
+                            compound_id=compound.metadata.compound_id,
+                            microstate_id=microstate.microstate_id,
+                        )
+                    ],
+                )
+                for microstate in compound.microstates
+            ],
+            free_energy=ensemble_free_energy(f_i, errs),
+        )
         for compound in compounds
     ]

@@ -123,13 +123,13 @@ class TransformationAnalysis(Model):
 
 class MicrostateAnalysis(Model):
     microstate: Microstate
-    absolute_free_energy: PointEstimate
+    free_energy: PointEstimate
 
 
 class CompoundAnalysis(Model):
     metadata: CompoundMetadata
     microstates: List[MicrostateAnalysis]
-    absolute_free_energy: PointEstimate
+    free_energy: PointEstimate
 
 
 class CompoundSeriesAnalysis(Model):
