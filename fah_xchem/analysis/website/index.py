@@ -110,7 +110,7 @@ def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> st
             CompoundMicrostate(
                 compound_id=compound.metadata.compound_id,
                 microstate_id=microstate.microstate.microstate_id,
-            ): (compound, microstate)
+            ): (compound.metadata, microstate.microstate)
             for compound in series.compounds
             for microstate in compound.microstates
         },

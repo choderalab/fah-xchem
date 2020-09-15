@@ -26,12 +26,9 @@ td, th {
   padding: 8px;
 }
 
-table.top20 td {
-    font-size: 1.25em;
-}
-
 td.smiles {
     font-family: 'Roboto Mono', monospace;
+    font-size: 0.75em;
 }
 
 td.binding span.estimate {
@@ -116,13 +113,13 @@ div.progress > div.progress-bar {
     <li><a href="ligands.sdf">ligands.sdf</a></li>
     <li><a href="proteins.pdb">proteins.pdb</a></li>
   </ul>
-  <h2>Top 20 Compounds</h2>
+  <h2>Top 20 results</h2>
   <table class="top20">
     <tr>
       <th>Rank</th>
       <th>RUN</th>
-      <th colspan=3>Molecule</th>
-      <th>Protein</th>
+      <th colspan=4>Initial microstate</th>
+      <th colspan=2>Final microstate</th>
       <th>ΔΔG / kcal mol<sup>-1</sup></th>
       <th colspan=2>Work distributions</th>
       <th colspan=2>Convergence</th>
@@ -139,6 +136,12 @@ div.progress > div.progress-bar {
       </td>
       <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_ligand.sdf">[sdf]</a></td>
       <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_protein.pdb">[pdb]</a></td>
+      <td>{{ transformation.transformation.final_microstate.microstate_id }}</td>
+      <td class="thumbnail">
+        <a href="molecule_images/{{ transformation.transformation.final_microstate.microstate_id }}.svg">
+          <img src="molecule_images/{{ transformation.transformation.final_microstate.microstate_id }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.final_microstate][1].smiles }}">
+        </a>
+      </td>
       <td class="binding">
         <span class="estimate">
           <span class="point">{{ (transformation.binding_free_energy * KT_KCALMOL) | format_point }}</span>
@@ -160,13 +163,13 @@ div.progress > div.progress-bar {
     </tr>
     {% endfor %}
   </table>
-  <h2>All Compounds</h2>
+  <h2>All results</h2>
   <table>
     <tr>
       <th>Rank</th>
       <th>RUN</th>
-      <th colspan=4>Molecule</th>
-      <th>Protein</th>
+      <th colspan=4>Initial microstate</th>
+      <th colspan=3>Final microstate</th>
       <th>ΔΔG / kcal mol<sup>-1</sup></th>
       <th>Work distributions</th>
       <th>Convergence</th>
@@ -175,11 +178,13 @@ div.progress > div.progress-bar {
     <tr>
       <td class="rank">{{ loop.index }}</td>
       <td >RUN{{ transformation.transformation.run_id }}</td>
-      <td>{{ transformation.transformation.initial_microstate.microstate_id }}</td>
+      <td>{{ transformation.transformation.initial_microstate.microstate_id }}
       <td class="smiles">{{  microstate_detail[transformation.transformation.initial_microstate][1].smiles }}</td>
-      <td><a href="images/RUN{{ transformation.transformation.run_id }}.svg">[svg]</a></td>
       <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_ligand.sdf">[sdf]</a></td>
       <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_protein.pdb">[pdb]</a></td>
+      <td>{{ transformation.transformation.final_microstate.microstate_id }}</td>
+      <td class="smiles">{{  microstate_detail[transformation.transformation.final_microstate][1].smiles }}</td>
+      <td><a href="images/RUN{{ transformation.transformation.run_id }}.svg">[svg]</a></td>
       <td class="binding">
         <span class="estimate">
           <span class="point">{{ (transformation.binding_free_energy * KT_KCALMOL) | format_point }}</span>
