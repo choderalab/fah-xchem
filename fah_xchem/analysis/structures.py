@@ -238,7 +238,10 @@ def get_stored_atom_indices(project_path: str, run: int):
 
 
 def slice_snapshot(
-    snapshot: md.Trajectory, project_path: str, run: int, cache_dir: Optional[str],
+    snapshot: md.Trajectory,
+    project_path: str,
+    run: int,
+    cache_dir: Optional[str],
 ) -> Dict[str, md.Trajectory]:
     """
     Slice snapshot to specified state in-place

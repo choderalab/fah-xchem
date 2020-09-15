@@ -81,7 +81,8 @@ def get_compound_analysis(
 
 
 def combine_free_energies(
-    compounds: List[Compound], transformations: List[TransformationAnalysis],
+    compounds: List[Compound],
+    transformations: List[TransformationAnalysis],
 ) -> List[CompoundAnalysis]:
 
     from arsenic import stats
