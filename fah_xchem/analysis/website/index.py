@@ -68,7 +68,7 @@ class Progress(NamedTuple):
 
 def _get_progress(
     project: int, api_url: str = "http://aws3.foldingathome.org/api/"
-) -> Progress:
+) -> Optional[Progress]:
     """
     Query a FAH work server for project status and return progress
 
@@ -85,8 +85,13 @@ def _get_progress(
         Number of completed and total work units
     """
     url = urljoin(api_url, f"projects/{project}")
-    response = requests.get(url=url)
-    json = response.json()
+    try:
+        response = requests.get(url=url)
+        json = response.json()
+    except Exception as exc:
+        logging.warning("Failed to get progress from FAH work server: %s", exc)
+        return None
+
     return Progress(completed=json["gens_completed"], total=NUM_GENS)
 
 
@@ -130,7 +135,6 @@ def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> st
             for microstate in compound.microstates
         },
         timestamp=timestamp,
-        # progress=_get_progress(PROJECT),
-        progress=Progress(completed=75, total=100),
+        progress=_get_progress(PROJECT) or Progress(0, 1),
         KT_KCALMOL=KT_KCALMOL,
     )
