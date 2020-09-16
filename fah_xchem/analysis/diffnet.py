@@ -138,27 +138,39 @@ def combine_free_energies(
                     node.microstate_id,
                 )
 
-    # TODO: support disconnected graphs
-    if not nx.is_weakly_connected(graph):
-        sizes = [len(g) for g in nx.weakly_connected_components(graph)]
-        raise AnalysisError(
-            f"Only weakly-connected graphs are supported, but found weakly-connected subgraphs of sizes {sizes}"
+    # split supergraph into weakly-connected subgraphs
+    connected_subgraphs = [
+        graph.subgraph(nodes) for nodes in nx.weakly_connected_components(graph)
+    ]
+
+    # at least one microstate in the subgraph must have experimental data
+    valid_subgraphs = [
+        g for g in connected_subgraphs if any("exp_DG" in g.nodes[node] for node in g)
+    ]
+
+    if len(valid_subgraphs) < len(connected_subgraphs):
+        logging.warning(
+            "Found %d out of %d connected subgraphs missing experimental data"
         )
 
-    f_i, C = stats.mle(graph, factor="f_ij", node_factor="exp_DG")
-    errs = np.diag(C)
-
-    free_energy_by_microstate = {
-        microstate: PointEstimate(point=delta_f, stderr=ddelta_f)
-        for microstate, delta_f, ddelta_f in zip(graph.nodes(), f_i, errs)
-    }
+    # process each subgraph, collecting microstate free energy results
+    microstate_free_energy = {}
+    for g in valid_subgraphs:
+        f_i, C = stats.mle(g, factor="f_ij", node_factor="exp_DG")
+        errs = np.diag(C)
+        microstate_free_energy.update(
+            {
+                microstate: PointEstimate(point=delta_f, stderr=ddelta_f)
+                for microstate, delta_f, ddelta_f in zip(g.nodes(), f_i, errs)
+            }
+        )
 
     def get_compound_analysis(compound: Compound) -> Optional[CompoundAnalysis]:
 
         microstates = [
             MicrostateAnalysis(
                 microstate=microstate,
-                free_energy=free_energy_by_microstate.get(
+                free_energy=microstate_free_energy.get(
                     CompoundMicrostate(
                         compound_id=compound.metadata.compound_id,
                         microstate_id=microstate.microstate_id,
