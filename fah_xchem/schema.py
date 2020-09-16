@@ -131,7 +131,7 @@ class TransformationAnalysis(Model):
 
 class MicrostateAnalysis(Model):
     microstate: Microstate
-    free_energy: PointEstimate
+    free_energy: Optional[PointEstimate]
 
 
 class CompoundAnalysis(Model):

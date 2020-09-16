@@ -1,6 +1,6 @@
 import logging
 from math import log
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 
@@ -12,7 +12,7 @@ from ..schema import (
     PointEstimate,
     TransformationAnalysis,
 )
-from .exceptions import AnalysisError
+from .exceptions import AnalysisError, InsufficientDataError
 
 
 def pIC50_to_dG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> float:
@@ -55,9 +55,15 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
         Microstate free energies
     """
     penalized_free_energies = [
-        microstate.microstate.free_energy_penalty + microstate.free_energy
+        microstate.free_energy + microstate.microstate.free_energy_penalty
+        if microstate.microstate.free_energy_penalty is not None
+        else microstate.free_energy
         for microstate in microstates
+        if microstate.free_energy is not None
     ]
+
+    if not penalized_free_energies:
+        raise InsufficientDataError("no microstate free energy estimates")
 
     gp = np.array([x.point for x in penalized_free_energies])
     stderr = np.array([x.stderr for x in penalized_free_energies])
@@ -147,24 +153,34 @@ def combine_free_energies(
         for microstate, delta_f, ddelta_f in zip(graph.nodes(), f_i, errs)
     }
 
-    microstates = [
-        MicrostateAnalysis(
-            microstate=microstate,
-            free_energy=free_energy_by_microstate[
-                CompoundMicrostate(
-                    compound_id=compound.metadata.compound_id,
-                    microstate_id=microstate.microstate_id,
-                )
-            ],
-        )
-        for microstate in compound.microstates
-    ]
+    def get_compound_analysis(compound: Compound) -> Optional[CompoundAnalysis]:
 
-    return [
-        CompoundAnalysis(
-            metadata=compound.metadata,
-            microstates=microstates,
-            free_energy=get_compound_free_energy(microstates),
-        )
-        for compound in compounds
-    ]
+        microstates = [
+            MicrostateAnalysis(
+                microstate=microstate,
+                free_energy=free_energy_by_microstate.get(
+                    CompoundMicrostate(
+                        compound_id=compound.metadata.compound_id,
+                        microstate_id=microstate.microstate_id,
+                    )
+                ),
+            )
+            for microstate in compound.microstates
+        ]
+
+        try:
+            return CompoundAnalysis(
+                metadata=compound.metadata,
+                microstates=microstates,
+                free_energy=get_compound_free_energy(microstates),
+            )
+        except AnalysisError as exc:
+            logging.warning(
+                "Failed to estimate free energy for compound '%s': %s",
+                compound.metadata.compound_id,
+                exc,
+            )
+            return None
+
+    results = [get_compound_analysis(compound) for compound in compounds]
+    return [r for r in results if r is not None]
