@@ -40,29 +40,34 @@ def pIC50_to_dG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> floa
     return log(Ki)
 
 
-def ensemble_free_energy(
-    free_energies: np.ndarray, stderrs: np.ndarray
-) -> PointEstimate:
-    """
-    Return expected value of the ensemble free energy, with microstate
-    weights given by $e^{-G_i}$.
+def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEstimate:
+    r"""
+    Compute compound free energy from microstate free energies and
+    microstate free energy penalties.
+
+    The sum over microstates is given by
+
+    .. math:: g_c = - \log \sum_{i} \exp \left[-(s_{ci} + g_{ci}) \right]
 
     Parameters
     ----------
-    free_energies : array_like
+    microstates : list of MicrostateAnalysis
         Microstate free energies
-    errs : array_like
-        Standard errors
     """
-    g = free_energies  # alias
-    x = np.sum(g * np.exp(-g))  # numerator of expected value
-    z = np.sum(np.exp(-g))  # partition function
+    penalized_free_energies = [
+        microstate.microstate.free_energy_penalty + microstate.free_energy
+        for microstate in microstates
+    ]
 
-    # derivatives wrt g_i
-    dz = -np.exp(-g)
-    dx = dz * (g - 1)
+    gp = np.array([x.point for x in penalized_free_energies])
+    stderr = np.array([x.stderr for x in penalized_free_energies])
 
-    return PointEstimate(point=x / z, stderr=np.dot(dx / z - x * dz / z ** 2, stderrs))
+    x = np.exp(-gp)
+    z = np.sum(x)
+    y = np.log(z)
+    dy = -x / z
+
+    return PointEstimate(point=y, stderr=np.sqrt(np.sum((dy * stderr) ** 2)))
 
 
 def combine_free_energies(
@@ -142,22 +147,24 @@ def combine_free_energies(
         for microstate, delta_f, ddelta_f in zip(graph.nodes(), f_i, errs)
     }
 
+    microstates = [
+        MicrostateAnalysis(
+            microstate=microstate,
+            free_energy=free_energy_by_microstate[
+                CompoundMicrostate(
+                    compound_id=compound.metadata.compound_id,
+                    microstate_id=microstate.microstate_id,
+                )
+            ],
+        )
+        for microstate in compound.microstates
+    ]
+
     return [
         CompoundAnalysis(
             metadata=compound.metadata,
-            microstates=[
-                MicrostateAnalysis(
-                    microstate=microstate,
-                    free_energy=free_energy_by_microstate[
-                        CompoundMicrostate(
-                            compound_id=compound.metadata.compound_id,
-                            microstate_id=microstate.microstate_id,
-                        )
-                    ],
-                )
-                for microstate in compound.microstates
-            ],
-            free_energy=ensemble_free_energy(f_i, errs),
+            microstates=microstates,
+            free_energy=get_compound_free_energy(microstates),
         )
         for compound in compounds
     ]
