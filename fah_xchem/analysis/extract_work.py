@@ -1,5 +1,6 @@
 import pandas as pd
-from ..schema import WorkPair
+
+from ..schema import DataPath, WorkPair
 from .exceptions import DataValidationError
 
 
@@ -65,13 +66,13 @@ def _get_num_steps(df: pd.DataFrame) -> int:
     return int(step.iloc[-1] - step.iloc[0])
 
 
-def extract_work_pair(path: str) -> WorkPair:
+def extract_work_pair(path: DataPath) -> WorkPair:
     """
     Extract forward and reverse protocol work from a globals.csv file
 
     Parameters
     ----------
-    path : str
+    path : DataPath
         Path to `globals.csv`
 
     Returns
@@ -91,8 +92,8 @@ def extract_work_pair(path: str) -> WorkPair:
     # https://github.com/FoldingAtHome/openmm-core/issues/281
 
     # Start with the last header entry (due to aforementioned bug)
-    header_line_number = _get_last_header_line(path)
-    df = pd.read_csv(path, header=header_line_number)
+    header_line_number = _get_last_header_line(path.path)
+    df = pd.read_csv(path.path, header=header_line_number)
 
     # Drop any dupliates we many encounter (due to aforementioned bug)
     df = df.drop_duplicates()
@@ -107,8 +108,8 @@ def extract_work_pair(path: str) -> WorkPair:
 
     # Extract the new potential energy in openmm units (kJ/mol)
     # and convert it to dimensionless energy
-    Enew = df["Enew"].astype(float).values
-    Enew_nodims = Enew / kT
+    # Enew = df["Enew"].astype(float).values
+    # Enew_nodims = Enew / kT
 
     # Check to make sure we don't have an incorrect number of work values
     # TODO: Diagnose why this happens and file an issue in core
@@ -132,6 +133,7 @@ def extract_work_pair(path: str) -> WorkPair:
     # TODO: magic numbers
     try:
         return WorkPair(
+            source=path,
             forward=protocol_work_nodims[20] - protocol_work_nodims[10],
             reverse=protocol_work_nodims[40] - protocol_work_nodims[30],
             # forward_final_potential=Enew_nodims[20],

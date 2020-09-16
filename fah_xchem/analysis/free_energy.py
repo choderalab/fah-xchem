@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 
 from ..schema import (
+    DataPath,
     RelativeFreeEnergy,
     PointEstimate,
     WorkPair,
@@ -160,8 +161,8 @@ def compute_relative_free_energy(
     """
 
     all_works = np.array(
-        [(work.forward, work.reverse) for work in work_pairs],
-        dtype=[("forward", float), ("reverse", float)],
+        [(work.source, work.forward, work.reverse) for work in work_pairs],
+        dtype=[("source", DataPath), ("forward", float), ("reverse", float)],
     )
 
     works = _filter_work_values(all_works)
@@ -189,5 +190,8 @@ def compute_relative_free_energy(
         RelativeFreeEnergy(
             delta_f=delta_f, bar_overlap=bar_overlap, num_work_pairs=len(works)
         ),
-        [WorkPair(forward=fw, reverse=rw) for fw, rw in works],
+        [
+            WorkPair(source=source, forward=forward, reverse=reverse)
+            for source, forward, reverse in works
+        ],
     )

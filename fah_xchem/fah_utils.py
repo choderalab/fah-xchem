@@ -4,19 +4,13 @@ import os
 import re
 from typing import List, NamedTuple, Optional
 
-from .schema import FahConfig
+from .schema import DataPath, FahConfig
 
 
 def _get_data_path(project_data_path: str, run: str, clone: str, gen: str) -> str:
     return os.path.join(
         project_data_path, f"RUN{run}", f"CLONE{clone}", f"results{gen}", "globals.csv"
     )
-
-
-class DataPath(NamedTuple):
-    path: str
-    clone: int
-    gen: int
 
 
 def list_results(config: FahConfig, project: int, run: int) -> List[DataPath]:

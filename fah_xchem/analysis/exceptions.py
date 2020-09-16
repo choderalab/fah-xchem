@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 
+from ..schema import DataPath
+
 
 class AnalysisError(RuntimeError):
     pass
 
 
 class DataValidationError(AnalysisError):
-    def __init__(self, message: str, path: str):
+    def __init__(self, message: str, path: DataPath):
         super().__init__(message)
         self.path = path
 

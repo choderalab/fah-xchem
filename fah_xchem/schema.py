@@ -65,7 +65,14 @@ class CompoundSeries(Model):
     transformations: List[Transformation]
 
 
+class DataPath(Model):
+    path: str
+    clone: int
+    gen: int
+
+
 class WorkPair(Model):
+    source: DataPath
     forward: float
     reverse: float
 
