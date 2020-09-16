@@ -15,20 +15,20 @@ import tempfile
 from typing import Dict, List, Optional
 import joblib
 import mdtraj as md
-from ..core import Work
+from ..schema import TransformationAnalysis, WorkPair
 
 
 def load_trajectory(
-    project_path: str, project_data_path: str, run: int, clone: int, gen: int
+    project_dir: str, project_data_dir: str, run: int, clone: int, gen: int
 ) -> md.Trajectory:
     """
     Load the trajectory from the specified PRCG.
 
     Parameters
     ----------
-    project_path : str
+    project_dir : str
         Path to project directory (e.g. '/home/server/server2/projects/13422')
-    project_data_path : str
+    project_data_dir : str
         Path to project data directory (e.g. '/home/server/server2/data/SVR314342810/PROJ13422')
     run : int
         Run (e.g. 0)
@@ -45,11 +45,11 @@ def load_trajectory(
     """
 
     # Load trajectory
-    pdbfile_path = os.path.join(project_path, "RUNS", f"RUN{run}", "hybrid_complex.pdb")
+    pdbfile_path = os.path.join(project_dir, "RUNS", f"RUN{run}", "hybrid_complex.pdb")
 
     # TODO: Reuse path logic from fah_xchem.lib
     trajectory_path = os.path.join(
-        project_data_path,
+        project_data_dir,
         f"RUN{run}",
         f"CLONE{clone}",
         f"results{gen}",
@@ -122,8 +122,8 @@ def mdtraj_to_oemol(snapshot: md.Trajectory):
 
 
 def extract_snapshot(
-    project_path: str,
-    project_data_path: str,
+    project_dir: str,
+    project_data_dir: str,
     run: int,
     clone: int,
     gen: int,
@@ -136,7 +136,7 @@ def extract_snapshot(
 
     Parameters
     ----------
-    project_path : str
+    project_dir : str
        Path to project directory (e.g. '/home/server/server2/projects/13422')
     run : str or int
        Run (e.g. '0')
@@ -159,7 +159,7 @@ def extract_snapshot(
 
     """
     # Load the trajectory
-    trajectory = load_trajectory(project_path, project_data_path, run, clone, gen)
+    trajectory = load_trajectory(project_dir, project_data_dir, run, clone, gen)
 
     # Load the fragment
     fragment = load_fragment(fragment_id)
@@ -172,7 +172,7 @@ def extract_snapshot(
     snapshot = trajectory[frame]
 
     # Slice out old or new state
-    sliced_snapshot = slice_snapshot(snapshot, project_path, run, cache_dir)
+    sliced_snapshot = slice_snapshot(snapshot, project_dir, run, cache_dir)
 
     # Convert to OEMol
     # NOTE: This uses heuristics, and should be replaced once we start storing actual chemical information
@@ -183,14 +183,14 @@ def extract_snapshot(
     return sliced_snapshot, components
 
 
-def get_stored_atom_indices(project_path: str, run: int):
+def get_stored_atom_indices(project_dir: str, run: int):
     """
     Load hybrid topology file and return relevant atom indices.
     """
 
     import numpy as np
 
-    path = os.path.join(project_path, "RUNS", f"RUN{run}")
+    path = os.path.join(project_dir, "RUNS", f"RUN{run}")
     htf = np.load(os.path.join(path, "htf.npz"), allow_pickle=True)["arr_0"].tolist()
 
     # Determine mapping between hybrid topology and stored atoms in the positions.xtc
@@ -239,7 +239,7 @@ def get_stored_atom_indices(project_path: str, run: int):
 
 def slice_snapshot(
     snapshot: md.Trajectory,
-    project_path: str,
+    project_dir: str,
     run: int,
     cache_dir: Optional[str],
 ) -> Dict[str, md.Trajectory]:
@@ -255,7 +255,7 @@ def slice_snapshot(
     ----------
     snapshot : mdtraj.Trajectory
        Snapshot to slice
-    project_path : str
+    project_dir : str
        Path to project directory (e.g. '/home/server/server2/projects/13422')
     run : int
        Run (e.g. '0')
@@ -275,7 +275,7 @@ def slice_snapshot(
         else joblib.Memory(cachedir=cache_dir, verbose=0).cache(get_stored_atom_indices)
     )
 
-    stored_atom_indices = get_stored_atom_indices_cached(project_path, run)
+    stored_atom_indices = get_stored_atom_indices_cached(project_dir, run)
 
     sliced_snapshot = dict()
     for key, atom_indices in stored_atom_indices.items():
@@ -286,17 +286,15 @@ def slice_snapshot(
     return sliced_snapshot
 
 
-def save_representative_snapshots(
-    project_path: str,
-    project_data_path: str,
-    run: int,
-    works: List[Work],
-    fragment_id: str,
-    snapshot_output_path: str,
+def generate_representative_snapshot(
+    transformation: TransformationAnalysis,
+    project_dir: str,
+    project_data_dir: str,
+    output_dir: str,
     cache_dir: Optional[str] = None,
 ) -> None:
 
-    """
+    r"""
     Generate representative snapshots for old and new ligands.
 
     Illustration of frames:
@@ -307,13 +305,13 @@ def save_representative_snapshots(
 
     Parameters
     ----------
-    project_path : str
+    project_dir : str
         Path to project directory (e.g. '/home/server/server2/projects/13422')
-    project_data_path : str
+    project_data_dir : str
         Path to project data directory (e.g. '/home/server/server2/data/SVR314342810/PROJ13422')
     run : int
         Run (e.g. '0')
-    works : list of Work
+    works : list of WorkPair
         Work values extracted from simulation results
     fragment_id : str
         Fragment ID (e.g. 'x10789')
@@ -326,43 +324,72 @@ def save_representative_snapshots(
     -------
     None
     """
+
+    gen_works = [
+        (gen, work) for gen in transformation.complex_phase.gens for work in gen.works
+    ]
+
     for ligand in ["old", "new"]:
         if ligand == "old":
-            work = min(works, key=lambda w: w.reverse_work)
+            gen_work = min(gen_works, key=lambda gen_work: gen_work[1].reverse)
             frame = 3  # TODO: Magic numbers
         else:
-            work = min(works, key=lambda w: w.forward_work)
+            gen_work = min(gen_works, key=lambda gen_work: gen_work[1].forward)
             frame = 1  # TODO: Magic numbers
+
+        run_id = transformation.transformation.run_id
 
         # Extract representative snapshot
         sliced_snapshots, components = extract_snapshot(
-            project_path=project_path,
-            project_data_path=project_data_path,
-            run=run,
-            clone=work.path.clone,
-            gen=work.path.gen,
+            project_dir=project_dir,
+            project_data_dir=project_data_dir,
+            run=run_id,
+            clone=gen_work[1].clone,
+            gen=gen_work[0].gen,
             frame=frame,
-            fragment_id=fragment_id,
+            fragment_id=transformation.transformation.xchem_fragment_id,
             cache_dir=cache_dir,
         )
 
         # Write protein PDB
         name = f"{ligand}_protein"
         sliced_snapshots["protein"].save(
-            os.path.join(snapshot_output_path, f"RUN{run}-{name}.pdb")
+            os.path.join(output_dir, f"RUN{run_id}-{name}.pdb")
         )
 
         # Write old and new complex PDBs
         name = f"{ligand}_complex"
-        sliced_snapshots[name].save(
-            os.path.join(snapshot_output_path, f"RUN{run}-{name}.pdb")
-        )
+        sliced_snapshots[name].save(os.path.join(output_dir, f"RUN{run_id}-{name}.pdb"))
 
         # Write ligand SDFs
         from openeye import oechem
 
         name = f"{ligand}_ligand"
         with oechem.oemolostream(
-            os.path.join(snapshot_output_path, f"RUN{run}-{name}.sdf")
+            os.path.join(output_dir, f"RUN{run_id}-{name}.sdf")
         ) as ofs:
             oechem.OEWriteMolecule(ofs, components[name])
+
+
+def generate_representative_snapshots(
+    transformations: List[TransformationAnalysis],
+    project_dir: str,
+    project_data_dir: str,
+    output_dir: str,
+    max_binding_free_energy: Optional[float],
+):
+    from rich.progress import track
+
+    for transformation in track(
+        transformations, description="Generating representative snapshots"
+    ):
+        if (
+            max_binding_free_energy is None
+            or transformation.binding_free_energy.point <= max_binding_free_energy
+        ):
+            generate_representative_snapshot(
+                transformation=transformation,
+                project_dir=project_dir,
+                project_data_dir=project_data_dir,
+                output_dir=output_dir,
+            )

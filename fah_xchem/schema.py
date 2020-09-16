@@ -147,6 +147,7 @@ class CompoundSeriesAnalysis(Model):
 
 class AnalysisConfig(Model):
     min_num_work_values: Optional[int] = None
+    max_binding_free_energy: Optional[float] = 0
 
 
 class FahConfig(Model):

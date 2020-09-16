@@ -25,6 +25,7 @@ from .extract_work import extract_work_pair
 from .free_energy import compute_relative_free_energy
 from .plots import generate_plots
 from .report import generate_report
+from .structures import generate_representative_snapshots
 from .website import generate_website
 
 
@@ -141,12 +142,35 @@ def analyze_compound_series(
 
 
 def generate_artifacts(
-    analysis: CompoundSeriesAnalysis, timestamp: dt.datetime, output_dir: str
+    analysis: CompoundSeriesAnalysis,
+    timestamp: dt.datetime,
+    projects_dir: str,
+    data_dir: str,
+    output_dir: str,
+    config: AnalysisConfig,
 ) -> None:
+
+    complex_project_dir = os.path.join(
+        projects_dir, f"PROJ{analysis.metadata.fah_projects.complex_phase}"
+    )
+
+    complex_data_dir = os.path.join(
+        data_dir, f"PROJ{analysis.metadata.fah_projects.complex_phase}"
+    )
+
+    generate_representative_snapshots(
+        transformations=analysis.transformations,
+        project_dir=complex_project_dir,
+        project_data_dir=complex_data_dir,
+        output_dir=output_dir,
+        max_binding_free_energy=config.max_binding_free_energy,
+    )
+
     generate_plots(
         analysis=analysis,
         timestamp=timestamp,
         output_dir=os.path.join(output_dir, "plots"),
     )
+
     generate_report(analysis, output_dir)
     generate_website(series_analysis=analysis, path=output_dir, timestamp=timestamp)

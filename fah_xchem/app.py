@@ -103,18 +103,30 @@ def run_analysis(
 
     if generate_artifacts:
         fah_xchem.analysis.generate_artifacts(
-            analysis=analysis, timestamp=timestamp, output_dir=output_dir
+            analysis=analysis, timestamp=timestamp, config=config, output_dir=output_dir
         )
 
 
 def generate_artifacts(
-    compound_series_analysis_file: str, output_dir: str = "results"
+    compound_series_analysis_file: str,
+    config_file: str = None,
+    fah_projects_dir: str = "projects",
+    fah_data_dir: str = "data",
+    output_dir: str = "results",
 ) -> None:
+
+    config = _get_config(AnalysisConfig, config_file, "analysis configuration")
+
     with open(compound_series_analysis_file, "r") as infile:
         tsa = TimestampedAnalysis.parse_obj(json.load(infile))
 
     return fah_xchem.analysis.generate_artifacts(
-        analysis=tsa.analysis, timestamp=tsa.as_of, output_dir=output_dir
+        analysis=tsa.analysis,
+        timestamp=tsa.as_of,
+        config=config,
+        projects_dir=fah_projects_dir,
+        data_dir=fah_data_dir,
+        output_dir=output_dir,
     )
 
 
