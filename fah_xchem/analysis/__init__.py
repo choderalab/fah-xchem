@@ -41,7 +41,7 @@ def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisCon
         try:
             work_pair = extract_work_pair(path)
             works_by_gen[path.gen].append(work_pair)
-        except DataValidationError as exc:
+        except (DataValidationError, ValueError) as exc:
             logging.warning("Failed to extract work values from %s: %s", path, exc)
 
     # flattened list of work pairs for all GENs
