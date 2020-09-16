@@ -103,7 +103,12 @@ def run_analysis(
 
     if generate_artifacts:
         fah_xchem.analysis.generate_artifacts(
-            analysis=analysis, timestamp=timestamp, config=config, output_dir=output_dir
+            analysis=analysis,
+            timestamp=timestamp,
+            config=config,
+            projects_dir=fah_projects_dir,
+            data_dir=fah_data_dir,
+            output_dir=output_dir,
         )
 
 
