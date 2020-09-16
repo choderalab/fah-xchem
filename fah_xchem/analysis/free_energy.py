@@ -161,8 +161,8 @@ def compute_relative_free_energy(
     """
 
     all_works = np.array(
-        [(work.source, work.forward, work.reverse) for work in work_pairs],
-        dtype=[("source", DataPath), ("forward", float), ("reverse", float)],
+        [(work.clone, work.forward, work.reverse) for work in work_pairs],
+        dtype=[("clone", int), ("forward", float), ("reverse", float)],
     )
 
     works = _filter_work_values(all_works)
@@ -191,7 +191,7 @@ def compute_relative_free_energy(
             delta_f=delta_f, bar_overlap=bar_overlap, num_work_pairs=len(works)
         ),
         [
-            WorkPair(source=source, forward=forward, reverse=reverse)
-            for source, forward, reverse in works
+            WorkPair(clone=clone, forward=forward, reverse=reverse)
+            for clone, forward, reverse in works
         ],
     )

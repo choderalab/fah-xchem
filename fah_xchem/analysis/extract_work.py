@@ -133,7 +133,7 @@ def extract_work_pair(path: DataPath) -> WorkPair:
     # TODO: magic numbers
     try:
         return WorkPair(
-            source=path,
+            clone=path.clone,
             forward=protocol_work_nodims[20] - protocol_work_nodims[10],
             reverse=protocol_work_nodims[40] - protocol_work_nodims[30],
             # forward_final_potential=Enew_nodims[20],

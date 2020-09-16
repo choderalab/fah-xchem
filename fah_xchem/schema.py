@@ -72,7 +72,7 @@ class DataPath(Model):
 
 
 class WorkPair(Model):
-    source: DataPath
+    clone: int
     forward: float
     reverse: float
 
