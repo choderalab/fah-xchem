@@ -2,6 +2,7 @@ import logging
 from math import log
 from typing import List, Optional
 
+import networkx as nx
 import numpy as np
 
 from ..schema import (
@@ -12,7 +13,7 @@ from ..schema import (
     PointEstimate,
     TransformationAnalysis,
 )
-from .exceptions import AnalysisError, InsufficientDataError
+from .exceptions import AnalysisError, ConfigurationError, InsufficientDataError
 
 
 def pIC50_to_dG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> float:
@@ -56,8 +57,6 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
     """
     penalized_free_energies = [
         microstate.free_energy + microstate.microstate.free_energy_penalty
-        if microstate.microstate.free_energy_penalty is not None
-        else microstate.free_energy
         for microstate in microstates
         if microstate.free_energy is not None
     ]
@@ -65,15 +64,82 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
     if not penalized_free_energies:
         raise InsufficientDataError("no microstate free energy estimates")
 
-    gp = np.array([x.point for x in penalized_free_energies])
+    g = np.array([x.point for x in penalized_free_energies])
     stderr = np.array([x.stderr for x in penalized_free_energies])
 
-    x = np.exp(-gp)
+    x = np.exp(-g)
     z = np.sum(x)
-    y = np.log(z)
-    dy = -x / z
+    gc = np.log(z)
+    dgc = -x / z
 
-    return PointEstimate(point=y, stderr=np.sqrt(np.sum((dy * stderr) ** 2)))
+    return PointEstimate(point=gc, stderr=np.sqrt(np.sum((dgc * stderr) ** 2)))
+
+
+def _validate_inputs(
+    compounds: List[Compound], transformations: List[TransformationAnalysis]
+):
+    # Microstates appearing as initial or final in transformations
+    transformation_microstates = set(
+        microstate
+        for transformation in transformations
+        for microstate in [
+            transformation.transformation.initial_microstate,
+            transformation.transformation.final_microstate,
+        ]
+    )
+
+    # Microstates appearing in compounds
+    compound_microstates = set(
+        CompoundMicrostate(
+            compound_id=compound.metadata.compound_id,
+            microstate_id=microstate.microstate_id,
+        )
+        for compound in compounds
+        for microstate in compound.microstates
+    )
+
+    for microstate in compound_microstates - transformation_microstates:
+        logging.warning("No transformation data for microstate '%s'", microstate)
+
+    missing_microstates = transformation_microstates - compound_microstates
+    if missing_microstates:
+        raise ConfigurationError(
+            f"The following undefined microstates are referenced in "
+            f"transformations: {missing_microstates}"
+        )
+
+
+def build_transformation_graph(
+    compounds: List[Compound], transformations: List[TransformationAnalysis]
+) -> nx.DiGraph:
+
+    _validate_inputs(compounds, transformations)
+    graph = nx.DiGraph()
+
+    for analysis in transformations:
+        transformation = analysis.transformation
+
+        if analysis.binding_free_energy is None:
+            continue
+
+        graph.add_edge(
+            transformation.initial_microstate,
+            transformation.final_microstate,
+            g_ij=analysis.binding_free_energy.point,
+            dg_ij=analysis.binding_free_energy.stderr,
+        )
+
+    for compound in compounds:
+        for microstate in compound.microstates:
+            node = CompoundMicrostate(
+                compound_id=compound.metadata.compound_id,
+                microstate_id=microstate.microstate_id,
+            )
+            if node in graph:
+                graph.nodes[node]["compound"] = compound
+                graph.nodes[node]["microstate"] = microstate
+
+    return graph
 
 
 def combine_free_energies(
@@ -97,40 +163,92 @@ def combine_free_energies(
     """
 
     from arsenic import stats
-    import networkx as nx
     import numpy as np
 
-    graph = nx.DiGraph()
+    supergraph = build_transformation_graph(compounds, transformations)
 
-    for analysis in transformations:
-        transformation = analysis.transformation
+    # Split supergraph into weakly-connected subgraphs
+    # NOTE: the subgraphs are "views" into the supergraph, meaning
+    # updates made to the subgraphs are reflected in the supergraph
+    # (we exploit this below)
+    connected_subgraphs = [
+        supergraph.subgraph(nodes)
+        for nodes in nx.weakly_connected_components(supergraph)
+    ]
 
-        if analysis.binding_free_energy is None:
-            continue
+    # Filter to connected subgraphs containing at least one
+    # experimental measurement
+    valid_subgraphs = [
+        graph
+        for graph in connected_subgraphs
+        if any(
+            "pIC50" in graph.nodes[node]["compound"].metadata.experimental_data
+            for node in graph
+        )
+    ]
 
-        graph.add_edge(
-            transformation.initial_microstate,
-            transformation.final_microstate,
-            f_ij=analysis.binding_free_energy.point,
-            f_dij=analysis.binding_free_energy.stderr,
+    if len(valid_subgraphs) < len(connected_subgraphs):
+        logging.warning(
+            "Found %d out of %d connected subgraphs without experimental data",
+            len(connected_subgraphs) - len(valid_subgraphs),
+            len(connected_subgraphs),
         )
 
-    for compound in compounds:
+    # Inital MLE pass: compute relative free energies without using
+    # experimental reference values
+    for graph in valid_subgraphs:
+        g1s, _ = stats.mle(graph, factor="g_ij")
+        for node, g1 in zip(graph.nodes, g1s):
+            graph.nodes[node]["g1"] = g1
 
+    # Use microstate-level relative free energies g_1[c,i] to
+    # distribute compound-level experimental data g_exp_compound[c]
+    # over microstates, using the formula:
+    #
+    #    g_exp[c,i] = g_exp_compound[c]
+    #               - ln( exp(-(s[c,i] + g_1[c,i]))
+    #                   / sum(exp(-(s[c,:] + g_1[c,:])))
+    #                   )
+    #
+    for compound in compounds:
         pIC50 = compound.metadata.experimental_data.get("pIC50")
 
+        # skip compounds with no experimental data
         if pIC50 is None:
             continue
 
-        for microstate in compound.microstates:
+        g_exp_compound = pIC50_to_dG(pIC50)
 
-            node = CompoundMicrostate(
+        nodes = [
+            CompoundMicrostate(
                 compound_id=compound.metadata.compound_id,
                 microstate_id=microstate.microstate_id,
             )
+            for microstate in compound.microstates
+        ]
 
-            if node in graph:
-                graph.nodes[node]["exp_DG"] = pIC50_to_dG(pIC50)
+        # Filter to nodes that are part of a connected subgraph with
+        # at least one experimental measurement
+        valid_nodes = [
+            (node, microstate)
+            for node, microstate in zip(nodes, compound.microstates)
+            if node in supergraph and "g1" in supergraph.nodes[node]
+        ]
+
+        # gs = s[c,i] + g_1[c,i]
+        gs = np.array(
+            [
+                microstate.free_energy_penalty.point + supergraph.nodes[node]["g1"]
+                for node, microstate in valid_nodes
+            ]
+        )
+
+        weights = np.exp(-gs)
+        dgs = -np.log(weights) + np.log(np.sum(weights))
+
+        for (_, node), dg in zip(valid_nodes, dgs):
+            if node in supergraph:
+                supergraph.nodes[node]["g_exp"] = g_exp_compound + dg
             else:
                 logging.warning(
                     "Compound microstate '%s' has experimental data, "
@@ -138,30 +256,17 @@ def combine_free_energies(
                     node.microstate_id,
                 )
 
-    # split supergraph into weakly-connected subgraphs
-    connected_subgraphs = [
-        graph.subgraph(nodes) for nodes in nx.weakly_connected_components(graph)
-    ]
-
-    # at least one microstate in the subgraph must have experimental data
-    valid_subgraphs = [
-        g for g in connected_subgraphs if any("exp_DG" in g.nodes[node] for node in g)
-    ]
-
-    if len(valid_subgraphs) < len(connected_subgraphs):
-        logging.warning(
-            "Found %d out of %d connected subgraphs missing experimental data"
-        )
-
-    # process each subgraph, collecting microstate free energy results
+    # Second pass: use microstate relative free energies and compound
+    # experimental data to compute microstate absolute free energies.
+    # Process each subgraph, collecting microstate free energy results
     microstate_free_energy = {}
     for g in valid_subgraphs:
-        f_i, C = stats.mle(g, factor="f_ij", node_factor="exp_DG")
+        gs, C = stats.mle(g, factor="g_ij", node_factor="g_exp")
         errs = np.diag(C)
         microstate_free_energy.update(
             {
-                microstate: PointEstimate(point=delta_f, stderr=ddelta_f)
-                for microstate, delta_f, ddelta_f in zip(g.nodes(), f_i, errs)
+                microstate: PointEstimate(point=point, stderr=stderr)
+                for microstate, point, stderr in zip(g.nodes(), gs, errs)
             }
         )
 

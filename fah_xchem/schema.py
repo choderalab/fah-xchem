@@ -57,7 +57,7 @@ class CompoundSeriesMetadata(Model):
 
 class Microstate(Model):
     microstate_id: str
-    free_energy_penalty: Optional[PointEstimate]
+    free_energy_penalty: PointEstimate = PointEstimate(point=0.0, stderr=0.0)
     smiles: str
 
 
