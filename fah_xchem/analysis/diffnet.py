@@ -127,7 +127,7 @@ def build_transformation_graph(
             transformation.initial_microstate,
             transformation.final_microstate,
             g_ij=analysis.binding_free_energy.point,
-            dg_ij=analysis.binding_free_energy.stderr,
+            g_dij=analysis.binding_free_energy.stderr,
         )
 
     for compound in compounds:
