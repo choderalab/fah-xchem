@@ -9,6 +9,7 @@ from ..schema import (
     Compound,
     CompoundAnalysis,
     CompoundMicrostate,
+    Microstate,
     MicrostateAnalysis,
     PointEstimate,
     TransformationAnalysis,
@@ -165,6 +166,10 @@ def combine_free_energies(
     from arsenic import stats
     import numpy as np
 
+    # Type assertions (useful for type checking with mypy)
+    node: CompoundMicrostate
+    microstate: Microstate
+
     supergraph = build_transformation_graph(compounds, transformations)
 
     # Split supergraph into weakly-connected subgraphs
@@ -246,7 +251,7 @@ def combine_free_energies(
         weights = np.exp(-gs)
         dgs = -np.log(weights) + np.log(np.sum(weights))
 
-        for (_, node), dg in zip(valid_nodes, dgs):
+        for (node, _), dg in zip(valid_nodes, dgs):
             if node in supergraph:
                 supergraph.nodes[node]["g_exp"] = g_exp_compound + dg
             else:
