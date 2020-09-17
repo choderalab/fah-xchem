@@ -138,22 +138,6 @@ def RenderData(image, mol, tags):
         table.DrawText(cell, value)
 
 
-def get_microstate_detail(
-    compounds: List[CompoundAnalysis],
-) -> Dict[CompoundMicrostate, Tuple[CompoundAnalysis, MicrostateAnalysis]]:
-    return {
-        CompoundMicrostate(
-            compound_id=compound.metadata.compound_id,
-            microstate_id=microstate.microstate.microstate_id,
-        ): (
-            compound,
-            microstate,
-        )
-        for compound in compounds
-        for microstate in compound.microstates
-    }
-
-
 def generate_report(series_analysis: CompoundSeriesAnalysis, results_path: str) -> None:
     """
     Postprocess results of calculations to extract summary for compound prioritization
@@ -170,12 +154,19 @@ def generate_report(series_analysis: CompoundSeriesAnalysis, results_path: str) 
 
     structures_path = os.path.join(results_path, "structures")
 
-    microstate_detail = get_microstate_detail(series_analysis.compounds)
-
     # Load all molecules, attaching properties
     # TODO: Generalize this to handle other than x -> 0 star map transformations
     from openeye import oechem
     from rich.progress import track
+
+    microstate_detail = {
+        CompoundMicrostate(
+            compound_id=compound.metadata.compound_id,
+            microstate_id=microstate.microstate.microstate_id,
+        ): microstate.microstate
+        for compound in series_analysis.compounds
+        for microstate in compound.microstates
+    }
 
     oemols = list()  # target molecules
     refmols = list()  # reference molecules
