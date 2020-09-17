@@ -1,0 +1,3 @@
+[submodule "Arsenic"]
+	path = Arsenic
+	url = git@github.com:openforcefield/Arsenic.git
