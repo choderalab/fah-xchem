@@ -17,7 +17,7 @@ from ..schema import (
 from .exceptions import AnalysisError, ConfigurationError, InsufficientDataError
 
 
-def pIC50_to_dG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> float:
+def pIC50_to_DG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> float:
     """
     Converts IC50 (in M units) to DG
     Parameters
@@ -170,6 +170,7 @@ def combine_free_energies(
     node: CompoundMicrostate
     microstate: Microstate
 
+    # TODO: can we bypass graph construction and just derive the adjacency matrix?
     supergraph = build_transformation_graph(compounds, transformations)
 
     # Split supergraph into weakly-connected subgraphs
@@ -202,6 +203,8 @@ def combine_free_energies(
     # Inital MLE pass: compute relative free energies without using
     # experimental reference values
     for graph in valid_subgraphs:
+        # NOTE: no node_factor argument in the following
+        # (because we do not use experimental data for the first pass)
         g1s, _ = stats.mle(graph, factor="g_ij")
         for node, g1 in zip(graph.nodes, g1s):
             graph.nodes[node]["g1"] = g1
@@ -218,11 +221,11 @@ def combine_free_energies(
     for compound in compounds:
         pIC50 = compound.metadata.experimental_data.get("pIC50")
 
-        # skip compounds with no experimental data
+        # Skip compounds with no experimental data
         if pIC50 is None:
             continue
 
-        g_exp_compound = pIC50_to_dG(pIC50)
+        g_exp_compound = pIC50_to_DG(pIC50)
 
         nodes = [
             CompoundMicrostate(
