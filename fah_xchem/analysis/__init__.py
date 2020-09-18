@@ -121,7 +121,11 @@ def analyze_compound_series(
         )
         transformations = [
             result
-            for result in track(results_iter, total=len(series.transformations))
+            for result in track(
+                results_iter,
+                total=len(series.transformations),
+                description="Computing transformation free energies",
+            )
             if result is not None
         ]
 
