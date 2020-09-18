@@ -10,12 +10,17 @@ Dependencies:
 
 """
 
+from functools import partial
+import logging
+import multiprocessing
 import os
 import tempfile
 from typing import Dict, List, Optional
+
 import joblib
 import mdtraj as md
-from ..schema import TransformationAnalysis, WorkPair
+
+from ..schema import TransformationAnalysis
 
 
 def load_trajectory(
@@ -291,6 +296,7 @@ def generate_representative_snapshot(
     project_dir: str,
     project_data_dir: str,
     output_dir: str,
+    max_binding_free_energy: Optional[float],
     cache_dir: Optional[str] = None,
 ) -> None:
 
@@ -324,6 +330,18 @@ def generate_representative_snapshot(
     -------
     None
     """
+
+    if (
+        max_binding_free_energy is not None
+        and transformation.binding_free_energy.point > max_binding_free_energy
+    ):
+        logging.warning(
+            "Skipping snapshot for RUN %d. Binding free energy estimate %g exceeds threshold %g",
+            transformation.transformation.run_id,
+            transformation.binding_free_energy.point,
+            max_binding_free_energy,
+        )
+        return None
 
     gen_works = [
         (gen, work) for gen in transformation.complex_phase.gens for work in gen.works
@@ -377,19 +395,25 @@ def generate_representative_snapshots(
     project_data_dir: str,
     output_dir: str,
     max_binding_free_energy: Optional[float],
-):
+    cache_dir: Optional[str],
+    num_procs: Optional[int],
+) -> None:
     from rich.progress import track
 
-    for transformation in track(
-        transformations, description="Generating representative snapshots"
-    ):
-        if (
-            max_binding_free_energy is None
-            or transformation.binding_free_energy.point <= max_binding_free_energy
-        ):
-            generate_representative_snapshot(
-                transformation=transformation,
+    with multiprocessing.Pool(num_procs) as pool:
+        result_iter = pool.imap_unordered(
+            partial(
+                generate_representative_snapshot,
                 project_dir=project_dir,
                 project_data_dir=project_data_dir,
                 output_dir=output_dir,
-            )
+                cache_dir=cache_dir,
+                max_binding_free_energy=max_binding_free_energy,
+            ),
+            transformations,
+        )
+        track(
+            result_iter,
+            total=len(transformations),
+            description="Generating representative snapshots",
+        )

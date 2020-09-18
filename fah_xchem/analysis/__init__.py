@@ -104,7 +104,6 @@ def analyze_compound_series(
     series: CompoundSeries,
     config: AnalysisConfig,
     server: FahConfig,
-    cache_dir: Optional[str] = None,
     num_procs: Optional[int] = None,
 ) -> CompoundSeriesAnalysis:
 
@@ -148,6 +147,8 @@ def generate_artifacts(
     data_dir: str,
     output_dir: str,
     config: AnalysisConfig,
+    cache_dir: Optional[str] = None,
+    num_procs: Optional[int] = None,
 ) -> None:
 
     complex_project_dir = os.path.join(
@@ -164,6 +165,8 @@ def generate_artifacts(
         project_data_dir=complex_data_dir,
         output_dir=output_dir,
         max_binding_free_energy=config.max_binding_free_energy,
+        cache_dir=cache_dir,
+        num_procs=num_procs,
     )
 
     generate_plots(

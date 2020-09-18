@@ -90,7 +90,6 @@ def run_analysis(
         series=compound_series,
         config=config,
         server=FahConfig(projects_dir=fah_projects_dir, data_dir=fah_data_dir),
-        cache_dir=cache_dir,
         num_procs=num_procs,
     )
 
@@ -118,6 +117,8 @@ def generate_artifacts(
     fah_projects_dir: str = "projects",
     fah_data_dir: str = "data",
     output_dir: str = "results",
+    cache_dir: Optional[str] = None,
+    num_procs: Optional[int] = None,
 ) -> None:
 
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
@@ -128,10 +129,12 @@ def generate_artifacts(
     return fah_xchem.analysis.generate_artifacts(
         analysis=tsa.analysis,
         timestamp=tsa.as_of,
-        config=config,
         projects_dir=fah_projects_dir,
         data_dir=fah_data_dir,
         output_dir=output_dir,
+        config=config,
+        cache_dir=cache_dir,
+        num_procs=num_procs,
     )
 
 
