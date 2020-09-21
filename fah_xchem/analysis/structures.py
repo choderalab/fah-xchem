@@ -412,8 +412,10 @@ def generate_representative_snapshots(
             ),
             transformations,
         )
-        track(
+
+        for _ in track(
             result_iter,
             total=len(transformations),
             description="Generating representative snapshots",
-        )
+        ):
+            pass

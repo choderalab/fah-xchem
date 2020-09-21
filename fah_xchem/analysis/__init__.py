@@ -167,7 +167,7 @@ def generate_artifacts(
         transformations=analysis.transformations,
         project_dir=complex_project_dir,
         project_data_dir=complex_data_dir,
-        output_dir=output_dir,
+        output_dir=os.path.join(output_dir, "structures"),
         max_binding_free_energy=config.max_binding_free_energy,
         cache_dir=cache_dir,
         num_procs=num_procs,
