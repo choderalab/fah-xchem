@@ -4,6 +4,7 @@ from typing import List, Optional
 
 import networkx as nx
 import numpy as np
+from scipy.special import logsumexp
 
 from ..schema import (
     Compound,
@@ -75,7 +76,7 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
 
     x = np.exp(-g)
     z = np.sum(x)
-    gc = np.log(z)
+    gc = logsumexp(x)
     dgc = -x / z
 
     return PointEstimate(point=gc, stderr=np.sqrt(np.sum((dgc * stderr) ** 2)))
@@ -169,8 +170,6 @@ def combine_free_energies(
     """
 
     from arsenic import stats
-    import numpy as np
-    from scipy.special import logsumexp
 
     # Type assertions (useful for type checking with mypy)
     node: CompoundMicrostate
