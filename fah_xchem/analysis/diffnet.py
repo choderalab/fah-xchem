@@ -30,8 +30,8 @@ def pIC50_to_DG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> floa
         Substrate concentration for half-maximal enzyme activity
     Returns
     -------
-    type
-        Description of returned object.
+    PointEstimate
+        Dimensionless free energy (in kT)
     """
     ic50 = 10 ** -pIC50
 
@@ -55,6 +55,12 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
     ----------
     microstates : list of MicrostateAnalysis
         Microstate free energies
+
+
+    Returns
+    -------
+    PointEstimate
+        Dimensionless compound free energy estimate (in kT)
     """
     penalized_free_energies = [
         microstate.free_energy + microstate.microstate.free_energy_penalty
