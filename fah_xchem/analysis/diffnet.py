@@ -56,7 +56,6 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
     microstates : list of MicrostateAnalysis
         Microstate free energies
 
-
     Returns
     -------
     PointEstimate
