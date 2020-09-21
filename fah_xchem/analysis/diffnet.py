@@ -170,6 +170,7 @@ def combine_free_energies(
 
     from arsenic import stats
     import numpy as np
+    from scipy.special import logsumexp
 
     # Type assertions (useful for type checking with mypy)
     node: CompoundMicrostate
@@ -242,11 +243,17 @@ def combine_free_energies(
 
         # Filter to nodes that are part of a connected subgraph with
         # at least one experimental measurement
+        # TODO: check for case where microstates are in different subgraphs
         valid_nodes = [
             (node, microstate)
             for node, microstate in zip(nodes, compound.microstates)
             if node in supergraph and "g1" in supergraph.nodes[node]
         ]
+
+        # Skip compound if none of its microstates are in a subgraph
+        # with experimental data
+        if not valid_nodes:
+            continue
 
         # gs = s[c,i] + g_1[c,i]
         gs = np.array(
@@ -256,8 +263,8 @@ def combine_free_energies(
             ]
         )
 
-        weights = np.exp(-gs)
-        dgs = -np.log(weights) + np.log(np.sum(weights))
+        dgs = -gs - logsumexp(-gs)  # TODO: check math
+        assert (dgs >= 0).all()
 
         for (node, _), dg in zip(valid_nodes, dgs):
             if node in supergraph:
@@ -275,7 +282,7 @@ def combine_free_energies(
     microstate_free_energy = {}
     for g in valid_subgraphs:
         gs, C = stats.mle(g, factor="g_ij", node_factor="g_exp")
-        errs = np.diag(C)
+        errs = np.sqrt(np.diag(C))
         microstate_free_energy.update(
             {
                 microstate: PointEstimate(point=point, stderr=stderr)
@@ -304,7 +311,7 @@ def combine_free_energies(
                 microstates=microstates,
                 free_energy=get_compound_free_energy(microstates),
             )
-        except AnalysisError as exc:
+        except (AnalysisError, AssertionError) as exc:
             logging.warning(
                 "Failed to estimate free energy for compound '%s': %s",
                 compound.metadata.compound_id,
