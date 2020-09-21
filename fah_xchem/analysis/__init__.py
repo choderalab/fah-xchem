@@ -177,6 +177,7 @@ def generate_artifacts(
         analysis=analysis,
         timestamp=timestamp,
         output_dir=os.path.join(output_dir, "plots"),
+        num_procs=num_procs,
     )
 
     generate_report(analysis, output_dir)

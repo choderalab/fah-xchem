@@ -7,6 +7,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.font_manager import FontProperties
+import multiprocessing
 import numpy as np
 import pandas as pd
 from pymbar import BAR
@@ -546,6 +547,7 @@ def generate_plots(
     timestamp: dt.datetime,
     output_dir: str,
     file_formats: Iterable[str] = ("pdf", "png"),
+    num_procs: Optional[int] = None,
 ) -> None:
     """
     Generate analysis plots in `output_dir`.
@@ -581,6 +583,7 @@ def generate_plots(
     file_format : str
         File format for plot output
     """
+    from rich.progress import track
 
     binding_delta_fs = [
         transformation.binding_free_energy.point
@@ -613,7 +616,7 @@ def generate_plots(
 
     # Transformation-level plots
 
-    for transformation in analysis.transformations:
+    def generate_plots_transformation(transformation: TransformationAnalysis):
 
         run_id = transformation.transformation.run_id
 
@@ -692,3 +695,11 @@ def generate_plots(
                 n_gens=n_gens,
             )
             fig.suptitle(f"RUN{run_id}")
+
+    with multiprocessing.Pool(num_procs) as pool:
+        track(
+            pool.imap_unordered(
+                generate_plots_transformation, analysis.transformations
+            ),
+            description="Generating plots",
+        )
