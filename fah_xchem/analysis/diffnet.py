@@ -262,12 +262,12 @@ def combine_free_energies(
             ]
         )
 
-        dgs = -gs - logsumexp(-gs)  # TODO: check math
+        dgs = gs - logsumexp(-gs)  # TODO: check math
         assert (dgs >= 0).all()
 
         for (node, _), dg in zip(valid_nodes, dgs):
             if node in supergraph:
-                supergraph.nodes[node]["g_exp"] = g_exp_compound + dg
+                supergraph.nodes[node]["g_exp"] = g_exp_compound - dg
             else:
                 logging.warning(
                     "Compound microstate '%s' has experimental data, "
@@ -310,7 +310,7 @@ def combine_free_energies(
                 microstates=microstates,
                 free_energy=get_compound_free_energy(microstates),
             )
-        except (AnalysisError, AssertionError) as exc:
+        except AnalysisError as exc:
             logging.warning(
                 "Failed to estimate free energy for compound '%s': %s",
                 compound.metadata.compound_id,
