@@ -4,7 +4,7 @@
 
 <h3>Progress</h3>
 <div class="progress my-3" style="height: 30px">
-  <div class="progress-bar" role="progressbar" aria-valuenow="{{ progress.percent_complete() }}" aria-valuemin="0" aria-valuemax="100">
+  <div class="progress-bar" role="progressbar" style="width: {{ progress.percent_complete() }}%" aria-valuenow="{{ progress.percent_complete() }}" aria-valuemin="0" aria-valuemax="100">
     {{ '%.2f' | format(progress.percent_complete()) }}%
   </div>
 </div>
