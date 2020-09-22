@@ -10,7 +10,7 @@
     <th>SMILES</th>
     <th>ΔΔG / kcal mol<sup>-1</sup></th>
   </tr>
-  {% for compound in (series.compounds | selectattr("free_energy", "defined") | sort(attribute="free_energy.point"))[:100] %}
+  {% for compound in (series.compounds | selectattr("free_energy", "ne", None) | sort(attribute="free_energy.point"))[:100] %}
   <tr>
     <td class="rank">{{ loop.index }}</td>
     <td >{{ compound.metadata.compound_id | maybe_postera_link }}</td>
