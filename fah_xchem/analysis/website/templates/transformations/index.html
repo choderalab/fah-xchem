@@ -19,8 +19,16 @@
         <img src="../molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles }}">
       </a>
     </td>
-    <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_ligand.sdf">[sdf]</a></td>
-    <td><a href="structures/RUN{{ transformation.transformation.run_id }}-old_protein.pdb">[pdb]</a></td>
+    <td>
+      <a href="structures/RUN{{ transformation.transformation.run_id }}-old_ligand.sdf">
+        <button class="btn btn-outline-primary">sdf</button>
+      </a>
+    </td>
+    <td>
+      <a href="structures/RUN{{ transformation.transformation.run_id }}-old_protein.pdb">
+        <button class="btn btn-outline-primary">pdb</button>
+      </a>
+    </td>
     <td>{{ transformation.transformation.final_microstate.microstate_id | maybe_postera_link }}</td>
     <td class="thumbnail">
       <a href="../molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg">
@@ -37,13 +45,21 @@
       <a href="RUN{{ transformation.transformation.run_id }}/works.png">
         <img src="RUN{{ transformation.transformation.run_id }}/works.png" alt="work distributions">
       </a>
-    <td><a href="RUN{{ transformation.transformation.run_id }}/works.pdf">[pdf]</a></td>
+    <td>
+      <a href="RUN{{ transformation.transformation.run_id }}/works.pdf">
+        <button class="btn btn-outline-primary">pdf</button>
+      </a>
+    </td>
     </td>
     <td class="thumbnail">
       <a href="RUN{{ transformation.transformation.run_id }}/convergence.png">
         <img src="RUN{{ transformation.transformation.run_id }}/convergence.png" alt="convergence plot">
       </a>
-    <td><a href="RUN{{ transformation.transformation.run_id }}/convergence.pdf">[pdf]</a></td>
+    <td>
+      <a href="RUN{{ transformation.transformation.run_id }}/convergence.pdf">
+        <button class="btn btn-outline-primary">pdf</button>
+      </a>
+    </td>
     </td>
   </tr>
   {% endfor %}
