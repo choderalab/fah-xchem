@@ -262,7 +262,7 @@ def combine_free_energies(
             ]
         )
 
-        dgs = gs - logsumexp(-gs)  # TODO: check math
+        dgs = logsumexp(-gs) - gs  # TODO: check math
         assert (dgs >= 0).all()
 
         for (node, _), dg in zip(valid_nodes, dgs):
