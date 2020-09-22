@@ -7,6 +7,7 @@
 <!--[if lt IE 9]><script src="js/html5shiv-printshiv.js" media="all"></script><![endif]-->
 <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Roboto+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 <style>
 html * {
   font-family: 'Roboto', sans-serif;
@@ -58,7 +59,10 @@ td.thumbnail img {
 {% set active_page = active_page | default("index") -%}
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light mb-3">
-  <a class="navbar-brand" href="#">COVID Moonshot Sprint {{ sprint_number }}</a>
+  <a class="navbar-brand" href="/">
+    <i class="far fa-rocket pr-3"></i>
+    COVID Moonshot Sprint {{ sprint_number }}
+  </a>
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
   </button>
@@ -72,11 +76,8 @@ td.thumbnail img {
     </div>
   </div>
 </nav>
-<div class="my-3">
-  <p>{{ series.metadata.description }}</p>
-  <p>Last updated {{ timestamp.isoformat() }}</p>
-</div>
 {% block content %}
 {% endblock %}
+<span class="updated">Last updated {{ timestamp.isoformat() }}</span>
 </body>
 </html>
