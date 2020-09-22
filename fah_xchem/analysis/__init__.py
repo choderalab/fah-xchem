@@ -156,7 +156,7 @@ def generate_artifacts(
 ) -> None:
 
     complex_project_dir = os.path.join(
-        projects_dir, f"PROJ{analysis.metadata.fah_projects.complex_phase}"
+        projects_dir, str(analysis.metadata.fah_projects.complex_phase)
     )
 
     complex_data_dir = os.path.join(
