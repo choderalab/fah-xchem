@@ -42,7 +42,6 @@ def _get_config(
 
 def run_analysis(
     compound_series_file: str,
-    generate_artifacts: bool = True,
     config_file: Optional[str] = None,
     fah_projects_dir: str = "projects",
     fah_data_dir: str = "data",
@@ -61,9 +60,6 @@ def run_analysis(
     compound_series_file : str
         JSON file containing configuration for the compound series in
         the form of a serialized `CompoundSeries` object
-    generate_artifacts : bool
-        If `True`, generate additional artifacts (including plots, pdf
-        report, and html webpage) in the output directory
     config_file : str, optional
         JSON file containing configuration for the analysis in the
         form of a serialized `AnalysisConfig` object
@@ -100,23 +96,14 @@ def run_analysis(
     with open(os.path.join(output_dir, "analysis.json"), "w") as output_file:
         output_file.write(output.json())
 
-    if generate_artifacts:
-        fah_xchem.analysis.generate_artifacts(
-            analysis=analysis,
-            timestamp=timestamp,
-            config=config,
-            projects_dir=fah_projects_dir,
-            data_dir=fah_data_dir,
-            output_dir=output_dir,
-        )
-
 
 def generate_artifacts(
     compound_series_analysis_file: str,
-    config_file: str = None,
-    fah_projects_dir: str = "projects",
-    fah_data_dir: str = "data",
+    fah_projects_dir: str,
+    fah_data_dir: str,
     output_dir: str = "results",
+    base_url: str = "/",
+    config_file: Optional[str] = None,
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = None,
     log: str = "WARN",
@@ -135,6 +122,7 @@ def generate_artifacts(
         projects_dir=fah_projects_dir,
         data_dir=fah_data_dir,
         output_dir=output_dir,
+        base_url=base_url,
         config=config,
         cache_dir=cache_dir,
         num_procs=num_procs,

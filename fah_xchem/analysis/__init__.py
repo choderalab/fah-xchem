@@ -151,6 +151,7 @@ def generate_artifacts(
     projects_dir: str,
     data_dir: str,
     output_dir: str,
+    base_url: str,
     config: AnalysisConfig,
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = None,
@@ -187,4 +188,6 @@ def generate_artifacts(
     generate_report(analysis, output_dir)
 
     logging.info("Generating website")
-    generate_website(series=analysis, path=output_dir, timestamp=timestamp)
+    generate_website(
+        series=analysis, path=output_dir, timestamp=timestamp, base_url=base_url
+    )

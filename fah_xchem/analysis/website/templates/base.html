@@ -51,9 +51,9 @@ td.thumbnail img {
 <body class="mx-3">
 
 {% set navigation_bar = [
-    ("/", "index", "Summary"),
-    ("/compounds/", "compounds", "Compounds"),
-    ("/transformations/", "transformations", "Transformations")
+    ("index.html", "index", "Summary"),
+    ("compounds/index.html", "compounds", "Compounds"),
+    ("transformations/index.html", "transformations", "Transformations")
 ] -%}
 
 {% set active_page = active_page | default("index") -%}
@@ -69,8 +69,8 @@ td.thumbnail img {
   <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
     <div class="navbar-nav">
       {% for href, id, caption in navigation_bar %}
-      <a class="nav-item nav-link {% if id == active_page %}active{% endif %}" href="{{ href | e }}">
-        {{ caption | e }}{% if id == active_page %}<span class="sr-only">(current)</span>{% endif %}
+      <a class="nav-item nav-link {% if id == active_page %}active{% endif %}" href="{{ base_url + href }}">
+        {{ caption }}{% if id == active_page %}<span class="sr-only">(current)</span>{% endif %}
       </a>
       {% endfor %}
     </div>

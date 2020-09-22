@@ -118,7 +118,7 @@ def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> st
 
 
 def generate_website(
-    series: CompoundSeriesAnalysis, path: str, timestamp: dt.datetime
+    series: CompoundSeriesAnalysis, path: str, timestamp: dt.datetime, base_url: str
 ) -> None:
 
     generate_molecule_images(
@@ -142,32 +142,25 @@ def generate_website(
     os.makedirs(os.path.join(path, "transformations"), exist_ok=True)
 
     def write_html(filename: str, **kwargs: Any):
-        environment.get_template(filename).stream(**kwargs).dump(
-            os.path.join(path, filename)
-        )
+        environment.get_template(filename).stream(
+            base_url=base_url,
+            series=series,
+            sprint_number=get_sprint_number(series.metadata.description),
+            timestamp=timestamp,
+            KT_KCALMOL=KT_KCALMOL,
+            **kwargs,
+        ).dump(os.path.join(path, filename))
 
     write_html(
         "index.html",
-        sprint_number=get_sprint_number(series.metadata.description),
-        series=series,
         progress=_get_progress(series.metadata.fah_projects.complex_phase)
         or Progress(0, 1),
-        timestamp=timestamp,
-        KT_KCALMOL=KT_KCALMOL,
     )
 
-    write_html(
-        "compounds/index.html",
-        sprint_number=get_sprint_number(series.metadata.description),
-        series=series,
-        timestamp=timestamp,
-        KT_KCALMOL=KT_KCALMOL,
-    )
+    write_html("compounds/index.html")
 
     write_html(
         "transformations/index.html",
-        sprint_number=get_sprint_number(series.metadata.description),
-        series=series,
         microstate_detail={
             CompoundMicrostate(
                 compound_id=compound.metadata.compound_id,
@@ -176,6 +169,4 @@ def generate_website(
             for compound in series.compounds
             for microstate in compound.microstates
         },
-        timestamp=timestamp,
-        KT_KCALMOL=KT_KCALMOL,
     )
