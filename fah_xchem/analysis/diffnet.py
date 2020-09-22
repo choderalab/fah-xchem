@@ -1,6 +1,7 @@
+from collections import defaultdict
 import logging
 from math import log
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import networkx as nx
 import numpy as np
@@ -175,7 +176,6 @@ def combine_free_energies(
     node: CompoundMicrostate
     microstate: Microstate
 
-    # TODO: can we bypass graph construction and just derive the adjacency matrix?
     supergraph = build_transformation_graph(compounds, transformations)
 
     # Split supergraph into weakly-connected subgraphs
@@ -207,12 +207,13 @@ def combine_free_energies(
 
     # Inital MLE pass: compute microstate free energies without using
     # experimental reference values
-    for graph in valid_subgraphs:
+    for idx, graph in enumerate(valid_subgraphs):
         # NOTE: no node_factor argument in the following
         # (because we do not use experimental data for the first pass)
         g1s, _ = stats.mle(graph, factor="g_ij")
         for node, g1 in zip(graph.nodes, g1s):
             graph.nodes[node]["g1"] = g1
+            graph.nodes[node]["subgraph_index"] = idx
 
     # Use first-pass microstate free energies g_1[c,i] to distribute
     # compound-level experimental data g_exp_compound[c] over
@@ -242,12 +243,16 @@ def combine_free_energies(
 
         # Filter to nodes that are part of a connected subgraph with
         # at least one experimental measurement
-        # TODO: check for case where microstates are in different subgraphs
-        valid_nodes = [
-            (node, microstate)
-            for node, microstate in zip(nodes, compound.microstates)
-            if node in supergraph and "g1" in supergraph.nodes[node]
-        ]
+
+        subgraph_valid_nodes: Dict[int, List[Tuple[CompoundMicrostate, Microstate]]]
+        subgraph_valid_nodes = defaultdict(list)
+        for node, microstate in zip(nodes, compound.microstates):
+            if node in supergraph and "subgraph_index" in supergraph.nodes[node]:
+                idx = supergraph.nodes[node]["subgraph_index"]
+                subgraph_valid_nodes[idx].append((node, microstate))
+
+        # Pick the subgraph containing the largest number of microstates
+        valid_nodes = max(subgraph_valid_nodes.values(), key=lambda ns: len(ns))
 
         # Skip compound if none of its microstates are in a subgraph
         # with experimental data
