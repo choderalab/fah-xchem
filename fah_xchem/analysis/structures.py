@@ -335,7 +335,7 @@ def generate_representative_snapshot(
         max_binding_free_energy is not None
         and transformation.binding_free_energy.point > max_binding_free_energy
     ):
-        logging.warning(
+        logging.info(
             "Skipping snapshot for RUN %d. Binding free energy estimate %g exceeds threshold %g",
             transformation.transformation.run_id,
             transformation.binding_free_energy.point,
