@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>COVID Moonshot Sprint {{ sprint_number }} Analysis</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+<!--[if lt IE 9]><script src="js/html5shiv-printshiv.js" media="all"></script><![endif]-->
+<link href="https://fonts.googleapis.com/css2?family=Roboto&family=Roboto+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<style>
+html * {
+  font-family: 'Roboto', sans-serif;
+}
+
+span.updated {
+    color: gray;
+    font-style: italic;
+}
+
+td.smiles {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.75em;
+}
+
+td.binding span.estimate {
+    white-space: nowrap;
+}
+
+td.binding span.point {
+    font-weight: bold;
+}
+
+td.binding span.point > span.negative {
+    color: green;
+}
+
+td.binding span.stderr {
+    color: #555;
+}
+
+td.thumbnail {
+    text-align: center;
+}
+
+td.thumbnail img {
+    height: 80px;
+}
+</style>
+</head>
+<body class="mx-3">
+
+{% set navigation_bar = [
+    ("/", "index", "Summary"),
+    ("/compounds/", "compounds", "Compounds"),
+    ("/transformations/", "transformations", "Transformations")
+] -%}
+
+{% set active_page = active_page | default("index") -%}
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light mb-3">
+  <a class="navbar-brand" href="#">COVID Moonshot Sprint {{ sprint_number }}</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+    <div class="navbar-nav">
+      {% for href, id, caption in navigation_bar %}
+      <a class="nav-item nav-link {% if id == active_page %}active{% endif %}" href="{{ href | e }}">
+        {{ caption | e }}{% if id == active_page %}<span class="sr-only">(current)</span>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</nav>
+<div class="my-3">
+  <p>{{ series.metadata.description }}</p>
+  <p>Last updated {{ timestamp.isoformat() }}</p>
+</div>
+{% block content %}
+{% endblock %}
+</body>
+</html>
