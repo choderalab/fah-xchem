@@ -11,6 +11,7 @@ from urllib.parse import urljoin
 
 from ...schema import CompoundMicrostate, CompoundSeriesAnalysis, PointEstimate
 from ..constants import KT_KCALMOL
+from .molecules import get_image_filename
 
 
 def format_point(est: PointEstimate) -> str:
@@ -115,6 +116,7 @@ def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> st
     environment.filters["format_point"] = format_point
     environment.filters["format_stderr"] = format_stderr
     environment.filters["maybe_postera_link"] = maybe_postera_link
+    environment.filters["smiles_to_filename"] = get_image_filename
 
     return environment.get_template("index.html").render(
         sprint_number=get_sprint_number(series.metadata.description),

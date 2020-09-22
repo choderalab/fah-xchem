@@ -119,7 +119,10 @@ def generate_artifacts(
     output_dir: str = "results",
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = None,
+    log: str = "WARN",
 ) -> None:
+
+    logging.basicConfig(level=getattr(logging, log.upper()))
 
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
 
