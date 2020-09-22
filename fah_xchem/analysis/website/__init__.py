@@ -153,6 +153,7 @@ def generate_website(
         progress=_get_progress(series.metadata.fah_projects.complex_phase)
         or Progress(0, 1),
         timestamp=timestamp,
+        KT_KCALMOL=KT_KCALMOL,
     )
 
     write_html(
