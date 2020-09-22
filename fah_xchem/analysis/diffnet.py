@@ -262,12 +262,15 @@ def combine_free_energies(
             ]
         )
 
-        dgs = logsumexp(-gs) - gs  # TODO: check math
+        # Microstate populations are <= the overall compound
+        # population. Equivalently, microstate free energies are
+        # increased wrt compound free energy by an amount `dg`:
+        dgs = logsumexp(-gs) - gs
         assert (dgs >= 0).all()
 
         for (node, _), dg in zip(valid_nodes, dgs):
             if node in supergraph:
-                supergraph.nodes[node]["g_exp"] = g_exp_compound - dg
+                supergraph.nodes[node]["g_exp"] = g_exp_compound + dg
             else:
                 logging.warning(
                     "Compound microstate '%s' has experimental data, "
