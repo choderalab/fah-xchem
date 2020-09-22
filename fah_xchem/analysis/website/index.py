@@ -2,6 +2,7 @@ import datetime as dt
 from math import isfinite
 import logging
 import os
+import re
 import requests
 from urllib.parse import urljoin
 
@@ -10,12 +11,6 @@ from typing import NamedTuple, Optional
 
 from ...schema import CompoundMicrostate, CompoundSeriesAnalysis, PointEstimate
 from ..constants import KT_KCALMOL
-
-
-# TODO: remove hardcoded values
-SPRINT_NUMBER = 3
-NUM_GENS = 2687 * 50 * 6  # sprint 3
-PROJECT = 13424
 
 
 def format_point(est: PointEstimate) -> str:
@@ -86,13 +81,17 @@ def _get_progress(
     """
     url = urljoin(api_url, f"projects/{project}")
     try:
-        response = requests.get(url=url)
-        json = response.json()
+        response = requests.get(url=url).json()
     except Exception as exc:
         logging.warning("Failed to get progress from FAH work server: %s", exc)
         return None
 
-    return Progress(completed=json["gens_completed"], total=NUM_GENS)
+    return Progress(completed=response["gens_completed"], total=response["gens"])
+
+
+def get_sprint_number(description: str) -> Optional[int]:
+    match = re.search(r"Sprint (\d+)", description)
+    return int(match[1]) if match else None
 
 
 def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> str:
@@ -124,7 +123,7 @@ def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> st
     environment.filters["maybe_postera_link"] = maybe_postera_link
 
     return environment.from_string(template).render(
-        sprint=SPRINT_NUMBER,
+        sprint_number=get_sprint_number(series.metadata.description),
         series=series,
         microstate_detail={
             CompoundMicrostate(
@@ -135,6 +134,7 @@ def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> st
             for microstate in compound.microstates
         },
         timestamp=timestamp,
-        progress=_get_progress(PROJECT) or Progress(0, 1),
+        progress=_get_progress(series.metadata.fah_projects.complex_phase)
+        or Progress(0, 1),
         KT_KCALMOL=KT_KCALMOL,
     )
