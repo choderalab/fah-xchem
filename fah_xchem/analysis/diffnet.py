@@ -299,7 +299,7 @@ def combine_free_energies(
             }
         )
 
-    def get_compound_analysis(compound: Compound) -> Optional[CompoundAnalysis]:
+    def get_compound_analysis(compound: Compound) -> CompoundAnalysis:
 
         microstates = [
             MicrostateAnalysis(
@@ -314,19 +314,19 @@ def combine_free_energies(
             for microstate in compound.microstates
         ]
 
+        free_energy: Optional[PointEstimate]
         try:
-            return CompoundAnalysis(
-                metadata=compound.metadata,
-                microstates=microstates,
-                free_energy=get_compound_free_energy(microstates),
-            )
+            free_energy = get_compound_free_energy(microstates)
         except AnalysisError as exc:
             logging.warning(
                 "Failed to estimate free energy for compound '%s': %s",
                 compound.metadata.compound_id,
                 exc,
             )
-            return None
+            free_energy = None
 
-    results = [get_compound_analysis(compound) for compound in compounds]
-    return [r for r in results if r is not None]
+        return CompoundAnalysis(
+            metadata=compound.metadata, microstates=microstates, free_energy=free_energy
+        )
+
+    return [get_compound_analysis(compound) for compound in compounds]
