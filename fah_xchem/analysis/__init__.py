@@ -137,6 +137,7 @@ def analyze_compound_series(
             len(series.transformations),
         )
 
+    logging.info("Running DiffNet compound free energy analysis")
     compounds = combine_free_energies(series.compounds, transformations)
 
     return CompoundSeriesAnalysis(
@@ -163,6 +164,7 @@ def generate_artifacts(
         data_dir, f"PROJ{analysis.metadata.fah_projects.complex_phase}"
     )
 
+    logging.info("Generating representative snapshots")
     generate_representative_snapshots(
         transformations=analysis.transformations,
         project_dir=complex_project_dir,
@@ -173,6 +175,7 @@ def generate_artifacts(
         num_procs=num_procs,
     )
 
+    logging.info("Generating analysis plots")
     generate_plots(
         analysis=analysis,
         timestamp=timestamp,
@@ -180,5 +183,8 @@ def generate_artifacts(
         num_procs=num_procs,
     )
 
+    logging.info("Generating pdf report")
     generate_report(analysis, output_dir)
+
+    logging.info("Generating website")
     generate_website(series_analysis=analysis, path=output_dir, timestamp=timestamp)
