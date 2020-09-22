@@ -205,7 +205,7 @@ def combine_free_energies(
             len(connected_subgraphs),
         )
 
-    # Inital MLE pass: compute relative free energies without using
+    # Inital MLE pass: compute microstate free energies without using
     # experimental reference values
     for graph in valid_subgraphs:
         # NOTE: no node_factor argument in the following
@@ -214,9 +214,9 @@ def combine_free_energies(
         for node, g1 in zip(graph.nodes, g1s):
             graph.nodes[node]["g1"] = g1
 
-    # Use microstate-level relative free energies g_1[c,i] to
-    # distribute compound-level experimental data g_exp_compound[c]
-    # over microstates, using the formula:
+    # Use first-pass microstate free energies g_1[c,i] to distribute
+    # compound-level experimental data g_exp_compound[c] over
+    # microstates, using the formula:
     #
     #    g_exp[c,i] = g_exp_compound[c]
     #               - ln( exp(-(s[c,i] + g_1[c,i]))
@@ -278,8 +278,10 @@ def combine_free_energies(
                     node.microstate_id,
                 )
 
-    # Second pass: use microstate relative free energies and compound
-    # experimental data to compute microstate absolute free energies.
+    # Second pass: use first-pass microstate free energies and
+    # compound experimental data to compute microstate absolute free
+    # energies.
+
     # Process each subgraph, collecting microstate free energy results
     microstate_free_energy = {}
     for g in valid_subgraphs:
