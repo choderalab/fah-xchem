@@ -179,7 +179,7 @@ def generate_artifacts(
     generate_plots(
         analysis=analysis,
         timestamp=timestamp,
-        output_dir=os.path.join(output_dir, "plots"),
+        output_dir=output_dir,
         num_procs=num_procs,
     )
 
@@ -187,4 +187,4 @@ def generate_artifacts(
     generate_report(analysis, output_dir)
 
     logging.info("Generating website")
-    generate_website(series_analysis=analysis, path=output_dir, timestamp=timestamp)
+    generate_website(series=analysis, path=output_dir, timestamp=timestamp)

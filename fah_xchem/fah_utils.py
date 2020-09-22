@@ -2,7 +2,7 @@ from glob import glob
 import logging
 import os
 import re
-from typing import List, NamedTuple, Optional
+from typing import List, Optional
 
 from .schema import DataPath, FahConfig
 
