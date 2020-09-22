@@ -251,13 +251,13 @@ def combine_free_energies(
                 idx = supergraph.nodes[node]["subgraph_index"]
                 subgraph_valid_nodes[idx].append((node, microstate))
 
-        # Pick the subgraph containing the largest number of microstates
-        valid_nodes = max(subgraph_valid_nodes.values(), key=lambda ns: len(ns))
-
         # Skip compound if none of its microstates are in a subgraph
         # with experimental data
-        if not valid_nodes:
+        if not subgraph_valid_nodes:
             continue
+
+        # Pick the subgraph containing the largest number of microstates
+        valid_nodes = max(subgraph_valid_nodes.values(), key=lambda ns: len(ns))
 
         # gs = s[c,i] + g_1[c,i]
         gs = np.array(
