@@ -3,11 +3,11 @@ from math import isfinite
 import logging
 import os
 import re
+from typing import NamedTuple, Optional
+
+import jinja2
 import requests
 from urllib.parse import urljoin
-
-from jinja2 import Environment
-from typing import NamedTuple, Optional
 
 from ...schema import CompoundMicrostate, CompoundSeriesAnalysis, PointEstimate
 from ..constants import KT_KCALMOL
@@ -100,29 +100,23 @@ def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> st
 
     Parameters
     ----------
-    analysis : Analysis
-        Analysis results
+    series : Analysis
+        Compound series analysis results
 
     Returns
     -------
     str
-        Report html
+        Website html
     """
 
-    template_filename = os.path.join(
-        os.path.dirname(__file__), "templates", "index.html"
-    )
-
-    with open(template_filename, "r") as template_file:
-        template = template_file.read()
-
-    environment = Environment()
-
+    template_path = os.path.join(os.path.dirname(__file__), "templates")
+    template_loader = jinja2.FileSystemLoader(searchpath=template_path)
+    environment = jinja2.Environment(loader=template_loader)
     environment.filters["format_point"] = format_point
     environment.filters["format_stderr"] = format_stderr
     environment.filters["maybe_postera_link"] = maybe_postera_link
 
-    return environment.from_string(template).render(
+    return environment.get_template("index.html").render(
         sprint_number=get_sprint_number(series.metadata.description),
         series=series,
         microstate_detail={
