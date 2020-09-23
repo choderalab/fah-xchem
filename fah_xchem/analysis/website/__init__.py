@@ -209,7 +209,7 @@ def generate_website(
     def get_transformations_page(start_index, end_index):
         return (
             "transformations/index.html"
-            if start_index == 0
+            if start_index == 1
             else f"transformations/index-{start_index}-{end_index}.html"
         )
 
