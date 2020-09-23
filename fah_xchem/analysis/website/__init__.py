@@ -143,7 +143,7 @@ def generate_website(
 
     def write_html(filename: str, **kwargs: Any):
         environment.get_template(filename).stream(
-            base_url=base_url,
+            base_url=base_url if base_url.endswith("/") else f"{base_url}/",
             series=series,
             sprint_number=get_sprint_number(series.metadata.description),
             timestamp=timestamp,
