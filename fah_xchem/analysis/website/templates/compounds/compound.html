@@ -33,7 +33,7 @@
   </tr>
 </table>
 <h4>Transformations</h4>
-{% for transformation in series.transformations | selectattr("initial_microstate.compound_id", "equalto", compound.metadata.compound_id) | sort(attribute="run_id") %}
+{% for transformation in transformations %}
 <tr>
   <td >RUN{{ transformation.transformation.run_id }}</td>
   <td>{{ transformation.transformation.initial_microstate.microstate_id | maybe_postera_link}}</td>

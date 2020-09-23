@@ -185,6 +185,14 @@ def generate_website(
             "compounds/compound.html",
             output_file=f"compounds/{compound.metadata.compound_id}",
             compound=compound,
+            transformations=[
+                transformation
+                for transformation in series.transformations
+                if transformation.transformation.initial_microstate.compound_id
+                == compound.metadata.compound_id
+                if transformation.transformation.final_microstate.compound_id
+                == compound.metadata.compound_id
+            ],
         )
 
     write_html(
