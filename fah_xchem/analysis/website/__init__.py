@@ -170,6 +170,14 @@ def generate_website(
             timestamp=timestamp,
             fah_xchem_version=get_versions()["version"],
             KT_KCALMOL=KT_KCALMOL,
+            microstate_detail={
+                CompoundMicrostate(
+                    compound_id=compound.metadata.compound_id,
+                    microstate_id=microstate.microstate.microstate_id,
+                ): (compound.metadata, microstate.microstate)
+                for compound in series.compounds
+                for microstate in compound.microstates
+            },
             **kwargs,
         ).dump(os.path.join(path, output_file))
 
@@ -228,12 +236,4 @@ def generate_website(
             prev_page=get_transformations_page(*prev_page[0]) if prev_page else None,
             next_page=get_transformations_page(*next_page[0]) if next_page else None,
             transformations=transformations,
-            microstate_detail={
-                CompoundMicrostate(
-                    compound_id=compound.metadata.compound_id,
-                    microstate_id=microstate.microstate.microstate_id,
-                ): (compound.metadata, microstate.microstate)
-                for compound in series.compounds
-                for microstate in compound.microstates
-            },
         )
