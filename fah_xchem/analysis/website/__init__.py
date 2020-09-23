@@ -233,7 +233,6 @@ def generate_website(
         pages,
         pages[1:] + [None],
     ):
-        print(start_index, end_index)
         write_transformations_html(
             output_file=get_transformations_page(start_index, end_index),
             start_index=start_index,
