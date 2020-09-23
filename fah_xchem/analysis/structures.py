@@ -371,6 +371,7 @@ def generate_representative_snapshot(
 
         # Write protein PDB
         name = f"{ligand}_protein"
+        os.makedirs(os.path.join(output_dir, f"RUN{run_id}"), exist_ok=True)
 
         sliced_snapshots["protein"].save(
             os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb")
