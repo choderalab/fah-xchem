@@ -210,9 +210,11 @@ def combine_free_energies(
     for idx, graph in enumerate(valid_subgraphs):
         # NOTE: no node_factor argument in the following
         # (because we do not use experimental data for the first pass)
-        g1s, _ = stats.mle(graph, factor="g_ij")
-        for node, g1 in zip(graph.nodes, g1s):
+        g1s, C1 = stats.mle(graph, factor="g_ij")
+        errs = np.sqrt(np.diag(C1))
+        for node, g1, dg1 in zip(graph.nodes, g1s, errs):
             graph.nodes[node]["g1"] = g1
+            graph.nodes[node]["dg1"] = dg1
             graph.nodes[node]["subgraph_index"] = idx
 
     # Use first-pass microstate free energies g_1[c,i] to distribute
@@ -290,31 +292,30 @@ def combine_free_energies(
     # compound experimental data to compute microstate absolute free
     # energies.
 
-    # Process each subgraph, collecting microstate free energy results
-    microstate_free_energy = {}
-    for g in valid_subgraphs:
-        gs, C = stats.mle(g, factor="g_ij", node_factor="g_exp")
+    for graph in valid_subgraphs:
+        gs, C = stats.mle(graph, factor="g_ij", node_factor="g_exp")
         errs = np.sqrt(np.diag(C))
-        microstate_free_energy.update(
-            {
-                microstate: PointEstimate(point=point, stderr=stderr)
-                for microstate, point, stderr in zip(g.nodes(), gs, errs)
-            }
+        for node, g, dg in zip(graph.nodes, gs, errs):
+            graph.nodes[node]["g"] = g
+            graph.nodes[node]["dg"] = dg
+
+    def get_microstate_analysis(microstate: Microstate) -> MicrostateAnalysis:
+        node = CompoundMicrostate(
+            compound_id=compound.metadata.compound_id,
+            microstate_id=microstate.microstate_id,
+        )
+        data = supergraph.nodes.get(node)
+
+        return MicrostateAnalysis(
+            microstate=microstate,
+            free_energy=data.get("free_energy") if data else None,
+            first_pass_free_energy=data.get("first_pass_free_energy") if data else None,
         )
 
     def get_compound_analysis(compound: Compound) -> CompoundAnalysis:
 
         microstates = [
-            MicrostateAnalysis(
-                microstate=microstate,
-                free_energy=microstate_free_energy.get(
-                    CompoundMicrostate(
-                        compound_id=compound.metadata.compound_id,
-                        microstate_id=microstate.microstate_id,
-                    )
-                ),
-            )
-            for microstate in compound.microstates
+            get_microstate_analysis(microstate) for microstate in compound.microstates
         ]
 
         free_energy: Optional[PointEstimate]

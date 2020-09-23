@@ -132,12 +132,14 @@ class TransformationAnalysis(Model):
 class MicrostateAnalysis(Model):
     microstate: Microstate
     free_energy: Optional[PointEstimate]
+    first_pass_free_energy: Optional[PointEstimate]
 
 
 class CompoundAnalysis(Model):
     metadata: CompoundMetadata
     microstates: List[MicrostateAnalysis]
     free_energy: Optional[PointEstimate]
+    first_pass_free_energy: Optional[PointEstimate]
 
 
 class CompoundSeriesAnalysis(Model):
