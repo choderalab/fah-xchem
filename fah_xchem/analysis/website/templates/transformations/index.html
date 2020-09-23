@@ -7,8 +7,8 @@
     <th colspan=4>Initial microstate</th>
     <th colspan=2>Final microstate</th>
     <th>ΔΔG / kcal mol<sup>-1</sup></th>
-    <th colspan=2>Work distributions</th>
-    <th colspan=2>Convergence</th>
+    <th>Work distributions</th>
+    <th>Convergence</th>
   </tr>
   {% for transformation in (series.transformations | sort(attribute="transformation.run_id")) %}
   <tr>
@@ -42,24 +42,14 @@
       </span>
     </td>
     <td class="thumbnail">
-      <a href="transformations/RUN{{ transformation.transformation.run_id }}/works.png">
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/works.pdf">
         <img src="transformations/RUN{{ transformation.transformation.run_id }}/works.png" alt="work distributions">
       </a>
-    <td>
-      <a href="transformations/RUN{{ transformation.transformation.run_id }}/works.pdf">
-        <button class="btn btn-outline-primary">pdf</button>
-      </a>
-    </td>
     </td>
     <td class="thumbnail">
-      <a href="transformations/RUN{{ transformation.transformation.run_id }}/convergence.png">
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/convergence.pdf">
         <img src="transformations/RUN{{ transformation.transformation.run_id }}/convergence.png" alt="convergence plot">
       </a>
-    <td>
-      <a href="transformations/RUN{{ transformation.transformation.run_id }}/convergence.pdf">
-        <button class="btn btn-outline-primary">pdf</button>
-      </a>
-    </td>
     </td>
   </tr>
   {% endfor %}
