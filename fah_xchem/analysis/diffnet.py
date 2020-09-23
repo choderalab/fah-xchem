@@ -300,10 +300,12 @@ def combine_free_energies(
             graph.nodes[node]["dg"] = dg
 
     def get_microstate_analysis(microstate: Microstate) -> MicrostateAnalysis:
+
         node = CompoundMicrostate(
             compound_id=compound.metadata.compound_id,
             microstate_id=microstate.microstate_id,
         )
+
         data = supergraph.nodes.get(node)
 
         return MicrostateAnalysis(

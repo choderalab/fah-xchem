@@ -2,13 +2,14 @@
 {% set active_page = "microstates" %}
 {% block content %}
 <h3>Top 100 microstates</h3>
+<h3>Microstates</h3>
 <div class="my-3">See <a href="analysis.json">analysis.json</a> for complete results.</div>
 <table class="table table-striped table-hover">
   <tr>
     <th>Rank</th>
     <th colspan="2">Microstate</th>
     <th>SMILES</th>
-    <th>ΔΔG / kcal mol<sup>-1</sup></th>
+    <th>ΔΔG / kcal M<sup>-1</sup></th>
   </tr>
   {% for microstate in (microstates | selectattr("free_energy", "ne", None) | sort(attribute="free_energy.point"))[:100] %}
   <tr>

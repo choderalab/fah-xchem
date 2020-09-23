@@ -180,6 +180,12 @@ def generate_website(
     )
 
     write_html("compounds/index.html")
+    for compound in series.compounds:
+        write_html(
+            "compounds/compound.html",
+            output_file=f"compounds/{compound.metadata.compound_id}",
+            compound=compound,
+        )
 
     write_html(
         "microstates/index.html",
@@ -190,7 +196,7 @@ def generate_website(
         ],
     )
 
-    # Generate transformations pages
+    # Generate transformations index pages
 
     def get_transformations_page(start_index, end_index):
         return (
