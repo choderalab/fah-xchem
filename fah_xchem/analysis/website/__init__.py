@@ -183,7 +183,7 @@ def generate_website(
     for compound in series.compounds:
         write_html(
             "compounds/compound.html",
-            output_file=f"compounds/{compound.metadata.compound_id}",
+            output_file=f"compounds/{compound.metadata.compound_id}.html",
             compound=compound,
             transformations=[
                 transformation
