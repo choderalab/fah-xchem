@@ -1,4 +1,5 @@
 import datetime as dt
+from functools import partial
 import logging
 from math import isfinite
 import os
@@ -117,8 +118,22 @@ def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> st
     """
 
 
+def _paginate(items, items_per_page):
+    return (
+        (
+            (start, min(len(items), start + items_per_page - 1)),
+            items[start : start + items_per_page],
+        )
+        for start in range(0, len(items), items_per_page)
+    )
+
+
 def generate_website(
-    series: CompoundSeriesAnalysis, path: str, timestamp: dt.datetime, base_url: str
+    series: CompoundSeriesAnalysis,
+    path: str,
+    timestamp: dt.datetime,
+    base_url: str,
+    transformations_per_page: int = 1000,
 ) -> None:
 
     generate_molecule_images(
@@ -141,8 +156,14 @@ def generate_website(
     for subdir in ["compounds", "microstates", "transformations"]:
         os.makedirs(os.path.join(path, subdir), exist_ok=True)
 
-    def write_html(filename: str, **kwargs: Any):
-        environment.get_template(filename).stream(
+    def write_html(
+        template_file: str, output_file: Optional[str] = None, **kwargs: Any
+    ):
+
+        if output_file is None:
+            output_file = template_file
+
+        environment.get_template(template_file).stream(
             base_url=base_url if base_url.endswith("/") else f"{base_url}/",
             series=series,
             sprint_number=get_sprint_number(series.metadata.description),
@@ -150,7 +171,7 @@ def generate_website(
             fah_xchem_version=get_versions()["version"],
             KT_KCALMOL=KT_KCALMOL,
             **kwargs,
-        ).dump(os.path.join(path, filename))
+        ).dump(os.path.join(path, output_file))
 
     write_html(
         "index.html",
@@ -169,8 +190,18 @@ def generate_website(
         ],
     )
 
-    write_html(
-        "transformations/index.html",
+    # Generate transformations pages
+
+    def get_transformations_page(start_index, end_index):
+        return (
+            "transformations/index.html"
+            if start_index == 0
+            else f"transformations/index-{start_index}-{end_index}.html"
+        )
+
+    write_transformations_html = partial(
+        write_html,
+        template_file="transformations/index.html",
         microstate_detail={
             CompoundMicrostate(
                 compound_id=compound.metadata.compound_id,
@@ -180,3 +211,28 @@ def generate_website(
             for microstate in compound.microstates
         },
     )
+
+    pages = list(_paginate(series.transformations, transformations_per_page))
+
+    for (prev_page, ((start_index, end_index), transformations), next_page) in zip(
+        [None] + pages,
+        pages,
+        pages[1:] + [None],
+    ):
+        print(start_index, end_index)
+        write_transformations_html(
+            output_file=get_transformations_page(start_index, end_index),
+            start_index=start_index,
+            end_index=end_index,
+            prev_page=get_transformations_page(*prev_page[0]) if prev_page else None,
+            next_page=get_transformations_page(*next_page[0]) if next_page else None,
+            transformations=transformations,
+            microstate_detail={
+                CompoundMicrostate(
+                    compound_id=compound.metadata.compound_id,
+                    microstate_id=microstate.microstate.microstate_id,
+                ): (compound.metadata, microstate.microstate)
+                for compound in series.compounds
+                for microstate in compound.microstates
+            },
+        )
