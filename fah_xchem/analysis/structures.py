@@ -371,20 +371,21 @@ def generate_representative_snapshot(
 
         # Write protein PDB
         name = f"{ligand}_protein"
+
         sliced_snapshots["protein"].save(
-            os.path.join(output_dir, f"RUN{run_id}-{name}.pdb")
+            os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb")
         )
 
         # Write old and new complex PDBs
         name = f"{ligand}_complex"
-        sliced_snapshots[name].save(os.path.join(output_dir, f"RUN{run_id}-{name}.pdb"))
+        sliced_snapshots[name].save(os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb"))
 
         # Write ligand SDFs
         from openeye import oechem
 
         name = f"{ligand}_ligand"
         with oechem.oemolostream(
-            os.path.join(output_dir, f"RUN{run_id}-{name}.sdf")
+            os.path.join(output_dir, f"RUN{run_id}", f"{name}.sdf")
         ) as ofs:
             oechem.OEWriteMolecule(ofs, components[name])
 
