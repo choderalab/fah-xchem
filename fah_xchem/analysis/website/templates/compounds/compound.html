@@ -12,10 +12,16 @@
   </tr>
   <tr>
     <td>ΔΔG / kcal M<sup>-1</sup></td>
+    <td>
+      {% if compound.free_energy %}
       <span class="estimate">
         <span class="point">{{ (compound.free_energy * KT_KCALMOL) | format_point }}</span>
         <span class="stderr"> ± {{ (compound.free_energy * KT_KCALMOL) | format_stderr }}</span>
       </span>
+      {% else %}
+      no data
+      {% endif %}
+    </td>
   </tr>
   <tr>
     <td>IC50 / µM</td>
