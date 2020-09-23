@@ -299,26 +299,27 @@ def combine_free_energies(
             graph.nodes[node]["g"] = g
             graph.nodes[node]["dg"] = dg
 
-    def get_microstate_analysis(microstate: Microstate) -> MicrostateAnalysis:
-
-        node = CompoundMicrostate(
-            compound_id=compound.metadata.compound_id,
-            microstate_id=microstate.microstate_id,
-        )
-
-        data = supergraph.nodes.get(node)
-
-        return MicrostateAnalysis(
-            microstate=microstate,
-            free_energy=PointEstimate(point=data["g"], stderr=data["dg"])
-            if data and "g" in data and "dg" in data
-            else None,
-            first_pass_free_energy=PointEstimate(point=data["g1"], stderr=data["dg1"])
-            if data and "g1" in data and "dg1" in data
-            else None,
-        )
-
     def get_compound_analysis(compound: Compound) -> CompoundAnalysis:
+        def get_microstate_analysis(microstate: Microstate) -> MicrostateAnalysis:
+
+            node = CompoundMicrostate(
+                compound_id=compound.metadata.compound_id,
+                microstate_id=microstate.microstate_id,
+            )
+
+            data = supergraph.nodes.get(node)
+
+            return MicrostateAnalysis(
+                microstate=microstate,
+                free_energy=PointEstimate(point=data["g"], stderr=data["dg"])
+                if data and "g" in data and "dg" in data
+                else None,
+                first_pass_free_energy=PointEstimate(
+                    point=data["g1"], stderr=data["dg1"]
+                )
+                if data and "g1" in data and "dg1" in data
+                else None,
+            )
 
         microstates = [
             get_microstate_analysis(microstate) for microstate in compound.microstates
