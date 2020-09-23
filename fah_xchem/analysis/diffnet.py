@@ -1,6 +1,5 @@
 from collections import defaultdict
 import logging
-from math import log
 from typing import Dict, List, Optional, Tuple
 
 import networkx as nx
@@ -41,7 +40,7 @@ def pIC50_to_DG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> floa
         logging.warning("Expecting IC50 in M units. Please check.")
 
     Ki = ic50 / (1 + s_conc / Km)
-    return log(Ki)
+    return np.log(Ki)
 
 
 def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEstimate:
