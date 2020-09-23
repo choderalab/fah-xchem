@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set active_page = "compounds" %}
 {% block content %}
-<h3>{{ compound.compound_id | maybe_postera_link }}</h3>
+<h3>{{ compound.metadata.compound_id | maybe_postera_link }}</h3>
 <a href="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg">
   <img src="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ compound.metadata.compound_id }}">
 </a>
