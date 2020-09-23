@@ -138,8 +138,8 @@ def generate_website(
     environment.filters["maybe_postera_link"] = maybe_postera_link
     environment.filters["smiles_to_filename"] = get_image_filename
 
-    os.makedirs(os.path.join(path, "compounds"), exist_ok=True)
-    os.makedirs(os.path.join(path, "transformations"), exist_ok=True)
+    for subdir in ["compounds", "microstates", "transformations"]:
+        os.makedirs(os.path.join(path, subdir), exist_ok=True)
 
     def write_html(filename: str, **kwargs: Any):
         environment.get_template(filename).stream(
@@ -159,6 +159,15 @@ def generate_website(
     )
 
     write_html("compounds/index.html")
+
+    write_html(
+        "microstates/index.html",
+        microstates=[
+            microstate
+            for compound in series.compounds
+            for microstate in compound.microstates
+        ],
+    )
 
     write_html(
         "transformations/index.html",
