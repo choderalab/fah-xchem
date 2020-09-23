@@ -276,6 +276,8 @@ def combine_free_energies(
         for (node, _), dg in zip(valid_nodes, dgs):
             if node in supergraph:
                 supergraph.nodes[node]["g_exp"] = g_exp_compound + dg
+                # NOTE: naming of uncertainty fixed by Arsenic convention
+                supergraph.nodes[node]["g_dexp"] = pIC50_to_DG(0.5)
             else:
                 logging.warning(
                     "Compound microstate '%s' has experimental data, "
