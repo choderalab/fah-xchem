@@ -13,7 +13,7 @@
   {% for compound in (series.compounds | selectattr("free_energy", "ne", None) | sort(attribute="free_energy.point"))[:100] %}
   <tr>
     <td class="rank">{{ loop.index }}</td>
-    <td ><a href="compounds/{{ compound.metadata.compound_id }}.html"{{ compound.metadata.compound_id }}</a></td>
+    <td ><a href="compounds/{{ compound.metadata.compound_id }}.html">{{ compound.metadata.compound_id }}</a></td>
     <td class="thumbnail">
       <a href="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg">
         <img src="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ compound.metadata.compound_id }}">
