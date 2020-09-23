@@ -213,19 +213,6 @@ def generate_website(
             else f"transformations/index-{start_index}-{end_index}.html"
         )
 
-    write_transformations_html = partial(
-        write_html,
-        template_file="transformations/index.html",
-        microstate_detail={
-            CompoundMicrostate(
-                compound_id=compound.metadata.compound_id,
-                microstate_id=microstate.microstate.microstate_id,
-            ): (compound.metadata, microstate.microstate)
-            for compound in series.compounds
-            for microstate in compound.microstates
-        },
-    )
-
     pages = list(_paginate(series.transformations, transformations_per_page))
 
     for (prev_page, ((start_index, end_index), transformations), next_page) in zip(
@@ -233,7 +220,8 @@ def generate_website(
         pages,
         pages[1:] + [None],
     ):
-        write_transformations_html(
+        write_html(
+            template_file="transformations/index.html",
             output_file=get_transformations_page(start_index, end_index),
             start_index=start_index,
             end_index=end_index,
