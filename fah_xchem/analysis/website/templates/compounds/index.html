@@ -2,7 +2,7 @@
 {% set active_page = "compounds" %}
 {% block content %}
 <h3>Top 100 compounds</h3>
-<div class="my-3">See <a href="../analysis.json">analysis.json</a> for complete results.</div>
+<div class="my-3">See <a href="analysis.json">analysis.json</a> for complete results.</div>
 <table class="table table-striped table-hover">
   <tr>
     <th>Rank</th>
@@ -15,8 +15,8 @@
     <td class="rank">{{ loop.index }}</td>
     <td >{{ compound.metadata.compound_id | maybe_postera_link }}</td>
     <td class="thumbnail">
-      <a href="../molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg">
-        <img src="../molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ compound.metadata.compound_id }}">
+      <a href="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg">
+        <img src="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ compound.metadata.compound_id }}">
       </a>
     </td>
     <td class="smiles">{{  compound.metadata.smiles }}</td>

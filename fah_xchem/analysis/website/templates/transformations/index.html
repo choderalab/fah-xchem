@@ -15,8 +15,8 @@
     <td >RUN{{ transformation.transformation.run_id }}</td>
     <td>{{ transformation.transformation.initial_microstate.microstate_id | maybe_postera_link}}</td>
     <td class="thumbnail">
-      <a href="../molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg">
-        <img src="../molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles }}">
+      <a href="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg">
+        <img src="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles }}">
       </a>
     </td>
     <td>
@@ -31,8 +31,8 @@
     </td>
     <td>{{ transformation.transformation.final_microstate.microstate_id | maybe_postera_link }}</td>
     <td class="thumbnail">
-      <a href="../molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg">
-        <img src="../molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.final_microstate][1].smiles }}">
+      <a href="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg">
+        <img src="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.final_microstate][1].smiles }}">
       </a>
     </td>
     <td class="binding">
@@ -42,21 +42,21 @@
       </span>
     </td>
     <td class="thumbnail">
-      <a href="RUN{{ transformation.transformation.run_id }}/works.png">
-        <img src="RUN{{ transformation.transformation.run_id }}/works.png" alt="work distributions">
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/works.png">
+        <img src="transformations/RUN{{ transformation.transformation.run_id }}/works.png" alt="work distributions">
       </a>
     <td>
-      <a href="RUN{{ transformation.transformation.run_id }}/works.pdf">
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/works.pdf">
         <button class="btn btn-outline-primary">pdf</button>
       </a>
     </td>
     </td>
     <td class="thumbnail">
-      <a href="RUN{{ transformation.transformation.run_id }}/convergence.png">
-        <img src="RUN{{ transformation.transformation.run_id }}/convergence.png" alt="convergence plot">
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/convergence.png">
+        <img src="transformations/RUN{{ transformation.transformation.run_id }}/convergence.png" alt="convergence plot">
       </a>
     <td>
-      <a href="RUN{{ transformation.transformation.run_id }}/convergence.pdf">
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/convergence.pdf">
         <button class="btn btn-outline-primary">pdf</button>
       </a>
     </td>
