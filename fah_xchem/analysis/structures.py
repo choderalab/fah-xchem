@@ -379,7 +379,9 @@ def generate_representative_snapshot(
 
         # Write old and new complex PDBs
         name = f"{ligand}_complex"
-        sliced_snapshots[name].save(os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb"))
+        sliced_snapshots[name].save(
+            os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb")
+        )
 
         # Write ligand SDFs
         from openeye import oechem
