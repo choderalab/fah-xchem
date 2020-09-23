@@ -190,7 +190,7 @@ def generate_website(
                 for transformation in series.transformations
                 if transformation.transformation.initial_microstate.compound_id
                 == compound.metadata.compound_id
-                if transformation.transformation.final_microstate.compound_id
+                or transformation.transformation.final_microstate.compound_id
                 == compound.metadata.compound_id
             ],
         )
