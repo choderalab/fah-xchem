@@ -121,7 +121,7 @@ def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> st
 def _paginate(items, items_per_page):
     return (
         (
-            (start, min(len(items), start + items_per_page - 1)),
+            (start + 1, min(len(items), start + items_per_page)),
             items[start : start + items_per_page],
         )
         for start in range(0, len(items), items_per_page)
