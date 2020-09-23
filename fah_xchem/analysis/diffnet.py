@@ -74,7 +74,7 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
     g = np.array([x.point for x in penalized_free_energies])
     stderr = np.array([x.stderr for x in penalized_free_energies])
 
-    gc = logsumexp(-g)
+    gc = -logsumexp(-g)
     x = np.exp(-g)
     z = np.sum(x)
     dgc = -x / z
@@ -133,6 +133,7 @@ def build_transformation_graph(
             transformation.initial_microstate,
             transformation.final_microstate,
             g_ij=analysis.binding_free_energy.point,
+            # NOTE: name `g_dij` is derived by Arsenic from `g_ij`
             g_dij=analysis.binding_free_energy.stderr,
         )
 
