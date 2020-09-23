@@ -75,9 +75,9 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
     g = np.array([x.point for x in penalized_free_energies])
     stderr = np.array([x.stderr for x in penalized_free_energies])
 
+    gc = logsumexp(-g)
     x = np.exp(-g)
     z = np.sum(x)
-    gc = logsumexp(x)
     dgc = -x / z
 
     return PointEstimate(point=gc, stderr=np.sqrt(np.sum((dgc * stderr) ** 2)))
