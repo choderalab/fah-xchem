@@ -5,11 +5,11 @@ import os
 import re
 from typing import Any, NamedTuple, Optional
 
-
 import jinja2
 import requests
 from urllib.parse import urljoin
 
+from ..._version import get_versions
 from ...schema import CompoundMicrostate, CompoundSeriesAnalysis, PointEstimate
 from ..constants import KT_KCALMOL
 from .molecules import generate_molecule_images, get_image_filename
@@ -147,6 +147,7 @@ def generate_website(
             series=series,
             sprint_number=get_sprint_number(series.metadata.description),
             timestamp=timestamp,
+            fah_xchem_version=get_versions()["version"],
             KT_KCALMOL=KT_KCALMOL,
             **kwargs,
         ).dump(os.path.join(path, filename))
