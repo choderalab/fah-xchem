@@ -308,8 +308,8 @@ def combine_free_energies(
 
         return MicrostateAnalysis(
             microstate=microstate,
-            free_energy=data.get("free_energy") if data else None,
-            first_pass_free_energy=data.get("first_pass_free_energy") if data else None,
+            free_energy=data.get("g") if data else None,
+            first_pass_free_energy=data.get("dg") if data else None,
         )
 
     def get_compound_analysis(compound: Compound) -> CompoundAnalysis:
