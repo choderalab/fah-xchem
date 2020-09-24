@@ -155,6 +155,10 @@ def generate_artifacts(
     config: AnalysisConfig,
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = None,
+    snapshots: bool = True,
+    plots: bool = True,
+    report: bool = True,
+    website: bool = True,
 ) -> None:
 
     complex_project_dir = os.path.join(
@@ -165,29 +169,36 @@ def generate_artifacts(
         data_dir, f"PROJ{analysis.metadata.fah_projects.complex_phase}"
     )
 
-    logging.info("Generating representative snapshots")
-    generate_representative_snapshots(
-        transformations=analysis.transformations,
-        project_dir=complex_project_dir,
-        project_data_dir=complex_data_dir,
-        output_dir=os.path.join(output_dir, "transformations"),
-        max_binding_free_energy=config.max_binding_free_energy,
-        cache_dir=cache_dir,
-        num_procs=num_procs,
-    )
+    if snapshots:
+        logging.info("Generating representative snapshots")
+        generate_representative_snapshots(
+            transformations=analysis.transformations,
+            project_dir=complex_project_dir,
+            project_data_dir=complex_data_dir,
+            output_dir=os.path.join(output_dir, "transformations"),
+            max_binding_free_energy=config.max_binding_free_energy,
+            cache_dir=cache_dir,
+            num_procs=num_procs,
+        )
 
-    logging.info("Generating analysis plots")
-    generate_plots(
-        analysis=analysis,
-        timestamp=timestamp,
-        output_dir=output_dir,
-        num_procs=num_procs,
-    )
+    if plots:
+        logging.info("Generating analysis plots")
+        generate_plots(
+            analysis=analysis,
+            timestamp=timestamp,
+            output_dir=output_dir,
+            num_procs=num_procs,
+        )
 
-    logging.info("Generating pdf report")
-    generate_report(analysis, output_dir)
+    if snapshots and report:
+        logging.info("Generating pdf report")
+        generate_report(analysis, output_dir)
 
-    logging.info("Generating website")
-    generate_website(
-        series=analysis, path=output_dir, timestamp=timestamp, base_url=base_url
-    )
+    if website:
+        logging.info("Generating website")
+        generate_website(
+            series=analysis,
+            path=output_dir,
+            timestamp=timestamp,
+            base_url=base_url,
+        )

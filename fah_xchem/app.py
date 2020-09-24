@@ -106,6 +106,10 @@ def generate_artifacts(
     config_file: Optional[str] = None,
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = None,
+    snapshots: bool = True,
+    plots: bool = True,
+    report: bool = True,
+    website: bool = True,
     log: str = "WARN",
 ) -> None:
 
@@ -126,6 +130,10 @@ def generate_artifacts(
         config=config,
         cache_dir=cache_dir,
         num_procs=num_procs,
+        snapshots=snapshots,
+        plots=plots,
+        report=report,
+        website=website,
     )
 
 
