@@ -280,7 +280,7 @@ def combine_free_energies(
         Ka_is = p_is * np.exp(-g_exp_compound)
 
         # Convert to (positive) free energy difference
-        dg_is = -np.log(Ka_is)
+        dg_is = np.log(Ka_is)
 
         assert (dg_is >= 0).all()
 
