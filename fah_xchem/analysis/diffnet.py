@@ -36,7 +36,7 @@ def pIC50_to_DG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> floa
     """
     ic50 = 10 ** -pIC50
 
-    if ic50 > 1e-5:
+    if ic50 > 200e-6:
         logging.warning("Expecting IC50 in M units. Please check.")
 
     Ki = ic50 / (1 + s_conc / Km)
