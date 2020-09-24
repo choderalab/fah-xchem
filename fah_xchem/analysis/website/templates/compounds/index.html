@@ -1,19 +1,31 @@
 {% extends "base.html" %}
 {% set active_page = "compounds" %}
 {% block content %}
-<h3>Top 100 compounds</h3>
-<div class="my-3">See <a href="analysis.json">analysis.json</a> for complete results.</div>
+<h3>Compounds</h3>
+<div class="my-3">
+Showing {{ start_index }} through {{ end_index }} of {{ series.compounds | length }}
+<span style="white-space: nowrap;">
+{% if prev_page %}<a href={{ prev_page }}><i class="fas fa-backward px-1"></i></a>{% endif %}
+{% if next_page %}<a href={{ next_page }}><i class="fas fa-forward px-1"></i></a>{% endif %}
+</span>
+</div>
 <table class="table table-striped table-hover">
   <tr>
     <th>Rank</th>
     <th colspan="2">Compound</th>
     <th>SMILES</th>
-    <th>ΔΔG / kcal M<sup>-1</sup></th>
+    <th>ΔG / kcal M<sup>-1</sup></th>
   </tr>
-  {% for compound in (series.compounds | selectattr("free_energy", "ne", None) | sort(attribute="free_energy.point"))[:100] %}
+  {% for compound in compounds %}
   <tr>
     <td class="rank">{{ loop.index }}</td>
-    <td ><a href="compounds/{{ compound.metadata.compound_id }}.html">{{ compound.metadata.compound_id }}</a></td>
+    <td >
+      {% if loop.index <= num_top_compounds %}
+      <a href="compounds/{{ compound.metadata.compound_id }}.html">{{ compound.metadata.compound_id }}</a>
+      {% else %}
+      {{ compound.metadata.compound_id }}
+      {% endif %}
+    </td>
     <td class="thumbnail">
       <a href="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg">
         <img src="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ compound.metadata.compound_id }}">

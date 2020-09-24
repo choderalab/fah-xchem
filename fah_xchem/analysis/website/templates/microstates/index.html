@@ -2,15 +2,21 @@
 {% set active_page = "microstates" %}
 {% block content %}
 <h3>Microstates</h3>
-<div class="my-3">Tip: Only the top 100 are shown at this time. See <a href="analysis.json">analysis.json</a> for complete results.</div>
+<div class="my-3">
+Showing {{ start_index }} through {{ end_index }} of {{ total_microstates }}
+<span style="white-space: nowrap;">
+{% if prev_page %}<a href={{ prev_page }}><i class="fas fa-backward px-1"></i></a>{% endif %}
+{% if next_page %}<a href={{ next_page }}><i class="fas fa-forward px-1"></i></a>{% endif %}
+</span>
+</div>
 <table class="table table-striped table-hover">
   <tr>
     <th>Rank</th>
     <th colspan="2">Microstate</th>
     <th>SMILES</th>
-    <th>ΔΔG / kcal M<sup>-1</sup></th>
+    <th>ΔG / kcal M<sup>-1</sup></th>
   </tr>
-  {% for microstate in (microstates | selectattr("free_energy", "ne", None) | sort(attribute="free_energy.point"))[:100] %}
+  {% for microstate in microstates %}
   <tr>
     <td class="rank">{{ loop.index }}</td>
     <td >{{ microstate.microstate.microstate_id | maybe_postera_link }}</td>

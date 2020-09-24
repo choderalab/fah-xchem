@@ -8,6 +8,7 @@ from typing import Any, NamedTuple, Optional
 
 import jinja2
 import requests
+from rich.progress import track
 from urllib.parse import urljoin
 
 from ..._version import get_versions
@@ -128,12 +129,45 @@ def _paginate(items, items_per_page):
     )
 
 
+def _generate_paginated_index(
+    write_html, url_prefix, items, items_per_page, description
+):
+    pages = list(_paginate(items, items_per_page))
+
+    def get_page_name(start_index, end_index):
+        return (
+            f"{url_prefix}/index.html"
+            if start_index == 1
+            else f"{url_prefix}/index-{start_index}-{end_index}.html"
+        )
+
+    for (prev_page, ((start_index, end_index), page_items), next_page) in track(
+        zip(
+            [None] + pages,
+            pages,
+            pages[1:] + [None],
+        ),
+        description=description,
+        total=len(pages),
+    ):
+        write_html(
+            page_items,
+            template_file=f"{url_prefix}/index.html",
+            output_file=get_page_name(start_index, end_index),
+            start_index=start_index,
+            end_index=end_index,
+            prev_page=get_page_name(*prev_page[0]) if prev_page else None,
+            next_page=get_page_name(*next_page[0]) if next_page else None,
+        )
+
+
 def generate_website(
     series: CompoundSeriesAnalysis,
     path: str,
     timestamp: dt.datetime,
     base_url: str,
-    transformations_per_page: int = 1000,
+    items_per_page: int = 100,
+    num_top_compounds: int = 100,
 ) -> None:
 
     generate_molecule_images(
@@ -185,10 +219,30 @@ def generate_website(
         "index.html",
         progress=_get_progress(series.metadata.fah_projects.complex_phase)
         or Progress(0, 1),
+        num_top_compounds=num_top_compounds,
     )
 
-    write_html("compounds/index.html")
-    for compound in series.compounds:
+    compound_free_energies = [
+        (compound.free_energy.point, compound)
+        for compound in series.compounds
+        if compound.free_energy
+    ]
+    compounds_sorted = [p[1] for p in sorted(compound_free_energies)]
+
+    _generate_paginated_index(
+        write_html=lambda items, **kwargs: write_html(
+            compounds=items, num_top_compounds=num_top_compounds, **kwargs
+        ),
+        url_prefix="compounds",
+        items=compounds_sorted,
+        items_per_page=items_per_page,
+        description="Generating html for compounds index",
+    )
+
+    for compound in track(
+        compounds_sorted[:num_top_compounds],
+        description="Generating html for individual compound views",
+    ):
         write_html(
             "compounds/compound.html",
             output_file=f"compounds/{compound.metadata.compound_id}.html",
@@ -203,37 +257,29 @@ def generate_website(
             ],
         )
 
-    write_html(
-        "microstates/index.html",
-        microstates=[
-            microstate
-            for compound in series.compounds
-            for microstate in compound.microstates
-        ],
+    microstate_free_energies = [
+        (microstate.free_energy.point, microstate)
+        for compound in series.compounds
+        for microstate in compound.microstates
+        if microstate.free_energy
+    ]
+
+    microstates_sorted = [p[1] for p in sorted(microstate_free_energies)]
+
+    _generate_paginated_index(
+        write_html=lambda items, **kwargs: write_html(
+            microstates=items, total_microstates=len(microstates_sorted), **kwargs
+        ),
+        url_prefix="microstates",
+        items=microstates_sorted,
+        items_per_page=items_per_page,
+        description="Generating html for microstates index",
     )
 
-    # Generate transformations index pages
-
-    def get_transformations_page(start_index, end_index):
-        return (
-            "transformations/index.html"
-            if start_index == 1
-            else f"transformations/index-{start_index}-{end_index}.html"
-        )
-
-    pages = list(_paginate(series.transformations, transformations_per_page))
-
-    for (prev_page, ((start_index, end_index), transformations), next_page) in zip(
-        [None] + pages,
-        pages,
-        pages[1:] + [None],
-    ):
-        write_html(
-            template_file="transformations/index.html",
-            output_file=get_transformations_page(start_index, end_index),
-            start_index=start_index,
-            end_index=end_index,
-            prev_page=get_transformations_page(*prev_page[0]) if prev_page else None,
-            next_page=get_transformations_page(*next_page[0]) if next_page else None,
-            transformations=transformations,
-        )
+    _generate_paginated_index(
+        write_html=lambda items, **kwargs: write_html(transformations=items, **kwargs),
+        url_prefix="transformations",
+        items=series.transformations,
+        items_per_page=items_per_page,
+        description="Generating html for transformations index",
+    )
