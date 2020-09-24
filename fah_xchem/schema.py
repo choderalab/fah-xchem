@@ -139,7 +139,6 @@ class CompoundAnalysis(Model):
     metadata: CompoundMetadata
     microstates: List[MicrostateAnalysis]
     free_energy: Optional[PointEstimate]
-    first_pass_free_energy: Optional[PointEstimate]
 
 
 class CompoundSeriesAnalysis(Model):
