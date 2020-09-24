@@ -217,9 +217,9 @@ def combine_free_energies(
         # (because we do not use experimental data for the first pass)
         g1s, C1 = stats.mle(graph, factor="g_ij")
         errs = np.sqrt(np.diag(C1))
-        for node, g1, dg1 in zip(graph.nodes, g1s, errs):
+        for node, g1, g1_err in zip(graph.nodes, g1s, errs):
             graph.nodes[node]["g1"] = g1
-            graph.nodes[node]["dg1"] = dg1
+            graph.nodes[node]["g1_err"] = g1_err
             graph.nodes[node]["subgraph_index"] = idx
 
     # Use first-pass microstate free energies g_1[c,i] to distribute
@@ -266,21 +266,25 @@ def combine_free_energies(
         # Pick the subgraph containing the largest number of microstates
         valid_nodes = max(subgraph_valid_nodes.values(), key=lambda ns: len(ns))
 
-        # gs = s[c,i] + g_1[c,i]
-        gs = np.array(
+        g_is = np.array(
             [
                 microstate.free_energy_penalty.point + supergraph.nodes[node]["g1"]
                 for node, microstate in valid_nodes
             ]
         )
 
-        # Microstate populations are <= the overall compound
-        # population. Equivalently, microstate free energies are
-        # increased wrt compound free energy by an amount `dg`:
-        dgs = logsumexp(-gs) - gs
-        assert (dgs >= 0).all()
+        # Compute normalized microstate probabilities
+        p_is = np.exp(-g_is - logsumexp(-g_is))
 
-        for (node, _), dg in zip(valid_nodes, dgs):
+        # Apportion compound K_a according to microstate probability
+        Ka_is = p_is * np.exp(-g_exp_compound)
+
+        # Convert to (positive) free energy difference
+        dg_is = -np.log(Ka_is)
+
+        assert (dg_is >= 0).all()
+
+        for (node, _), dg in zip(valid_nodes, dg_is):
             if node in supergraph:
                 supergraph.nodes[node]["g_exp"] = g_exp_compound + dg
                 # NOTE: naming of uncertainty fixed by Arsenic convention
@@ -300,9 +304,9 @@ def combine_free_energies(
     for graph in valid_subgraphs:
         gs, C = stats.mle(graph, factor="g_ij", node_factor="g_exp")
         errs = np.sqrt(np.diag(C))
-        for node, g, dg in zip(graph.nodes, gs, errs):
+        for node, g, g_err in zip(graph.nodes, gs, errs):
             graph.nodes[node]["g"] = g
-            graph.nodes[node]["dg"] = dg
+            graph.nodes[node]["g_err"] = g_err
 
     def get_compound_analysis(compound: Compound) -> CompoundAnalysis:
         def get_microstate_analysis(microstate: Microstate) -> MicrostateAnalysis:
@@ -316,13 +320,13 @@ def combine_free_energies(
 
             return MicrostateAnalysis(
                 microstate=microstate,
-                free_energy=PointEstimate(point=data["g"], stderr=data["dg"])
-                if data and "g" in data and "dg" in data
+                free_energy=PointEstimate(point=data["g"], stderr=data["g_err"])
+                if data and "g" in data and "g_err" in data
                 else None,
                 first_pass_free_energy=PointEstimate(
-                    point=data["g1"], stderr=data["dg1"]
+                    point=data["g1"], stderr=data["g1_err"]
                 )
-                if data and "g1" in data and "dg1" in data
+                if data and "g1" in data and "g1_err" in data
                 else None,
             )
 
