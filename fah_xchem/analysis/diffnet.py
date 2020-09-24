@@ -289,17 +289,12 @@ def combine_free_energies(
         # Apportion compound K_a according to microstate probability
         Ka_is = p_is * np.exp(-g_exp_compound)
 
-        # Convert to (positive) free energy difference
-        dg_is = np.log(Ka_is)
-
-        assert (dg_is >= 0).all()
-
-        for (node, _), dg in zip(valid_nodes, dg_is):
+        for (node, _), Ka in zip(valid_nodes, Ka_is):
             if node in supergraph:
-                supergraph.nodes[node]["g_exp"] = g_exp_compound + dg
+                supergraph.nodes[node]["g_exp"] = -np.log(Ka)
                 # NOTE: naming of uncertainty fixed by Arsenic convention
                 # TODO: remove hard-coded value
-                supergraph.nodes[node]["g_dexp"] = 1.0
+                supergraph.nodes[node]["g_dexp"] = 0.1
             else:
                 logging.warning(
                     "Compound microstate '%s' has experimental data, "
