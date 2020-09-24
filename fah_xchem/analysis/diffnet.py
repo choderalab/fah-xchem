@@ -62,8 +62,13 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
     PointEstimate
         Dimensionless compound free energy estimate (in kT)
     """
+
+    log_Z = logsumexp(
+        [microstate.microstate.free_energy_penalty for microstate in microstates]
+    )
+
     penalized_free_energies = [
-        microstate.free_energy + microstate.microstate.free_energy_penalty
+        microstate.free_energy + microstate.microstate.free_energy_penalty - log_Z
         for microstate in microstates
         if microstate.free_energy is not None
     ]
