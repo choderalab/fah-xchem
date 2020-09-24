@@ -63,35 +63,38 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
         Dimensionless compound free energy estimate (in kT)
     """
 
-    # TODO: Propagate errors
-    log_Z = PointEstimate(
-        point=-logsumexp(
-            [
-                microstate.microstate.free_energy_penalty.point
-                for microstate in microstates
-            ]
-        ),
-        stderr=0.0,
-    )
-
-    penalized_free_energies = [
-        microstate.free_energy + microstate.microstate.free_energy_penalty - log_Z
-        for microstate in microstates
-        if microstate.free_energy is not None
+    microstate_free_energies = [
+        (ms.free_energy, ms.microstate.free_energy_penalty)
+        for ms in microstates
+        if ms.free_energy is not None
     ]
 
-    if not penalized_free_energies:
+    if not microstate_free_energies:
         raise InsufficientDataError("no microstate free energy estimates")
 
-    g = np.array([x.point for x in penalized_free_energies])
-    stderr = np.array([x.stderr for x in penalized_free_energies])
+    g = np.array([p[0].point for p in microstate_free_energies])
+    s = np.array([p[1].point for p in microstate_free_energies])
 
-    gc = -logsumexp(-g)
-    x = np.exp(-g)
-    z = np.sum(x)
-    dgc = -x / z
+    g_err = np.array([p[0].stderr for p in microstate_free_energies])
+    s_err = np.array([p[1].stderr for p in microstate_free_energies])
 
-    return PointEstimate(point=gc, stderr=np.sqrt(np.sum((dgc * stderr) ** 2)))
+    gs = g + s + logsumexp(-s)
+
+    # TODO: check the error propagation below. It was written in a hurry!
+    # Error propagation for gs
+    Kas = np.exp(-s)
+    Zs = np.sum(Kas)
+    ds = 1 - Kas / Zs
+    gs_err = np.sqrt(g_err ** 2 + (ds * s_err) ** 2)
+
+    # Error propagation for g
+    g = -logsumexp(-gs)
+    Ka = np.exp(-gs)
+    Z = np.sum(Ka)
+    dgs = Ka / Z
+    g_err = np.sqrt(np.sum((dgs * gs_err) ** 2))
+
+    return PointEstimate(point=g, stderr=g_err)
 
 
 def _validate_inputs(
