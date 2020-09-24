@@ -167,7 +167,7 @@ def compute_relative_free_energy(
 
     works = _filter_work_values(all_works)
 
-    if min_num_work_values is not None and len(works) < min_num_work_values:
+    if len(works) < (min_num_work_values or 1):
         raise InsufficientDataError(
             f"Need at least {min_num_work_values} good work values for analysis, "
             f"but got {len(works)}"
