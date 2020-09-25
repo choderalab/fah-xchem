@@ -1,6 +1,6 @@
 {% macro maybe_link(thing_id) -%}
   {% set url = thing_id|postera_url -%}
   {% if url is not none %}
-  <a href="{{ url }}"><i class="fas fa-flask ml-3"></i></a>
+  <a href="{{ url }}"><i class="fas fa-flask ml-2"></i></a>
   {% endif %}
 {%- endmacro %}
