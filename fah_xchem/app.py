@@ -20,7 +20,7 @@ from .schema import (
 
 class TimestampedAnalysis(Model):
     as_of: dt.datetime
-    analysis: CompoundSeriesAnalysis
+    series: CompoundSeriesAnalysis
 
 
 def _get_config(
@@ -80,7 +80,7 @@ def run_analysis(
 
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
 
-    analysis = analyze_compound_series(
+    series_analysis = analyze_compound_series(
         series=compound_series,
         config=config,
         server=FahConfig(projects_dir=fah_projects_dir, data_dir=fah_data_dir),
@@ -88,7 +88,7 @@ def run_analysis(
     )
 
     timestamp = dt.datetime.now(dt.timezone.utc)
-    output = TimestampedAnalysis(as_of=timestamp, analysis=analysis)
+    output = TimestampedAnalysis(as_of=timestamp, series=series_analysis)
 
     os.makedirs(output_dir, exist_ok=True)
     with open(os.path.join(output_dir, "analysis.json"), "w") as output_file:
@@ -160,7 +160,7 @@ def generate_artifacts(
         tsa = TimestampedAnalysis.parse_obj(json.load(infile))
 
     return fah_xchem.analysis.generate_artifacts(
-        analysis=tsa.analysis,
+        series=tsa.series,
         timestamp=tsa.as_of,
         projects_dir=fah_projects_dir,
         data_dir=fah_data_dir,

@@ -146,7 +146,7 @@ def analyze_compound_series(
 
 
 def generate_artifacts(
-    analysis: CompoundSeriesAnalysis,
+    series: CompoundSeriesAnalysis,
     timestamp: dt.datetime,
     projects_dir: str,
     data_dir: str,
@@ -162,17 +162,17 @@ def generate_artifacts(
 ) -> None:
 
     complex_project_dir = os.path.join(
-        projects_dir, str(analysis.metadata.fah_projects.complex_phase)
+        projects_dir, str(series.metadata.fah_projects.complex_phase)
     )
 
     complex_data_dir = os.path.join(
-        data_dir, f"PROJ{analysis.metadata.fah_projects.complex_phase}"
+        data_dir, f"PROJ{series.metadata.fah_projects.complex_phase}"
     )
 
     if snapshots:
         logging.info("Generating representative snapshots")
         generate_representative_snapshots(
-            transformations=analysis.transformations,
+            transformations=series.transformations,
             project_dir=complex_project_dir,
             project_data_dir=complex_data_dir,
             output_dir=os.path.join(output_dir, "transformations"),
@@ -184,7 +184,7 @@ def generate_artifacts(
     if plots:
         logging.info("Generating analysis plots")
         generate_plots(
-            analysis=analysis,
+            series=series,
             timestamp=timestamp,
             output_dir=output_dir,
             num_procs=num_procs,
@@ -192,12 +192,12 @@ def generate_artifacts(
 
     if snapshots and report:
         logging.info("Generating pdf report")
-        generate_report(analysis=analysis, results_path=output_dir)
+        generate_report(series=series, results_path=output_dir)
 
     if website:
         logging.info("Generating website")
         generate_website(
-            series=analysis,
+            series=series,
             path=output_dir,
             timestamp=timestamp,
             base_url=base_url,

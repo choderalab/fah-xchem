@@ -1,13 +1,6 @@
 import logging
-from typing import Dict, List, Tuple
 
-from ..schema import (
-    CompoundAnalysis,
-    CompoundMicrostate,
-    CompoundSeriesAnalysis,
-    Dict,
-    MicrostateAnalysis,
-)
+from ..schema import CompoundMicrostate, CompoundSeriesAnalysis
 from .constants import KT_KCALMOL
 
 
@@ -138,13 +131,13 @@ def RenderData(image, mol, tags):
         table.DrawText(cell, value)
 
 
-def generate_report(series_analysis: CompoundSeriesAnalysis, results_path: str) -> None:
+def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
     """
     Postprocess results of calculations to extract summary for compound prioritization
 
     Parameters
     ----------
-    analysis : Analysis
+    series : CompoundSeriesAnalysis
         Analysis results
     results_path : str
         Path to write results
@@ -162,22 +155,19 @@ def generate_report(series_analysis: CompoundSeriesAnalysis, results_path: str) 
             compound_id=compound.metadata.compound_id,
             microstate_id=microstate.microstate.microstate_id,
         ): microstate.microstate
-        for compound in series_analysis.compounds
+        for compound in series.compounds
         for microstate in compound.microstates
     }
 
     oemols = list()  # target molecules
     refmols = list()  # reference molecules
-    for analysis in track(
-        series_analysis.transformations, description="Reading ligands"
-    ):
+    for transformation in track(series.transformations, description="Reading ligands"):
 
         # Don't load anything not predicted to bind better
-        if analysis.binding_free_energy.point >= 0.0:
+        if transformation.binding_free_energy.point >= 0.0:
             continue
 
-        transformation = analysis.transformation
-        run = f"RUN{transformation.run_id}"
+        run = f"RUN{transformation.transformation.run_id}"
         path = os.path.join(results_path, "transformations", run)
 
         # Read target compound information
@@ -197,12 +187,14 @@ def generate_report(series_analysis: CompoundSeriesAnalysis, results_path: str) 
         refmols.append(refmol)
 
         # Set ligand title
-        title = transformation.initial_microstate.microstate_id
+        title = transformation.transformation.initial_microstate.microstate_id
         oemol.SetTitle(title)
         oechem.OESetSDData(oemol, "CID", title)
 
         # Set SMILES
-        smiles = microstate_detail[transformation.initial_microstate].smiles
+        smiles = microstate_detail[
+            transformation.transformation.initial_microstate
+        ].smiles
         oechem.OESetSDData(oemol, "SMILES", smiles)
 
         # Set RUN
@@ -213,12 +205,12 @@ def generate_report(series_analysis: CompoundSeriesAnalysis, results_path: str) 
         oechem.OESetSDData(
             oemol,
             "DDG (kcal/mol)",
-            f"{KT_KCALMOL*analysis.binding_free_energy.stderr:.2f}",
+            f"{KT_KCALMOL*transformation.binding_free_energy.stderr:.2f}",
         )
         oechem.OESetSDData(
             oemol,
             "dDDG (kcal/mol)",
-            f"{KT_KCALMOL*analysis.binding_free_energy.stderr:.2f}",
+            f"{KT_KCALMOL*transformation.binding_free_energy.stderr:.2f}",
         )
 
         # Store compound
@@ -253,7 +245,7 @@ def generate_report(series_analysis: CompoundSeriesAnalysis, results_path: str) 
 
     # Write PDF report
     write_pdf_report(
-        oemols, os.path.join(results_path, "ligands.pdf"), series_analysis.metadata.name
+        oemols, os.path.join(results_path, "ligands.pdf"), series.metadata.name
     )
 
     # Write reference molecules

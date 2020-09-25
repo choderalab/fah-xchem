@@ -56,7 +56,11 @@ def postera_url(compound_or_microstate_id: str) -> Optional[str]:
         compound_or_microstate_id,
     )
 
-    return f"https://postera.ai/covid/submissions/{match['compound_id']}" if match else None
+    return (
+        f"https://postera.ai/covid/submissions/{match['compound_id']}"
+        if match
+        else None
+    )
 
 
 class Progress(NamedTuple):

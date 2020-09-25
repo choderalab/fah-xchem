@@ -629,7 +629,7 @@ def generate_transformation_plots(
 
 
 def generate_plots(
-    analysis: CompoundSeriesAnalysis,
+    series: CompoundSeriesAnalysis,
     timestamp: dt.datetime,
     output_dir: str,
     num_procs: Optional[int] = None,
@@ -661,7 +661,7 @@ def generate_plots(
 
     Parameters
     ----------
-    analysis : CompoundSeriesAnalysis
+    series : CompoundSeriesAnalysis
         Analysis results
     timestamp : datetime
         "As of" timestamp to render on plots
@@ -672,7 +672,7 @@ def generate_plots(
 
     binding_delta_fs = [
         transformation.binding_free_energy.point
-        for transformation in analysis.transformations
+        for transformation in series.transformations
     ]
 
     save_summary_plot = partial(
@@ -696,7 +696,7 @@ def generate_plots(
         plt.title("Cumulative distribution")
 
     with _save_table_pdf(path=output_dir, name="poor_complex_convergence_fe_table"):
-        plot_poor_convergence_fe_table(analysis.transformations)
+        plot_poor_convergence_fe_table(series.transformations)
 
     # Transformation-level plots
 
@@ -707,9 +707,9 @@ def generate_plots(
     with multiprocessing.Pool(num_procs) as pool:
         for _ in track(
             pool.imap_unordered(
-                generate_transformation_plots_partial, analysis.transformations
+                generate_transformation_plots_partial, series.transformations
             ),
-            total=len(analysis.transformations),
+            total=len(series.transformations),
             description="Generating plots",
         ):
             pass
