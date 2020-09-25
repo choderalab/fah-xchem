@@ -18,7 +18,7 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.compounds | lengt
   </tr>
   {% for compound in compounds %}
   <tr>
-    <td class="rank">{{ loop.index }}</td>
+    <td class="rank">{{ start_index + loop.index - 1 }}</td>
     <td >
       {% if loop.index <= num_top_compounds %}
       <a href="compounds/{{ compound.metadata.compound_id }}.html">{{ compound.metadata.compound_id }}</a>
