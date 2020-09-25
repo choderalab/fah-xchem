@@ -104,22 +104,6 @@ def get_sprint_number(description: str) -> Optional[int]:
     return int(match[1]) if match else None
 
 
-def get_index_html(series: CompoundSeriesAnalysis, timestamp: dt.datetime) -> str:
-    """
-    Return index page of html report summarizing analysis results
-
-    Parameters
-    ----------
-    series : Analysis
-        Compound series analysis results
-
-    Returns
-    -------
-    str
-        Website html
-    """
-
-
 def _paginate(items, items_per_page):
     return (
         (
