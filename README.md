@@ -106,7 +106,7 @@ pytest
 Code formatting with [black](https://github.com/psf/black) is enforced via a CI check. To install `black` with `conda`, use
 
 ``` sh
-conda env create -n fah-xchem
+conda install black
 ```
 
 #### Building documentation
