@@ -23,7 +23,7 @@
     <th>Rank</th>
     <th colspan="2">Compound</th>
     <th>SMILES</th>
-    <th>ΔΔG / kcal mol<sup>-1</sup></th>
+    <th>ΔG / kcal mol<sup>-1</sup></th>
   </tr>
   {% for compound in (series.compounds | selectattr("free_energy", "ne", None) | sort(attribute="free_energy.point"))[:10] %}
   <tr>
