@@ -109,6 +109,13 @@ Code formatting with [black](https://github.com/psf/black) is enforced via a CI 
 conda env create -n fah-xchem
 ```
 
+#### Building documentation
+
+``` sh
+cd docs
+make html
+```
+
 
 ### Copyright
 

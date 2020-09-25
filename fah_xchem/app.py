@@ -58,7 +58,7 @@ def run_analysis(
     Parameters
     ----------
     compound_series_file : str
-        File containing compound series as JSON-encoded :class:`fah_xchem.schema.CompoundSeries`
+        File containing compound series as JSON-encoded :class:`~fah_xchem.schema.CompoundSeries`
     config_file : str, optional
         File containing analysis configuration as JSON-encoded :class:`~fah_xchem.schema.AnalysisConfig`
     fah_projects_dir : str, optional
