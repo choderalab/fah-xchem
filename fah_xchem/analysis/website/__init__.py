@@ -45,7 +45,7 @@ def format_stderr(est: PointEstimate) -> str:
     return f"{round(est.stderr, prec):.{prec}f}"
 
 
-def maybe_postera_link(compound_or_microstate_id: str) -> str:
+def postera_url(compound_or_microstate_id: str) -> Optional[str]:
     """
     If `compound_id` matches regex, link to Postera compound details
     """
@@ -56,10 +56,7 @@ def maybe_postera_link(compound_or_microstate_id: str) -> str:
         compound_or_microstate_id,
     )
 
-    if not match:
-        return compound_or_microstate_id
-
-    return f'<a href="https://postera.ai/covid/submissions/{match["compound_id"]}">{compound_or_microstate_id}</a>'
+    return f"https://postera.ai/covid/submissions/{match['compound_id']}" if match else None
 
 
 class Progress(NamedTuple):
@@ -184,7 +181,7 @@ def generate_website(
     environment = jinja2.Environment(loader=template_loader)
     environment.filters["format_point"] = format_point
     environment.filters["format_stderr"] = format_stderr
-    environment.filters["maybe_postera_link"] = maybe_postera_link
+    environment.filters["postera_url"] = postera_url
     environment.filters["smiles_to_filename"] = get_image_filename
 
     for subdir in ["compounds", "microstates", "transformations"]:

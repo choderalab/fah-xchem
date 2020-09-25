@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "postera.html" as postera %}
 {% set active_page = "transformations" %}
 {% block content %}
 <h3>Transformations</h3>
@@ -21,7 +22,7 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.transformations |
   {% for transformation in transformations %}
   <tr>
     <td >RUN{{ transformation.transformation.run_id }}</td>
-    <td>{{ transformation.transformation.initial_microstate.microstate_id | maybe_postera_link}}</td>
+    <td>{{ transformation.transformation.initial_microstate.microstate_id }}{{ postera.maybe_link(transformation.transformation.initial_microstate.microstate_id) }}</td>
     <td class="thumbnail">
       <a href="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg">
         <img src="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles }}">
@@ -37,7 +38,7 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.transformations |
         <button class="btn btn-outline-primary">pdb</button>
       </a>
     </td>
-    <td>{{ transformation.transformation.final_microstate.microstate_id | maybe_postera_link }}</td>
+    <td>{{ transformation.transformation.final_microstate.microstate_id }}{{ postera.maybe_link(transformation.transformation.final_microstate.microstate_id) }}</td>
     <td class="thumbnail">
       <a href="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg">
         <img src="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.final_microstate][1].smiles }}">

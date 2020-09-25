@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "postera.html" as postera %}
 {% set active_page = "microstates" %}
 {% block content %}
 <h3>Microstates</h3>
@@ -19,7 +20,7 @@ Showing {{ start_index }} through {{ end_index }} of {{ total_microstates }}
   {% for microstate in microstates %}
   <tr>
     <td class="rank">{{ start_index + loop.index - 1 }}</td>
-    <td >{{ microstate.microstate.microstate_id | maybe_postera_link }}</td>
+    <td >{{ microstate.microstate.microstate_id }}{{ postera.maybe_link(microstate.microstate.microstate_id) }}</td>
     <td class="thumbnail">
       <a href="molecule_images/{{ microstate.microstate.smiles | smiles_to_filename }}.svg">
         <img src="molecule_images/{{ microstate.microstate.smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate.microstate.microstate_id }}">

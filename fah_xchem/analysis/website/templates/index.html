@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "postera.html" as postera %}
 {% set active_page = "index" %}
 {% block content %}
 
@@ -34,6 +35,7 @@
       {% else %}
       {{ compound.metadata.compound_id }}
       {% endif %}
+      {{ postera.maybe_link(compound.metadata.compound_id) }}
     </td>
     <td class="thumbnail">
       <a href="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg">
