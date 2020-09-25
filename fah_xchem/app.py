@@ -1,19 +1,54 @@
+import datetime as dt
 import os
 from typing import Optional
+import json
 import logging
+
 import fire
-from .lib import analyze_runs
+from typing import Callable
+
+import fah_xchem
+from .analysis import analyze_compound_series
+from .schema import (
+    AnalysisConfig,
+    FahConfig,
+    CompoundSeries,
+    CompoundSeriesAnalysis,
+    Model,
+)
 
 
-def analyze_runs_cli(
-    run_details_json_file: str,
-    complex_project_path: str,
-    complex_project_data_path: str,
-    solvent_project_data_path: str,
-    output_dir: str,
-    max_binding_delta_f: Optional[float] = None,
+class TimestampedAnalysis(Model):
+    as_of: dt.datetime
+    analysis: CompoundSeriesAnalysis
+
+
+def _get_config(
+    cls,
+    config_file: Optional[str],
+    description: str,
+    decoder: Callable[[str], object] = json.loads,
+):
+    if config_file is None:
+        return cls()
+    else:
+        logging.info("Reading %s from '%s'", description, config_file)
+        with open(config_file, "r") as infile:
+            config = cls.parse_obj(decoder(infile.read()))
+
+    logging.info("Using %s: %s", description, config)
+    return config
+
+
+def run_analysis(
+    compound_series_file: str,
+    config_file: Optional[str] = None,
+    fah_projects_dir: str = "projects",
+    fah_data_dir: str = "data",
+    output_dir: str = "results",
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = 8,
+    log: str = "WARN",
 ):
     """
     Run free energy analysis and return input augmented with analysis
@@ -22,30 +57,16 @@ def analyze_runs_cli(
 
     Parameters
     ----------
-    run_details_json_file : str
-        JSON file containing run metadata. The file should contain a
-        JSON object with values deserializable to `RunDetails`
-    complex_project_path : str
-        Path to the FAH project directory containing configuration for
-        simulations of the complex,
-        e.g. '/home/server/server2/projects/13422'
-    complex_project_data_path : str
-        Path to the FAH project data directory containing output data
-        from simulations of the complex,
-        e.g. "/home/server/server2/data/SVR314342810/PROJ13422"
-    solvent_project_data_path : str
-        Path to the FAH project data directory containing output data
-        from simulations of the solvent,
-        e.g. "/home/server/server2/data/SVR314342810/PROJ13423"
-    output_dir : str
-        Path to output directory. Output will be written in the
-        following locations:
-        - ``{output_dir}/analysis.json``: analysis results
-        - ``{output_dir}/structures``: structure snapshots
-        - ``{output_dir}/plots``: plots
-    max_binding_delta_f : float, optional
-        If given, skip storing snapshot if dimensionless binding free
-        energy estimate exceeds this value
+    compound_series_file : str
+        JSON file containing configuration for the compound series in
+        the form of a serialized `CompoundSeries` object
+    config_file : str, optional
+        JSON file containing configuration for the analysis in the
+        form of a serialized `AnalysisConfig` object
+    fah_projects_dir : str, optional
+        Path to Folding@home projects directory
+    fah_data_dir : str, optional
+        Path to Folding@home data directory
     cache_dir : str, optional
         If given, cache intermediate analysis results in local
         directory of this name
@@ -53,21 +74,68 @@ def analyze_runs_cli(
         Number of parallel processes to run
     """
 
-    analysis = analyze_runs(
-        run_details_json_file=run_details_json_file,
-        complex_project_path=complex_project_path,
-        complex_project_data_path=complex_project_data_path,
-        solvent_project_data_path=solvent_project_data_path,
-        output_dir=output_dir,
-        max_binding_delta_f=max_binding_delta_f,
-        cache_dir=cache_dir,
+    logging.basicConfig(level=getattr(logging, log.upper()))
+
+    compound_series = _get_config(
+        CompoundSeries, compound_series_file, "compound series"
+    )
+
+    config = _get_config(AnalysisConfig, config_file, "analysis configuration")
+
+    analysis = analyze_compound_series(
+        series=compound_series,
+        config=config,
+        server=FahConfig(projects_dir=fah_projects_dir, data_dir=fah_data_dir),
         num_procs=num_procs,
     )
 
+    timestamp = dt.datetime.now(dt.timezone.utc)
+    output = TimestampedAnalysis(as_of=timestamp, analysis=analysis)
+
+    os.makedirs(output_dir, exist_ok=True)
     with open(os.path.join(output_dir, "analysis.json"), "w") as output_file:
-        output_file.write(analysis.json())
+        output_file.write(output.json())
+
+
+def generate_artifacts(
+    compound_series_analysis_file: str,
+    fah_projects_dir: str,
+    fah_data_dir: str,
+    output_dir: str = "results",
+    base_url: str = "/",
+    config_file: Optional[str] = None,
+    cache_dir: Optional[str] = None,
+    num_procs: Optional[int] = None,
+    snapshots: bool = True,
+    plots: bool = True,
+    report: bool = True,
+    website: bool = True,
+    log: str = "WARN",
+) -> None:
+
+    logging.basicConfig(level=getattr(logging, log.upper()))
+
+    config = _get_config(AnalysisConfig, config_file, "analysis configuration")
+
+    with open(compound_series_analysis_file, "r") as infile:
+        tsa = TimestampedAnalysis.parse_obj(json.load(infile))
+
+    return fah_xchem.analysis.generate_artifacts(
+        analysis=tsa.analysis,
+        timestamp=tsa.as_of,
+        projects_dir=fah_projects_dir,
+        data_dir=fah_data_dir,
+        output_dir=output_dir,
+        base_url=base_url,
+        config=config,
+        cache_dir=cache_dir,
+        num_procs=num_procs,
+        snapshots=snapshots,
+        plots=plots,
+        report=report,
+        website=website,
+    )
 
 
 def main():
-    logging.basicConfig(level=logging.WARNING)
-    fire.Fire({"analyze_runs": analyze_runs_cli})
+    fire.Fire({"run_analysis": run_analysis, "generate_artifacts": generate_artifacts})

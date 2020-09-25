@@ -1,27 +1,37 @@
+from functools import partial
+from hashlib import sha256
+import multiprocessing
+import logging
 import os
 from typing import List
-from ..core import RunDetails
+
+from ...schema import Microstate
 
 
-def save_molecule_images(
-    runs: List[RunDetails], path: str, file_format: str = "svg"
+def generate_molecule_images(
+    microstates: List[Microstate],
+    path: str,
 ) -> None:
     os.makedirs(path, exist_ok=True)
-    for run in runs:
-        render_molecule(
-            smiles=run.start_smiles,
-            filename=os.path.join(
-                path, os.extsep.join([f"RUN{run.run_id()}", file_format])
-            ),
-        )
+    render_molecule_partial = partial(render_molecule, path=path)
+    smiless = [microstate.smiles for microstate in microstates]
+    with multiprocessing.Pool() as pool:
+        for _ in pool.imap_unordered(render_molecule_partial, smiless):
+            pass
+
+
+def get_image_filename(smiles: str):
+    return sha256(smiles.encode()).hexdigest()
 
 
 def render_molecule(
     smiles: str,
-    filename: str,
+    path: str,
     width: int = 320,
     height: int = 240,
+    file_format: str = "svg",
     clearbackground: bool = False,
+    force_regenerate: bool = False,
 ) -> None:
     """
     Render the molecule (from SMILES) to an image
@@ -41,6 +51,13 @@ def render_molecule(
     # Import the openeye toolkit
     from openeye import oechem, oedepict
 
+    output_name = get_image_filename(smiles)
+    output_path = os.path.join(path, os.extsep.join([output_name, file_format]))
+
+    if not force_regenerate and os.path.exists(output_path):
+        logging.info("Skipping already-rendered molecule: %s", smiles)
+        return
+
     # Generate OpenEye OEMol object from SMILES
     # see https://docs.eyesopen.com/toolkits/python/oechemtk/molctordtor.html?highlight=smiles#construction-from-smiles
     mol = oechem.OEGraphMol()
@@ -57,4 +74,4 @@ def render_molecule(
     # Render image
     oedepict.OEPrepareDepiction(mol)
     disp = oedepict.OE2DMolDisplay(mol, opts)
-    oedepict.OERenderMolecule(filename, disp, clearbackground)
+    oedepict.OERenderMolecule(output_path, disp, clearbackground)

@@ -1,19 +1,24 @@
 from contextlib import contextmanager
 import datetime as dt
 from functools import partial
-import os
 import logging
+import os
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.font_manager import FontProperties
+import multiprocessing
 import numpy as np
 import pandas as pd
 from pymbar import BAR
-from typing import Generator, Iterable, List, Optional, Tuple
-from ..core import Analysis, Binding, PhaseAnalysis, Run, Work
+from typing import Generator, Iterable, List, Optional
+from ..schema import (
+    CompoundSeriesAnalysis,
+    GenAnalysis,
+    PhaseAnalysis,
+    TransformationAnalysis,
+)
 from .constants import KT_KCALMOL
-from .free_energy import bootstrap
 
 
 def plot_work_distributions(
@@ -240,7 +245,7 @@ def plot_convergence(
 
 
 def plot_poor_convergence_fe_table(
-    runs: List[Run],
+    transformations: List[TransformationAnalysis],
     energy_cutoff_kcal: float = 1.0,
 ) -> Optional[plt.Figure]:
     """
@@ -248,7 +253,7 @@ def plot_poor_convergence_fe_table(
 
     Parameters
     ----------
-    runs : list of Run
+    transformations : list of TransformationAnalysis
         Relative free energies (in kT)
     energy_cutoff_kcal : float
         Cutoff to consider a result as poorly converged (in kcal/mol)
@@ -263,12 +268,12 @@ def plot_poor_convergence_fe_table(
     std_dev_store = []
     jobid_store = []
 
-    for run in runs:
+    for transformation in transformations:
 
-        complex_gens = run.analysis.complex_phase.gens
+        complex_gens = transformation.complex_phase.gens
         std_dev = np.std(
             [
-                gen.free_energy.delta_f
+                gen.free_energy.delta_f.point
                 for gen in complex_gens
                 if gen.free_energy is not None
             ]
@@ -276,7 +281,7 @@ def plot_poor_convergence_fe_table(
 
         if std_dev * KT_KCALMOL >= energy_cutoff_kcal:
 
-            jobid_store.append(run.details.JOBID)  # JOBID X should = RUN X
+            jobid_store.append(transformation.transformation.run_id)
             std_dev_store.append(np.round(std_dev * KT_KCALMOL, 3))
 
     # Create sorted 2D list for table input, from highest to lowest std_dev
@@ -369,6 +374,25 @@ def plot_cumulative_distribution(
     plt.ylabel("Cumulative $N$ ligands")
 
 
+def _bootstrap(
+    gens: List[GenAnalysis],
+    n_bootstrap: int,
+    clones_per_gen: int,
+    gen_number: int,
+) -> List[float]:
+
+    fes = []
+
+    for _ in range(n_bootstrap):
+        random_indices = np.random.choice(clones_per_gen, gen_number)
+        subset_f = [gen.works[i].forward for i in random_indices for gen in gens]
+        subset_r = [gen.works[i].reverse for i in random_indices for gen in gens]
+        fe, _ = BAR(np.asarray(subset_f), np.asarray(subset_r))
+        fes.append(fe * KT_KCALMOL)
+
+    return fes
+
+
 def plot_bootstrapped_clones(
     complex_phase: PhaseAnalysis,
     solvent_phase: PhaseAnalysis,
@@ -397,10 +421,9 @@ def plot_bootstrapped_clones(
     fig, ax = plt.subplots()
 
     for n in n_gens:
-        # bootstrap
 
-        complex_fes = bootstrap(
-            free_energies=complex_phase.gens,
+        complex_fes = _bootstrap(
+            gens=complex_phase.gens,
             n_bootstrap=n_bootstrap,
             clones_per_gen=clones_per_gen,
             gen_number=n,
@@ -409,8 +432,8 @@ def plot_bootstrapped_clones(
         plt.scatter(n, np.mean(complex_fes), color="red", label="complex")
         plt.errorbar(n, np.mean(complex_fes), yerr=np.std(complex_fes), c="red")
 
-        solvent_fes = bootstrap(
-            free_energies=solvent_phase.gens,
+        solvent_fes = _bootstrap(
+            gens=solvent_phase.gens,
             n_bootstrap=n_bootstrap,
             clones_per_gen=clones_per_gen,
             gen_number=n,
@@ -439,7 +462,7 @@ def _plot_updated_timestamp(timestamp: dt.datetime) -> None:
 
 
 @contextmanager
-def save_table_pdf(path: str, name: str):
+def _save_table_pdf(path: str, name: str):
     """
     Context manager that creates a new figure on entry and saves the
     figure using a specified name and path on exit.
@@ -461,14 +484,17 @@ def save_table_pdf(path: str, name: str):
 
     with PdfPages(file_name) as pdf_plt:
         yield
-        pdf_plt.savefig(bbox_inches="tight")
+        try:
+            pdf_plt.savefig(bbox_inches="tight")
+        except ValueError:
+            logging.warning("Failed to save pdf table")
 
 
 @contextmanager
-def _save_plot(
+def save_plot(
     path: str,
     name: str,
-    file_formats: Iterable[str],
+    file_formats: Iterable[str] = ("png", "pdf"),
     timestamp: Optional[dt.datetime] = None,
 ) -> Generator:
     """
@@ -516,127 +542,105 @@ def _save_plot(
         plt.close()
 
 
-def save_run_level_plots(
-    run: int,
-    complex_phase: PhaseAnalysis,
-    solvent_phase: PhaseAnalysis,
-    binding: Binding,
-    path: str = os.curdir,
-    file_formats: Iterable[str] = ("pdf", "png"),
-) -> None:
-    """
-    Save plots specific to a run.
+def generate_transformation_plots(
+    transformation: TransformationAnalysis, output_dir: str
+):
 
-    The following plots are generated. See the docstrings for the
-    individual plotting functions for more information.
-
-    - Work distributions for the solvent and complex.
-      Saved to ``{path}/RUN{run}.{file_format}``
-
-    - Convergence of relative free energies by GEN.
-      Useful for examining the convergence of the results.
-      Saved to ``{path}/RUN{run}-convergence.{file_format}``
-
-    Parameters
-    ----------
-    run : int
-        Run
-    complex_phase : PhaseAnalysis
-        Results for complex
-    solvent_phase : PhaseAnalysis
-        Results for solvent
-    binding : Binding
-        Results for binding free energy
-    path : str
-        Where to write plot files
-    file_format : str
-        File format for plot output
-    """
-
-    save_plot = partial(
-        _save_plot,
-        path=path,
-        file_formats=file_formats,
-        timestamp=dt.datetime.now(dt.timezone.utc),
+    run_id = transformation.transformation.run_id
+    save_transformation_plot = partial(
+        save_plot, path=os.path.join(output_dir, "transformations", f"RUN{run_id}")
     )
 
-    with save_plot(name=f"RUN{run}"):
+    with save_transformation_plot(name="works"):
         fig = plot_work_distributions(
             complex_forward_works=[
-                w for gen in complex_phase.gens for w in gen.forward_works
+                work.forward
+                for gen in transformation.complex_phase.gens
+                for work in gen.works
             ],
             complex_reverse_works=[
-                w for gen in complex_phase.gens for w in gen.reverse_works
+                work.reverse
+                for gen in transformation.complex_phase.gens
+                for work in gen.works
             ],
-            complex_delta_f=complex_phase.free_energy.delta_f,
+            complex_delta_f=transformation.complex_phase.free_energy.delta_f.point,
             solvent_forward_works=[
-                w for gen in solvent_phase.gens for w in gen.forward_works
+                work.forward
+                for gen in transformation.solvent_phase.gens
+                for work in gen.works
             ],
             solvent_reverse_works=[
-                w for gen in solvent_phase.gens for w in gen.reverse_works
+                work.reverse
+                for gen in transformation.solvent_phase.gens
+                for work in gen.works
             ],
-            solvent_delta_f=solvent_phase.free_energy.delta_f,
+            solvent_delta_f=transformation.solvent_phase.free_energy.delta_f.point,
         )
-        fig.suptitle(f"RUN{run}")
+        fig.suptitle(f"RUN{run_id}")
 
-    with save_plot(name=f"RUN{run}-convergence"):
+    with save_transformation_plot(name="convergence"):
         # Filter to GENs for which free energy calculation is available
         complex_gens = [
             (gen.gen, gen.free_energy)
-            for gen in complex_phase.gens
+            for gen in transformation.complex_phase.gens
             if gen.free_energy is not None
         ]
         solvent_gens = [
             (gen.gen, gen.free_energy)
-            for gen in solvent_phase.gens
+            for gen in transformation.solvent_phase.gens
             if gen.free_energy is not None
         ]
 
         fig = plot_convergence(
             complex_gens=[gen for gen, _ in complex_gens],
             solvent_gens=[gen for gen, _ in solvent_gens],
-            complex_delta_fs=[fe.delta_f for _, fe in complex_gens],
-            complex_delta_f_errs=[fe.ddelta_f for _, fe in complex_gens],
-            solvent_delta_fs=[fe.delta_f for _, fe in solvent_gens],
-            solvent_delta_f_errs=[fe.ddelta_f for _, fe in solvent_gens],
-            binding_delta_f=binding.delta_f,
-            binding_delta_f_err=binding.ddelta_f,
+            complex_delta_fs=[fe.delta_f.point for _, fe in complex_gens],
+            complex_delta_f_errs=[fe.delta_f.stderr for _, fe in complex_gens],
+            solvent_delta_fs=[fe.delta_f.point for _, fe in solvent_gens],
+            solvent_delta_f_errs=[fe.delta_f.stderr for _, fe in solvent_gens],
+            binding_delta_f=transformation.binding_free_energy.point,
+            binding_delta_f_err=transformation.binding_free_energy.stderr,
         )
-        fig.suptitle(f"RUN{run}")
+        fig.suptitle(f"RUN{run_id}")
 
-    with save_plot(name=f"RUN{run}-bootstrapped-CLONEs"):
+    with save_transformation_plot(name="bootstrapped-CLONEs"):
 
         # Gather CLONES per GEN for run
         clones_per_gen = min(
             [
-                len(works)
-                for phase in [solvent_phase, complex_phase]
+                len(gen.works)
+                for phase in [
+                    transformation.solvent_phase,
+                    transformation.complex_phase,
+                ]
                 for gen in phase.gens
-                for works in [gen.forward_works, gen.reverse_works]
             ]
         )
 
         n_gens = range(10, clones_per_gen, 10)
 
         fig = plot_bootstrapped_clones(
-            complex_phase=complex_phase,
-            solvent_phase=solvent_phase,
+            complex_phase=transformation.complex_phase,
+            solvent_phase=transformation.solvent_phase,
             clones_per_gen=clones_per_gen,
             n_gens=n_gens,
         )
-        fig.suptitle(f"RUN{run}")
+        fig.suptitle(f"RUN{run_id}")
 
 
-def save_summary_plots(
-    analysis: Analysis,
-    path: str = os.curdir,
-    file_formats: Iterable[str] = ("pdf", "png"),
+def generate_plots(
+    analysis: CompoundSeriesAnalysis,
+    timestamp: dt.datetime,
+    output_dir: str,
+    num_procs: Optional[int] = None,
 ) -> None:
     """
-    Save plots summarizing all runs.
+    Generate analysis plots in `output_dir`.
 
     The following plots are generated. See the docstrings for the
     individual plotting functions for more information.
+
+    Summary plots:
 
     - Histogram of relative binding free energies (solvent - complex).
       Saved to ``{path}/relative_fe_dist.{file_format}``
@@ -646,33 +650,66 @@ def save_summary_plots(
       below a threshold binding free energy.
       Saved to ``{path}/cumulative_fe_dist.{file_format}``
 
+    Transformation-level plots:
+
+    - Work distributions for the solvent and complex.
+      Saved to ``{output_dir}/RUN{run}.{file_format}``
+
+    - Convergence of relative free energies by GEN.
+      Useful for examining the convergence of the results.
+      Saved to ``{output_dir}/RUN{run}-convergence.{file_format}``
+
     Parameters
     ----------
-    runs : list of Run
-        Details and results for all runs
-    path : str
+    analysis : CompoundSeriesAnalysis
+        Analysis results
+    timestamp : datetime
+        "As of" timestamp to render on plots
+    output_dir : str
         Where to write plot files
-    file_format : str
-        File format for plot output
     """
+    from rich.progress import track
 
-    binding_delta_fs = [run.analysis.binding.delta_f for run in analysis.runs]
+    binding_delta_fs = [
+        transformation.binding_free_energy.point
+        for transformation in analysis.transformations
+    ]
 
-    save_plot = partial(
-        _save_plot, path=path, file_formats=file_formats, timestamp=analysis.updated_at
+    save_summary_plot = partial(
+        save_plot,
+        path=output_dir,
+        timestamp=timestamp,
     )
 
-    with save_plot(
+    # Summary plots
+
+    with save_summary_plot(
         name="relative_fe_dist",
     ):
         plot_relative_distribution(binding_delta_fs)
         plt.title("Relative free energy")
 
-    with save_plot(
+    with save_summary_plot(
         name="cumulative_fe_dist",
     ):
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
 
-    with save_table_pdf(path, "poor_complex_convergence_fe_table"):
-        plot_poor_convergence_fe_table(analysis.runs)
+    with _save_table_pdf(path=output_dir, name="poor_complex_convergence_fe_table"):
+        plot_poor_convergence_fe_table(analysis.transformations)
+
+    # Transformation-level plots
+
+    generate_transformation_plots_partial = partial(
+        generate_transformation_plots, output_dir=output_dir
+    )
+
+    with multiprocessing.Pool(num_procs) as pool:
+        for _ in track(
+            pool.imap_unordered(
+                generate_transformation_plots_partial, analysis.transformations
+            ),
+            total=len(analysis.transformations),
+            description="Generating plots",
+        ):
+            pass

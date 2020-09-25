@@ -1,6 +1,14 @@
 import logging
-from .analysis.constants import KT_KCALMOL
-from .core import Analysis
+from typing import Dict, List, Tuple
+
+from ..schema import (
+    CompoundAnalysis,
+    CompoundMicrostate,
+    CompoundSeriesAnalysis,
+    Dict,
+    MicrostateAnalysis,
+)
+from .constants import KT_KCALMOL
 
 
 def write_pdf_report(mollist, pdf_filename, iname):
@@ -17,8 +25,6 @@ def write_pdf_report(mollist, pdf_filename, iname):
         Dataset name
 
     """
-    import sys
-    from openeye import oechem
     from openeye import oedepict
 
     # collect data tags
@@ -45,9 +51,7 @@ def write_pdf_report(mollist, pdf_filename, iname):
 
 
 def CollectDataTags(mollist):
-    import sys
     from openeye import oechem
-    from openeye import oedepict
 
     tags = []
     for mol in mollist:
@@ -59,7 +63,6 @@ def CollectDataTags(mollist):
 
 
 def DepictMoleculesWithData(report, mollist, iname, tags, opts):
-    import sys
     from openeye import oechem
     from openeye import oedepict
 
@@ -107,7 +110,6 @@ def DepictMoleculesWithData(report, mollist, iname, tags, opts):
 
 
 def RenderData(image, mol, tags):
-    import sys
     from openeye import oechem
     from openeye import oedepict
 
@@ -136,9 +138,7 @@ def RenderData(image, mol, tags):
         table.DrawText(cell, value)
 
 
-def save_postprocessing(
-    analysis: Analysis, dataset_name: str, results_path: str
-) -> None:
+def generate_report(series_analysis: CompoundSeriesAnalysis, output_dir: str) -> None:
     """
     Postprocess results of calculations to extract summary for compound prioritization
 
@@ -146,37 +146,42 @@ def save_postprocessing(
     ----------
     analysis : Analysis
         Analysis results
-    dataset_name : str
-        Compound series name, e.g. '2020-08-14-nucleophilic-displacement'
-    results_path : str
+    output_dir : str
         Path to write results
     """
 
     import os
-
-    structures_path = os.path.join(results_path, "structures")
-    transformations = analysis.runs
 
     # Load all molecules, attaching properties
     # TODO: Generalize this to handle other than x -> 0 star map transformations
     from openeye import oechem
     from rich.progress import track
 
+    microstate_detail = {
+        CompoundMicrostate(
+            compound_id=compound.metadata.compound_id,
+            microstate_id=microstate.microstate.microstate_id,
+        ): microstate.microstate
+        for compound in series_analysis.compounds
+        for microstate in compound.microstates
+    }
+
     oemols = list()  # target molecules
     refmols = list()  # reference molecules
-    for transformation in track(transformations, description="Reading ligands"):
-        details = transformation.details
-        binding = transformation.analysis.binding
+    for analysis in track(
+        series_analysis.transformations, description="Reading ligands"
+    ):
 
         # Don't load anything not predicted to bind better
-        if binding.delta_f >= 0.0:
+        if analysis.binding_free_energy.point >= 0.0:
             continue
 
-        run = details.directory
+        transformation = analysis.transformation
+        run = f"RUN{transformation.run_id}"
 
         # Read target compound information
-        protein_pdb_filename = os.path.join(structures_path, f"{run}-old_protein.pdb")
-        ligand_sdf_filename = os.path.join(structures_path, f"{run}-old_ligand.sdf")
+        protein_pdb_filename = os.path.join(output_dir, run, "old_protein.pdb")
+        ligand_sdf_filename = os.path.join(output_dir, run, "old_ligand.sdf")
 
         # Read target compound
         oemol = oechem.OEMol()
@@ -185,20 +190,18 @@ def save_postprocessing(
 
         # Read reference compound
         refmol = oechem.OEMol()
-        reference_ligand_sdf_filename = os.path.join(
-            structures_path, f"{run}-new_ligand.sdf"
-        )
+        reference_ligand_sdf_filename = os.path.join(output_dir, run, "new_ligand.sdf")
         with oechem.oemolistream(reference_ligand_sdf_filename) as ifs:
             oechem.OEReadMolecule(ifs, refmol)
         refmols.append(refmol)
 
         # Set ligand title
-        title = details.start_title
+        title = transformation.initial_microstate.microstate_id
         oemol.SetTitle(title)
         oechem.OESetSDData(oemol, "CID", title)
 
         # Set SMILES
-        smiles = details.start_smiles
+        smiles = microstate_detail[transformation.initial_microstate].smiles
         oechem.OESetSDData(oemol, "SMILES", smiles)
 
         # Set RUN
@@ -206,9 +209,15 @@ def save_postprocessing(
 
         # Set free energy and uncertainty (in kcal/mol)
         # TODO: Improve this by writing appropriate digits of precision
-        oechem.OESetSDData(oemol, "DDG (kcal/mol)", f"{KT_KCALMOL*binding.delta_f:.2f}")
         oechem.OESetSDData(
-            oemol, "dDDG (kcal/mol)", f"{KT_KCALMOL*binding.ddelta_f:.2f}"
+            oemol,
+            "DDG (kcal/mol)",
+            f"{KT_KCALMOL*analysis.binding_free_energy.stderr:.2f}",
+        )
+        oechem.OESetSDData(
+            oemol,
+            "dDDG (kcal/mol)",
+            f"{KT_KCALMOL*analysis.binding_free_energy.stderr:.2f}",
         )
 
         # Store compound
@@ -237,16 +246,18 @@ def save_postprocessing(
 
     # Write sorted molecules
     for filename in ["ligands.sdf", "ligands.csv", "ligands.mol2"]:
-        with oechem.oemolostream(os.path.join(results_path, filename)) as ofs:
+        with oechem.oemolostream(os.path.join(output_dir, filename)) as ofs:
             for oemol in track(oemols, description=f"Writing {filename}"):
                 oechem.OEWriteMolecule(ofs, oemol)
 
     # Write PDF report
-    write_pdf_report(oemols, os.path.join(results_path, "ligands.pdf"), dataset_name)
+    write_pdf_report(
+        oemols, os.path.join(output_dir, "ligands.pdf"), series_analysis.metadata.name
+    )
 
     # Write reference molecules
     for filename in ["reference.sdf", "reference.mol2"]:
-        with oechem.oemolostream(os.path.join(results_path, filename)) as ofs:
+        with oechem.oemolostream(os.path.join(output_dir, filename)) as ofs:
             for refmol in track(refmols, description=f"Writing {filename}"):
                 oechem.OEWriteMolecule(ofs, refmol)
 
@@ -257,7 +268,7 @@ def save_postprocessing(
     proteins = list()
     for oemol in track(oemols, description="Consolidating protein snapshots"):
         RUN = oechem.OEGetSDData(oemol, "RUN")
-        protein_pdb_filename = os.path.join(structures_path, f"{RUN}-old_protein.pdb")
+        protein_pdb_filename = os.path.join(output_dir, RUN, "old_protein.pdb")
         try:
             protein = md.load(protein_pdb_filename)
             proteins.append(protein)
@@ -275,4 +286,4 @@ def save_postprocessing(
     for index, protein in enumerate(proteins):
         xyz[index, :, :] = protein.xyz[0, :, :]
     trajectory = md.Trajectory(xyz, proteins[0].topology)
-    trajectory.save(os.path.join(results_path, "proteins.pdb"))
+    trajectory.save(os.path.join(output_dir, "proteins.pdb"))
