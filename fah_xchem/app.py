@@ -51,18 +51,16 @@ def run_analysis(
     log: str = "WARN",
 ):
     """
-    Run free energy analysis and return input augmented with analysis
-    results for all runs.
+    Run free energy analysis and write JSON-serialized analysis
+    consisting of input augmented with analysis results
 
 
     Parameters
     ----------
     compound_series_file : str
-        JSON file containing configuration for the compound series in
-        the form of a serialized `CompoundSeries` object
+        File containing compound series as JSON-encoded :class:`~fah_xchem.schema.CompoundSeries`
     config_file : str, optional
-        JSON file containing configuration for the analysis in the
-        form of a serialized `AnalysisConfig` object
+        File containing analysis configuration as JSON-encoded :class:`~fah_xchem.schema.AnalysisConfig`
     fah_projects_dir : str, optional
         Path to Folding@home projects directory
     fah_data_dir : str, optional
@@ -112,6 +110,47 @@ def generate_artifacts(
     website: bool = True,
     log: str = "WARN",
 ) -> None:
+    """
+    Given results of free energy analysis as JSON, generate analysis
+    artifacts in `output_dir`
+
+    By default the following are generated:
+
+    - representative snapshots
+    - plots
+    - PDF report
+    - static HTML for website
+
+    Parameters
+    ----------
+    compound_series_analysis_file : str
+        File containing analysis results as JSON-encoded :class:`~fah_xchem.schema.CompoundSeriesAnalysis`
+    fah_projects_dir : str
+        Path to directory containing Folding@home project definitions
+    fah_data_dir : str
+        Path to directory containing Folding@home project result data
+    output_dir : str, optional
+        Write output here
+    base_url : str, optional
+        Base URL to use for links in the static site. E.g. if using S3, something like
+        https://fah-ws3.s3.amazonaws.com/covid-moonshot/sprints/sprint-4/2020-09-06-ugi-tBu-x3110-3v3m-2020-04-Jacobs/
+    config_file : str, optional
+        File containing analysis configuration as JSON-encoded :class:`~fah_xchem.schema.AnalysisConfig`
+    cache_dir : str or None, optional
+        If given, cache intermediate results in a local directory with this name
+    num_procs : int or None, optional
+        Maximum number of concurrent processes to run for analysis
+    snapshots : bool, optional
+        Whether to generate representative snapshots
+    plots : bool, optional
+        Whether to generate plots
+    report : bool, optional
+        Whether to generate PDF report
+    website : bool, optional
+        Whether to generate HTML for static site
+    log : str, optional
+        Logging level
+    """
 
     logging.basicConfig(level=getattr(logging, log.upper()))
 
