@@ -25,5 +25,5 @@ dependencies:
   - networkx
   - pip
   - pip:
-      - git+https://github.com/openforcefield/Arsenic.git
+      - git+https://github.com/openforcefield/Arsenic.git@0dadc5c5919fdfa8f161abe9763967920ee000b0
 
