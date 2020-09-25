@@ -138,7 +138,7 @@ def RenderData(image, mol, tags):
         table.DrawText(cell, value)
 
 
-def generate_report(series_analysis: CompoundSeriesAnalysis, output_dir: str) -> None:
+def generate_report(series_analysis: CompoundSeriesAnalysis, results_path: str) -> None:
     """
     Postprocess results of calculations to extract summary for compound prioritization
 
@@ -146,7 +146,7 @@ def generate_report(series_analysis: CompoundSeriesAnalysis, output_dir: str) ->
     ----------
     analysis : Analysis
         Analysis results
-    output_dir : str
+    results_path : str
         Path to write results
     """
 
@@ -178,10 +178,11 @@ def generate_report(series_analysis: CompoundSeriesAnalysis, output_dir: str) ->
 
         transformation = analysis.transformation
         run = f"RUN{transformation.run_id}"
+        path = os.path.join(results_path, "transformations", run)
 
         # Read target compound information
-        protein_pdb_filename = os.path.join(output_dir, run, "old_protein.pdb")
-        ligand_sdf_filename = os.path.join(output_dir, run, "old_ligand.sdf")
+        protein_pdb_filename = os.path.join(path, "old_protein.pdb")
+        ligand_sdf_filename = os.path.join(path, "old_ligand.sdf")
 
         # Read target compound
         oemol = oechem.OEMol()
@@ -190,7 +191,7 @@ def generate_report(series_analysis: CompoundSeriesAnalysis, output_dir: str) ->
 
         # Read reference compound
         refmol = oechem.OEMol()
-        reference_ligand_sdf_filename = os.path.join(output_dir, run, "new_ligand.sdf")
+        reference_ligand_sdf_filename = os.path.join(path, "new_ligand.sdf")
         with oechem.oemolistream(reference_ligand_sdf_filename) as ifs:
             oechem.OEReadMolecule(ifs, refmol)
         refmols.append(refmol)
@@ -246,18 +247,18 @@ def generate_report(series_analysis: CompoundSeriesAnalysis, output_dir: str) ->
 
     # Write sorted molecules
     for filename in ["ligands.sdf", "ligands.csv", "ligands.mol2"]:
-        with oechem.oemolostream(os.path.join(output_dir, filename)) as ofs:
+        with oechem.oemolostream(os.path.join(results_path, filename)) as ofs:
             for oemol in track(oemols, description=f"Writing {filename}"):
                 oechem.OEWriteMolecule(ofs, oemol)
 
     # Write PDF report
     write_pdf_report(
-        oemols, os.path.join(output_dir, "ligands.pdf"), series_analysis.metadata.name
+        oemols, os.path.join(results_path, "ligands.pdf"), series_analysis.metadata.name
     )
 
     # Write reference molecules
     for filename in ["reference.sdf", "reference.mol2"]:
-        with oechem.oemolostream(os.path.join(output_dir, filename)) as ofs:
+        with oechem.oemolostream(os.path.join(results_path, filename)) as ofs:
             for refmol in track(refmols, description=f"Writing {filename}"):
                 oechem.OEWriteMolecule(ofs, refmol)
 
@@ -268,7 +269,9 @@ def generate_report(series_analysis: CompoundSeriesAnalysis, output_dir: str) ->
     proteins = list()
     for oemol in track(oemols, description="Consolidating protein snapshots"):
         RUN = oechem.OEGetSDData(oemol, "RUN")
-        protein_pdb_filename = os.path.join(output_dir, RUN, "old_protein.pdb")
+        protein_pdb_filename = os.path.join(
+            results_path, "transformations", RUN, "old_protein.pdb"
+        )
         try:
             protein = md.load(protein_pdb_filename)
             proteins.append(protein)
@@ -286,4 +289,4 @@ def generate_report(series_analysis: CompoundSeriesAnalysis, output_dir: str) ->
     for index, protein in enumerate(proteins):
         xyz[index, :, :] = protein.xyz[0, :, :]
     trajectory = md.Trajectory(xyz, proteins[0].topology)
-    trajectory.save(os.path.join(output_dir, "proteins.pdb"))
+    trajectory.save(os.path.join(results_path, "proteins.pdb"))

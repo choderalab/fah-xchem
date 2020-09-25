@@ -192,7 +192,7 @@ def generate_artifacts(
 
     if snapshots and report:
         logging.info("Generating pdf report")
-        generate_report(analysis, output_dir)
+        generate_report(analysis=analysis, results_path=output_dir)
 
     if website:
         logging.info("Generating website")
