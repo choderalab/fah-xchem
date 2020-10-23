@@ -67,14 +67,18 @@ class CompoundSeriesMetadata(Model):
     )
     pH: float = Field(7.3, "The pH at which the simulations are performed at")
     fah_projects: ProjectPair = Field(
-        None, "The complex and solvent phase Folding@Home project numbers"
+        None, "The complex and solvent phase Folding@Home project codes"
     )
 
 
 class Microstate(Model):
-    microstate_id: str
+    microstate_id: str = Field(
+        None, "The unique microstate identifier (based on the PostEra or enumerated ID)"
+    )
     free_energy_penalty: PointEstimate = PointEstimate(point=0.0, stderr=0.0)
-    smiles: str
+    smiles: str = Field(
+        None, "The SMILES string of the compound in a unique microstate"
+    )
 
 
 class CompoundMetadata(Model):
@@ -91,8 +95,14 @@ class CompoundMetadata(Model):
 
 
 class Compound(Model):
-    metadata: CompoundMetadata
-    microstates: List[Microstate]
+    metadata: CompoundMetadata = Field(
+        None,
+        "The compound metdata including compound ID, SMILES, and any associated experimental data",
+    )
+    microstates: List[Microstate] = Field(
+        None,
+        "The associated microstates of the compound including microstate ID, free energy penalty, and SMILES",
+    )
 
 
 class CompoundMicrostate(Model):
@@ -104,8 +114,10 @@ class CompoundMicrostate(Model):
 
 
 class Transformation(Model):
-    run_id: int
-    xchem_fragment_id: str
+    run_id: int = Field(
+        None, "The RUN number corresponding to the Folding@Home directory structure"
+    )
+    xchem_fragment_id: str = Field(None, "The XChem fragment screening ID")
     initial_microstate: CompoundMicrostate
     final_microstate: CompoundMicrostate
 
