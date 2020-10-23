@@ -38,21 +38,37 @@ class PointEstimate(Model):
 
 
 class ProjectPair(Model):
-    complex_phase: int
-    solvent_phase: int
+    complex_phase: int = Field(
+        None, "The Folding@Home project code for the complex phase"
+    )
+    solvent_phase: int = Field(
+        None, "The Folding@Home project code for the solvent phase"
+    )
 
 
 class CompoundSeriesMetadata(Model):
     name: str
-    description: str
-    creator: str
-    created_at: dt.date
-    xchem_project: str
-    receptor_variant: Dict[str, str]
-    temperature_kelvin: float
-    ionic_strength_millimolar: float
-    pH: float
-    fah_projects: ProjectPair
+    description: str = Field(
+        None, "A description of the current sprint and compound series"
+    )
+    creator: str = Field(
+        None, "The full name of the creator. Optional addition of email address"
+    )
+    created_at: dt.date = Field(dt.date, "Date of creation")
+    xchem_project: str = Field(None, "The name of the project")
+    receptor_variant: Dict[str, str] = Field(
+        dict(), "A brief description of the receptor variant."
+    )
+    temperature_kelvin: float = Field(
+        300, "The temperature (in Kelvin) that the simulations are performed at"
+    )
+    ionic_strength_millimolar: float = Field(
+        70, "The ionic strength (in millimolar) that the simulations are performed at"
+    )
+    pH: float = Field(7.3, "The pH at which the simulations are performed at")
+    fah_projects: ProjectPair = Field(
+        None, "The complex and solvent phase Folding@Home project numbers"
+    )
 
 
 class Microstate(Model):
@@ -67,7 +83,7 @@ class CompoundMetadata(Model):
     )
     smiles: str = Field(
         None,
-        "The SMILES string defining the compound in a canonical protonation state. Stereochemistry will be ambiguous for racemates.",
+        "The SMILES string defining the compound in a canonical protonation state. Stereochemistry will be ambiguous for racemates",
     )
     experimental_data: Dict[str, float] = Field(
         dict(), 'Optional experimental data fields, such as "pIC50"'
