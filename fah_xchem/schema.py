@@ -1,7 +1,7 @@
 import datetime as dt
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Model(BaseModel):
@@ -62,9 +62,16 @@ class Microstate(Model):
 
 
 class CompoundMetadata(Model):
-    compound_id: str
-    smiles: str
-    experimental_data: Dict[str, float]
+    compound_id: str = Field(
+        None, "The unique compound identifier (PostEra or enumerated ID)"
+    )
+    smiles: str = Field(
+        None,
+        "The SMILES string defining the compound in a canonical protonation state. Stereochemistry will be ambiguous for racemates.",
+    )
+    experimental_data: Dict[str, float] = Field(
+        dict(), 'Optional experimental data fields, such as "pIC50"'
+    )
 
 
 class Compound(Model):
