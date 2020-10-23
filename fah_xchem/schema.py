@@ -39,69 +39,75 @@ class PointEstimate(Model):
 
 class ProjectPair(Model):
     complex_phase: int = Field(
-        None, "The Folding@Home project code for the complex phase"
+        None, description="The Folding@Home project code for the complex phase"
     )
     solvent_phase: int = Field(
-        None, "The Folding@Home project code for the solvent phase"
+        None, description="The Folding@Home project code for the solvent phase"
     )
 
 
 class CompoundSeriesMetadata(Model):
     name: str
     description: str = Field(
-        None, "A description of the current sprint and compound series"
+        None, description="A description of the current sprint and compound series"
     )
     creator: str = Field(
-        None, "The full name of the creator. Optional addition of email address"
+        None,
+        description="The full name of the creator. Optional addition of email address",
     )
-    created_at: dt.date = Field(dt.date, "Date of creation")
-    xchem_project: str = Field(None, "The name of the project")
+    created_at: dt.date = Field(dt.date, description="Date of creation")
+    xchem_project: str = Field(None, description="The name of the project")
     receptor_variant: Dict[str, str] = Field(
-        dict(), "A brief description of the receptor variant."
+        dict(), description="A brief description of the receptor variant."
     )
     temperature_kelvin: float = Field(
-        300, "The temperature (in Kelvin) that the simulations are performed at"
+        300,
+        description="The temperature (in Kelvin) that the simulations are performed at",
     )
     ionic_strength_millimolar: float = Field(
-        70, "The ionic strength (in millimolar) that the simulations are performed at"
+        70,
+        description="The ionic strength (in millimolar) that the simulations are performed at",
     )
-    pH: float = Field(7.3, "The pH at which the simulations are performed at")
+    pH: float = Field(
+        7.3, description="The pH at which the simulations are performed at"
+    )
     fah_projects: ProjectPair = Field(
-        None, "The complex and solvent phase Folding@Home project codes"
+        None, description="The complex and solvent phase Folding@Home project codes"
     )
 
 
 class Microstate(Model):
     microstate_id: str = Field(
-        None, "The unique microstate identifier (based on the PostEra or enumerated ID)"
+        None,
+        description="The unique microstate identifier (based on the PostEra or enumerated ID)",
     )
     free_energy_penalty: PointEstimate = PointEstimate(point=0.0, stderr=0.0)
     smiles: str = Field(
-        None, "The SMILES string of the compound in a unique microstate"
+        None, description="The SMILES string of the compound in a unique microstate"
     )
 
 
 class CompoundMetadata(Model):
     compound_id: str = Field(
-        None, "The unique compound identifier (PostEra or enumerated ID)"
+        None, description="The unique compound identifier (PostEra or enumerated ID)"
     )
     smiles: str = Field(
         None,
-        "The SMILES string defining the compound in a canonical protonation state. Stereochemistry will be ambiguous for racemates",
+        description="The SMILES string defining the compound in a canonical protonation state. Stereochemistry will be ambiguous for racemates",
     )
     experimental_data: Dict[str, float] = Field(
-        dict(), 'Optional experimental data fields, such as "pIC50"'
+        dict(), description='Optional experimental data fields, such as "pIC50"'
     )
 
 
 class Compound(Model):
     metadata: CompoundMetadata = Field(
         None,
-        "The compound metdata including compound ID, SMILES, and any associated experimental data",
+        description="The compound metdata including compound ID, SMILES, and any associated experimental data",
     )
     microstates: List[Microstate] = Field(
         None,
-        "The associated microstates of the compound including microstate ID, free energy penalty, and SMILES",
+        description="The associated microstates of the compound including microstate ID, free energy penalty, and SMILES",
     )
 
 
@@ -115,9 +121,10 @@ class CompoundMicrostate(Model):
 
 class Transformation(Model):
     run_id: int = Field(
-        None, "The RUN number corresponding to the Folding@Home directory structure"
+        None,
+        description="The RUN number corresponding to the Folding@Home directory structure",
     )
-    xchem_fragment_id: str = Field(None, "The XChem fragment screening ID")
+    xchem_fragment_id: str = Field(None, description="The XChem fragment screening ID")
     initial_microstate: CompoundMicrostate
     final_microstate: CompoundMicrostate
 
