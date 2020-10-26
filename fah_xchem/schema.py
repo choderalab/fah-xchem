@@ -1,7 +1,7 @@
 import datetime as dt
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Model(BaseModel):
@@ -38,38 +38,77 @@ class PointEstimate(Model):
 
 
 class ProjectPair(Model):
-    complex_phase: int
-    solvent_phase: int
+    complex_phase: int = Field(
+        None, description="The Folding@Home project code for the complex phase"
+    )
+    solvent_phase: int = Field(
+        None, description="The Folding@Home project code for the solvent phase"
+    )
 
 
 class CompoundSeriesMetadata(Model):
     name: str
-    description: str
-    creator: str
-    created_at: dt.date
-    xchem_project: str
-    receptor_variant: Dict[str, str]
-    temperature_kelvin: float
-    ionic_strength_millimolar: float
-    pH: float
-    fah_projects: ProjectPair
+    description: str = Field(
+        None, description="A description of the current sprint and compound series"
+    )
+    creator: str = Field(
+        None,
+        description="The full name of the creator. Optional addition of email address",
+    )
+    created_at: dt.date = Field(dt.date, description="Date of creation")
+    xchem_project: str = Field(None, description="The name of the project")
+    receptor_variant: Dict[str, str] = Field(
+        dict(), description="A brief description of the receptor variant."
+    )
+    temperature_kelvin: float = Field(
+        300,
+        description="The temperature (in Kelvin) that the simulations are performed at",
+    )
+    ionic_strength_millimolar: float = Field(
+        70,
+        description="The ionic strength (in millimolar) that the simulations are performed at",
+    )
+    pH: float = Field(
+        7.3, description="The pH at which the simulations are performed at"
+    )
+    fah_projects: ProjectPair = Field(
+        None, description="The complex and solvent phase Folding@Home project codes"
+    )
 
 
 class Microstate(Model):
-    microstate_id: str
+    microstate_id: str = Field(
+        None,
+        description="The unique microstate identifier (based on the PostEra or enumerated ID)",
+    )
     free_energy_penalty: PointEstimate = PointEstimate(point=0.0, stderr=0.0)
-    smiles: str
+    smiles: str = Field(
+        None, description="The SMILES string of the compound in a unique microstate"
+    )
 
 
 class CompoundMetadata(Model):
-    compound_id: str
-    smiles: str
-    experimental_data: Dict[str, float]
+    compound_id: str = Field(
+        None, description="The unique compound identifier (PostEra or enumerated ID)"
+    )
+    smiles: str = Field(
+        None,
+        description="The SMILES string defining the compound in a canonical protonation state. Stereochemistry will be ambiguous for racemates",
+    )
+    experimental_data: Dict[str, float] = Field(
+        dict(), description='Optional experimental data fields, such as "pIC50"'
+    )
 
 
 class Compound(Model):
-    metadata: CompoundMetadata
-    microstates: List[Microstate]
+    metadata: CompoundMetadata = Field(
+        None,
+        description="The compound metdata including compound ID, SMILES, and any associated experimental data",
+    )
+    microstates: List[Microstate] = Field(
+        None,
+        description="The associated microstates of the compound including microstate ID, free energy penalty, and SMILES",
+    )
 
 
 class CompoundMicrostate(Model):
@@ -81,8 +120,11 @@ class CompoundMicrostate(Model):
 
 
 class Transformation(Model):
-    run_id: int
-    xchem_fragment_id: str
+    run_id: int = Field(
+        None,
+        description="The RUN number corresponding to the Folding@Home directory structure",
+    )
+    xchem_fragment_id: str = Field(None, description="The XChem fragment screening ID")
     initial_microstate: CompoundMicrostate
     final_microstate: CompoundMicrostate
 
