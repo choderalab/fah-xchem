@@ -1,4 +1,4 @@
-name: fah-xchem-dev
+name: fah-xchem
 channels:
   - conda-forge
   - defaults
