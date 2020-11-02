@@ -1,4 +1,4 @@
-name: fah-xchem
+name: fah-xchem-dev
 channels:
   - conda-forge
   - defaults
@@ -25,5 +25,5 @@ dependencies:
   - networkx
   - pip
   - pip:
-      - git+https://github.com/openforcefield/Arsenic.git@0dadc5c5919fdfa8f161abe9763967920ee000b0
+      - git+https://github.com/openforcefield/Arsenic.git@0.1.0
 
