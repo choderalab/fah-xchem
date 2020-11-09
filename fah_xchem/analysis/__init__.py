@@ -128,8 +128,10 @@ def analyze_compound_series(
             if result is not None
         ]
 
-    # Sort transormations
-    transformations.sort(key=lambda transformation_analysis : transformation_analysis.transformation.run_id)
+    # Sort transformations by RUN
+    #transformations.sort(key=lambda transformation_analysis : transformation_analysis.transformation.run_id)
+    # Sort transformations by free energy difference
+    transformations.sort(key=lambda transformation_analysis : transformation_analysis.binding_free_energy.point)
 
     # Warn about failures
     num_failed = len(series.transformations) - len(transformations)
