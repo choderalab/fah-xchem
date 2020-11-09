@@ -133,7 +133,7 @@ def plot_relative_distribution(
         rug_kws=dict(alpha=0.5),
         label=f"$N={len(relative_delta_fs)}$",
     )
-    plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
+    plt.xlabel(r"Relative free energy to reference fragment / kcal mol$^{-1}$")
     plt.legend()
 
 
@@ -189,7 +189,7 @@ def plot_convergence(
         index=solvent_gens,
     )
 
-    DDG_kcal = solvent_delta_fs_kcal - complex_delta_fs_kcal
+    DDG_kcal = complex_delta_fs_kcal - solvent_delta_fs_kcal
     DDG_err_kcal = np.sqrt(
         solvent_delta_f_errs_kcal ** 2 + complex_delta_f_errs_kcal ** 2
     )
@@ -370,7 +370,7 @@ def plot_cumulative_distribution(
             verticalalignment="center",
             color="green",
         )
-    plt.xlabel(r"Relative free energy to ligand 0 / kcal mol$^{-1}$")
+    plt.xlabel(r"Relative free energy to reference fragment / kcal mol$^{-1}$")
     plt.ylabel("Cumulative $N$ ligands")
 
 

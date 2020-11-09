@@ -91,7 +91,7 @@ def load_fragment(fragment_id: str) -> md.Trajectory:
 
     # TODO: Put this in the covid-moonshot path, or generalize to an arbitrary file
     fragment = md.load(
-        f"/home/server/server2/projects/available/covid-moonshot/receptors/monomer/Mpro-{fragment_id}_0_bound-protein-thiolate.pdb"
+        f"/home/server/server2/projects/available/covid-moonshot/receptors/monomer/Mpro-{fragment_id}_0A_bound-protein.pdb"
     )
 
     return fragment

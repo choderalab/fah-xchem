@@ -27,13 +27,11 @@ def format_point(est: PointEstimate) -> str:
     if prec is None or not isfinite(est.point):
         return ""
     rounded = round(est.point, prec)
-    return (
-        f"{rounded:.{prec}f}"
-        if est.point > 0
-        else f'<span class="negative">−{abs(rounded):.{prec}f}</span>'
-    )
-
-
+    if est.point >= 0:
+        return f"{rounded:.{prec}f}"
+    else:
+        return f'<span class="negative">−{abs(rounded):.{prec}f}</span>'
+    
 def format_stderr(est: PointEstimate) -> str:
     """
     Format an uncertainty with appropriate precision (one significant
@@ -61,6 +59,17 @@ def postera_url(compound_or_microstate_id: str) -> Optional[str]:
         if match
         else None
     )
+
+
+def format_compound_id(compound_id: str) -> str:
+    """
+    Format a compound ID as a link if it is in PostEra format
+    """
+    url = postera_url(compound_id)
+    if url is None:
+        return compound_id
+    else:
+        return f'<a href="{url}">{compound_id}</a>'
 
 
 class Progress(NamedTuple):
@@ -96,7 +105,10 @@ def _get_progress(
         logging.warning("Failed to get progress from FAH work server: %s", exc)
         return None
 
-    return Progress(completed=response["gens_completed"], total=response["gens"])
+    completed_work_units = response["gens_completed"]
+    total_work_units = response["runs"] * response["clones"] * response["gens"]
+    
+    return Progress(completed=completed_work_units, total=total_work_units)
 
 
 def get_sprint_number(description: str) -> Optional[int]:
@@ -156,11 +168,7 @@ def generate_website(
 ) -> None:
 
     generate_molecule_images(
-        microstates=[
-            microstate.microstate
-            for compound in series.compounds
-            for microstate in compound.microstates
-        ],
+        compounds=series.compounds,
         path=os.path.join(path, "molecule_images"),
     )
 
@@ -169,6 +177,7 @@ def generate_website(
     environment = jinja2.Environment(loader=template_loader)
     environment.filters["format_point"] = format_point
     environment.filters["format_stderr"] = format_stderr
+    environment.filters["format_compound_id"] = format_compound_id
     environment.filters["postera_url"] = postera_url
     environment.filters["smiles_to_filename"] = get_image_filename
 

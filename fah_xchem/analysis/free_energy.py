@@ -43,14 +43,19 @@ def _mask_outliers(
     """
     mask = np.abs(a) < max_value
     if len(a) >= min_sample_size:
-        mask &= np.abs(a - np.mean(a)) < max_n_devs * np.std(a)
+        import statsmodels.api as sm        
+        # Use a robust estimator of stddev that is robust to outliers
+        mean = np.median( a[mask] )
+        stddev = np.mean( np.abs(a[mask]-mean) )
+        stddev = 5.0 # DEBUG
+        mask &= np.abs(a - mean) < max_n_devs * stddev
     return mask
 
 
 def _filter_work_values(
     works: np.ndarray,
     max_value: float = 1e4,
-    max_n_devs: float = 5,
+    max_n_devs: float = 6,
     min_sample_size: int = 10,
 ) -> np.ndarray:
     """Remove pairs of works when either is determined to be an outlier.
@@ -74,7 +79,6 @@ def _filter_work_values(
         1-D array of filtered works.
         ``out.shape == (works.size, 1)``
     """
-
     mask_work_outliers = functools.partial(
         _mask_outliers,
         max_value=max_value,
@@ -127,12 +131,13 @@ def _get_bar_overlap(works: np.ndarray) -> float:
 
     from pymbar.mbar import MBAR
 
+    # TODO : Figure out why this is throwing warnings
+    
     n = len(works)
     u_kn = np.block([[works["forward"], np.zeros(n)], [np.zeros(n), works["reverse"]]])
     N_k = np.array([n, n])
 
     mbar = MBAR(u_kn, N_k)
-
     return float(mbar.computeOverlap()["scalar"])
 
 
@@ -165,6 +170,7 @@ def compute_relative_free_energy(
         dtype=[("clone", int), ("forward", float), ("reverse", float)],
     )
 
+    # TODO: Flag problematic RUN/CLONE/GEN trajectories for further analysis and debugging
     works = _filter_work_values(all_works)
 
     if len(works) < (min_num_work_values or 1):

@@ -2,7 +2,7 @@
 {% import "postera.html" as postera %}
 {% set active_page = "compounds" %}
 {% block content %}
-<h3>{{ compound.metadata.compound_id }}{{ postera.maybe_link(compound.metadata.compound_id) }}</h3>
+<h3>{{ compound.metadata.compound_id | format_compound_id }}{{ postera.maybe_link(compound.metadata.compound_id) }}</h3>
 <a href="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg">
   <img src="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ compound.metadata.compound_id }}" height="300px">
 </a>
@@ -10,7 +10,7 @@
 <table class="table table-striped table-hover">
   <tr>
     <td>Compound ID</td>
-    <td>{{ compound.metadata.compound_id }}{{ postera.maybe_link(compound.metadata.compound_id) }}</td>
+    <td>{{ compound.metadata.compound_id | format_compound_id }}{{ postera.maybe_link(compound.metadata.compound_id) }}</td>
   </tr>
   <tr>
     <td>ΔG / kcal M<sup>-1</sup></td>
@@ -42,7 +42,7 @@ No transformations found.
   <tr>
     <th>RUN</th>
     <th colspan=4>Initial microstate</th>
-    <th colspan=2>Final microstate</th>
+    <th colspan=4>Final microstate</th>
     <th>ΔΔG / kcal M<sup>-1</sup></th>
     <th>Work distributions</th>
     <th>Convergence</th>
@@ -50,7 +50,7 @@ No transformations found.
   {% for transformation in transformations %}
   <tr>
     <td >RUN{{ transformation.transformation.run_id }}</td>
-    <td>{{ transformation.transformation.initial_microstate.microstate_id }}{{ postera.maybe_link(transformation.transformation.initial_microstate.microstate_id) }}</td>
+    <td>{{ transformation.transformation.initial_microstate.microstate_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.initial_microstate.microstate_id) }}</td>
     <td class="thumbnail">
       <a href="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg">
         <img src="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles }}">
@@ -66,10 +66,20 @@ No transformations found.
         <button class="btn btn-outline-primary">pdb</button>
       </a>
     </td>
-    <td>{{ transformation.transformation.final_microstate.microstate_id }}{{ postera.maybe_link(transformation.transformation.final_microstate.microstate_id) }}</td>
+    <td>{{ transformation.transformation.final_microstate.microstate_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.final_microstate.microstate_id) }}</td>
     <td class="thumbnail">
       <a href="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg">
         <img src="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.final_microstate][1].smiles }}">
+      </a>
+    </td>
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/new_ligand.sdf">
+        <button class="btn btn-outline-primary">sdf</button>
+      </a>
+    </td>
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/new_protein.pdb">
+        <button class="btn btn-outline-primary">pdb</button>
       </a>
     </td>
     <td class="binding">

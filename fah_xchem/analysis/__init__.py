@@ -83,8 +83,7 @@ def analyze_transformation(
 
     return TransformationAnalysis(
         transformation=transformation,
-        binding_free_energy=solvent_phase.free_energy.delta_f
-        - complex_phase.free_energy.delta_f,
+        binding_free_energy=complex_phase.free_energy.delta_f - solvent_phase.free_energy.delta_f, 
         complex_phase=complex_phase,
         solvent_phase=solvent_phase,
     )
@@ -129,6 +128,10 @@ def analyze_compound_series(
             if result is not None
         ]
 
+    # Sort transormations
+    transformations.sort(key=lambda transformation_analysis : transformation_analysis.transformation.run_id)
+
+    # Warn about failures
     num_failed = len(series.transformations) - len(transformations)
     if num_failed > 0:
         logging.warning(

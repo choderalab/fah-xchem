@@ -159,20 +159,25 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
         for microstate in compound.microstates
     }
 
+    # TODO: Take this cutoff from global configuration
+    THRESHOLD = 4.5  # kcal/mol # TODO: expose as a parameter
+
     oemols = list()  # target molecules
     refmols = list()  # reference molecules
+    # TODO : Iterate over compounds instead of transformations
+    # Store optimal microstates for each compound, and representative snapshot paths for each microstate and compound in analysis
     for transformation in track(series.transformations, description="Reading ligands"):
 
-        # Don't load anything not predicted to bind better
-        if transformation.binding_free_energy.point >= 0.0:
+        # Enforce a cutoff
+        if transformation.binding_free_energy.point*KT_KCALMOL >= THRESHOLD:
             continue
 
         run = f"RUN{transformation.transformation.run_id}"
         path = os.path.join(results_path, "transformations", run)
 
         # Read target compound information
-        protein_pdb_filename = os.path.join(path, "old_protein.pdb")
-        ligand_sdf_filename = os.path.join(path, "old_ligand.sdf")
+        protein_pdb_filename = os.path.join(path, "new_protein.pdb")
+        ligand_sdf_filename = os.path.join(path, "new_ligand.sdf")
 
         # Read target compound
         oemol = oechem.OEMol()
@@ -181,7 +186,7 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
 
         # Read reference compound
         refmol = oechem.OEMol()
-        reference_ligand_sdf_filename = os.path.join(path, "new_ligand.sdf")
+        reference_ligand_sdf_filename = os.path.join(path, "old_ligand.sdf")
         with oechem.oemolistream(reference_ligand_sdf_filename) as ifs:
             oechem.OEReadMolecule(ifs, refmol)
         refmols.append(refmol)
@@ -226,11 +231,10 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
     )
 
     # Filter based on threshold
-    THRESHOLD = -0.5  # kcal/mol # TODO: expose as a parameter
     sorted_indices = [
         index
         for index in sorted_indices
-        if (float(oechem.OEGetSDData(oemols[index], "DDG (kcal/mol)")) < -THRESHOLD)
+        if (float(oechem.OEGetSDData(oemols[index], "DDG (kcal/mol)")) < THRESHOLD)
     ]
 
     # Slice
@@ -272,6 +276,7 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
             continue
 
     if not proteins:
+        return # DEBUG
         raise ValueError("No protein snapshots found")
 
     n_proteins = len(proteins)

@@ -78,6 +78,13 @@ def run_analysis(
         CompoundSeries, compound_series_file, "compound series"
     )
 
+    # DEBUG : only analyze 100 transformations
+    #compound_series = CompoundSeries(
+    #    metadata=compound_series.metadata,
+    #    compounds=compound_series.compounds,
+    #    transformations=compound_series.transformations[:100]
+    #    )
+    
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
 
     series_analysis = analyze_compound_series(
