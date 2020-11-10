@@ -78,7 +78,7 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
     g_err = np.array([p[0].stderr for p in microstate_free_energies])
     s_err = np.array([p[1].stderr for p in microstate_free_energies])
 
-    gs = g + (s - logsumexp(-s))
+    gs = g - (- s - logsumexp(-s))
 
     # TODO: check the error propagation below. It was written in a hurry!
     # Error propagation for gs

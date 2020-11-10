@@ -48,8 +48,9 @@ def run_analysis(
     output_dir: str = "results",
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = 8,
+    max_transformations: Optional[int] = None,
     log: str = "WARN",
-):
+) -> None:
     """
     Run free energy analysis and write JSON-serialized analysis
     consisting of input augmented with analysis results
@@ -70,6 +71,8 @@ def run_analysis(
         directory of this name
     num_procs : int, optional
         Number of parallel processes to run
+    max_transformations : int, optional
+        If not None, limit to this number of transformations
     """
 
     logging.basicConfig(level=getattr(logging, log.upper()))
@@ -78,12 +81,13 @@ def run_analysis(
         CompoundSeries, compound_series_file, "compound series"
     )
 
-    # DEBUG : only analyze 100 transformations
-    #compound_series = CompoundSeries(
-    #    metadata=compound_series.metadata,
-    #    compounds=compound_series.compounds,
-    #    transformations=compound_series.transformations[:100]
-    #    )
+    if max_transformations is not None:
+        logging.warning(f'Limiting maximum number of transformations to {max_transformations}')
+        compound_series = CompoundSeries(
+            metadata=compound_series.metadata,
+            compounds=compound_series.compounds,
+            transformations=compound_series.transformations[:max_transformations]
+        )
     
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
 

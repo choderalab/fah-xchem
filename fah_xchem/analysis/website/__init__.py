@@ -60,7 +60,6 @@ def postera_url(compound_or_microstate_id: str) -> Optional[str]:
         else None
     )
 
-
 def format_compound_id(compound_id: str) -> str:
     """
     Format a compound ID as a link if it is in PostEra format
@@ -70,7 +69,6 @@ def format_compound_id(compound_id: str) -> str:
         return compound_id
     else:
         return f'<a href="{url}">{compound_id}</a>'
-
 
 class Progress(NamedTuple):
     completed: int
