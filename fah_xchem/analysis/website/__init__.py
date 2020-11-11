@@ -12,7 +12,7 @@ from rich.progress import track
 from urllib.parse import urljoin
 
 from ..._version import get_versions
-from ...schema import CompoundMicrostate, CompoundSeriesAnalysis, PointEstimate
+from ...schema import CompoundMicrostate, CompoundSeriesAnalysis, PointEstimate, CompoundAnalysis
 from ..constants import KT_KCALMOL
 from .molecules import generate_molecule_images, get_image_filename
 
@@ -43,6 +43,16 @@ def format_stderr(est: PointEstimate) -> str:
     return f"{round(est.stderr, prec):.{prec}f}"
 
 
+def format_pIC50(compound: CompoundAnalysis) -> str:
+    """
+    Format the compound's experimental pIC50 if present, or TBD if not
+    """
+    experimental_data = compound.metadata.experimental_data
+    if 'pIC50' in experimental_data:
+        return experimental_data['pIC50']
+    else:
+        return 'TBD'
+
 def postera_url(compound_or_microstate_id: str) -> Optional[str]:
     """
     If `compound_id` matches regex, link to Postera compound details
@@ -50,7 +60,7 @@ def postera_url(compound_or_microstate_id: str) -> Optional[str]:
     import re
 
     match = re.match(
-        "^(?P<compound_id>[A-Z]{3}-[A-Z]{3}-[0-9a-f]{8}-[0-9])(_(?P<microstate_index>[0-9]+))?$",
+        "^(?P<compound_id>[A-Z]{3}-[A-Z]{3}-[0-9a-f]{8}-[0-9]+)(_(?P<microstate_index>[0-9]+))?$",
         compound_or_microstate_id,
     )
 
@@ -176,6 +186,7 @@ def generate_website(
     environment.filters["format_point"] = format_point
     environment.filters["format_stderr"] = format_stderr
     environment.filters["format_compound_id"] = format_compound_id
+    environment.filters["format_pIC50"] = format_pIC50
     environment.filters["postera_url"] = postera_url
     environment.filters["smiles_to_filename"] = get_image_filename
 
