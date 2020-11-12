@@ -25,8 +25,9 @@
     <th colspan="2">Compound</th>
     <th>SMILES</th>
     <th>ΔG / kcal mol<sup>-1</sup></th>
+    <th>pIC50</th>
   </tr>
-  {% for compound in (series.compounds | selectattr("free_energy", "ne", None) | sort(attribute="free_energy.point"))[:10] %}
+  {% for compound in (series.compounds | selectattr("free_energy", "ne", None) | sort(attribute="free_energy.point"))[:num_top_compounds] %}
   <tr>
     <td class="rank">{{ loop.index }}</td>
     <td >
@@ -36,6 +37,7 @@
       {{ compound.metadata.compound_id }}
       {% endif %}
       {{ postera.maybe_link(compound.metadata.compound_id) }}
+      {{ postera.maybe_experimental_data(compound) }}      
     </td>
     <td class="thumbnail">
       <a href="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg">
@@ -53,16 +55,32 @@
       no data
       {% endif %}
     </td>
+    <td class="binding">
+      {% if compound.free_energy %}
+      <span class="estimate">
+        <span class="point">{{ (-compound.free_energy * KT_PIC50) | format_point }}</span>
+        <span class="stderr"> ± {{ (compound.free_energy * KT_PIC50) | format_stderr }}</span>
+      </span>
+      {% else %}
+      no data
+      {% endif %}
+    </td>
   </tr>
   {% endfor %}
 </table>
 <h3>Raw data</h3>
 <ul><li><a href="analysis.json">analysis.json</a></li></ul>
+<h4>PDF summary</h4>
+<ul><li><a href="transformations-final-ligands.pdf">transformations-final-ligands.pdf</a></li></ul>
 <h3>Structures</h3>
 <ul>
-  <li><a href="ligands.pdf">ligands.pdf</a></li>
-  <li><a href="ligands.csv">ligands.csv</a></li>
-  <li><a href="ligands.sdf">ligands.sdf</a></li>
-  <li><a href="proteins.pdb">proteins.pdb</a></li>
+  <h4>Proposed ligands</h4>  
+  <li><a href="transformations-final-ligands.csv">transformations-final-ligands.csv</a></li>
+  <li><a href="transformations-final-ligands.sdf">transformations-final-ligands.sdf</a></li>
+  <li><a href="transformations-final-ligands.mol2">transformations-final-ligands.mol2</a></li>
+  <li><a href="transformations-final-proteins.pdb">transformation-final-proteins.pdb</a></li>
+  <h4>Reference ligands</h4>    
+  <li><a href="transformations-initial-ligands.mol2">transformation-initial-ligands.mol2</a></li>
+  <li><a href="transformations-initial-ligands.sdf">transformation-initial-ligands.sdf</a></li>
 </ul>
 {% endblock %}

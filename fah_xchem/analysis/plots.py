@@ -694,7 +694,7 @@ def generate_plots(
     ):
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
-
+        
     with _save_table_pdf(path=output_dir, name="poor_complex_convergence_fe_table"):
         plot_poor_convergence_fe_table(series.transformations)
 

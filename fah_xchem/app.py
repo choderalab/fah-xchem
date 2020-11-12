@@ -49,6 +49,7 @@ def run_analysis(
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = 8,
     max_transformations: Optional[int] = None,
+    use_only_reference_compound_data: Optional[bool] = False,
     log: str = "WARN",
 ) -> None:
     """
@@ -88,9 +89,29 @@ def run_analysis(
             compounds=compound_series.compounds,
             transformations=compound_series.transformations[:max_transformations]
         )
+
+    if use_only_reference_compound_data:
+        # Strip experimental data frorm all but reference compound
+        logging.warning(f'Stripping experimental data from all but reference compound')
+        from .schema import CompoundMetadata, Compound
+        new_compounds = list()
+        for compound in compound_series.compounds:
+            metadata = compound.metadata
+            if metadata.compound_id == 'MAT-POS-8a69d52e-7': # TODO: Magic strings
+                new_compound = compound
+                print(compound)
+            else:
+                new_metadata = CompoundMetadata(compound_id=metadata.compound_id, smiles=metadata.smiles, experimental_data=dict())
+                new_compound = Compound(metadata=new_metadata, microstates=compound.microstates)
+            new_compounds.append(new_compound)
+        compound_series = CompoundSeries(
+            metadata=compound_series.metadata,
+            compounds=new_compounds,
+            transformations=compound_series.transformations
+        )
     
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
-
+    
     series_analysis = analyze_compound_series(
         series=compound_series,
         config=config,

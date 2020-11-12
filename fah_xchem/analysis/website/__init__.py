@@ -13,7 +13,7 @@ from urllib.parse import urljoin
 
 from ..._version import get_versions
 from ...schema import CompoundMicrostate, CompoundSeriesAnalysis, PointEstimate, CompoundAnalysis
-from ..constants import KT_KCALMOL
+from ..constants import KT_KCALMOL, KT_PIC50
 from .molecules import generate_molecule_images, get_image_filename
 
 
@@ -69,6 +69,16 @@ def postera_url(compound_or_microstate_id: str) -> Optional[str]:
         if match
         else None
     )
+
+def experimental_data_url(compound: CompoundAnalysis) -> Optional[str]:
+    """
+    If `compound_id` contains experimental data, return the URL to Postera compound details
+    """
+    experimental_data = compound.metadata.experimental_data
+    if 'pIC50' in experimental_data:
+        return postera_url(compound.metadata.compound_id)
+    else:
+        return None
 
 def format_compound_id(compound_id: str) -> str:
     """
@@ -188,6 +198,7 @@ def generate_website(
     environment.filters["format_compound_id"] = format_compound_id
     environment.filters["format_pIC50"] = format_pIC50
     environment.filters["postera_url"] = postera_url
+    environment.filters["experimental_data_url"] = experimental_data_url
     environment.filters["smiles_to_filename"] = get_image_filename
 
     for subdir in ["compounds", "microstates", "transformations"]:
@@ -207,6 +218,7 @@ def generate_website(
             timestamp=timestamp,
             fah_xchem_version=get_versions()["version"],
             KT_KCALMOL=KT_KCALMOL,
+            KT_PIC50=KT_PIC50,            
             microstate_detail={
                 CompoundMicrostate(
                     compound_id=compound.metadata.compound_id,

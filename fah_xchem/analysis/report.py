@@ -131,7 +131,7 @@ def RenderData(image, mol, tags):
         table.DrawText(cell, value)
 
 
-def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
+def generate_report(series: CompoundSeriesAnalysis, results_path: str, max_binding_free_energy: float=0.0) -> None:
     """
     Postprocess results of calculations to extract summary for compound prioritization
 
@@ -141,6 +141,8 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
         Analysis results
     results_path : str
         Path to write results
+    max_binding_free_energy : str, optional, default=0
+        Don't report compounds with free energies greater than this (in kT)
     """
 
     import os
@@ -160,8 +162,6 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
     }
 
     # TODO: Take this cutoff from global configuration
-    THRESHOLD = 4.5  # kcal/mol # TODO: expose as a parameter
-
     oemols = list()  # target molecules
     refmols = list()  # reference molecules
     # TODO : Iterate over compounds instead of transformations
@@ -169,7 +169,7 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
     for transformation in track(series.transformations, description="Reading ligands"):
 
         # Enforce a cutoff
-        if transformation.binding_free_energy.point*KT_KCALMOL >= THRESHOLD:
+        if transformation.binding_free_energy.point >= max_binding_free_energy:
             continue
 
         run = f"RUN{transformation.transformation.run_id}"
@@ -192,13 +192,13 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
         refmols.append(refmol)
 
         # Set ligand title
-        title = transformation.transformation.initial_microstate.microstate_id
+        title = transformation.transformation.final_microstate.microstate_id
         oemol.SetTitle(title)
         oechem.OESetSDData(oemol, "CID", title)
 
         # Set SMILES
         smiles = microstate_detail[
-            transformation.transformation.initial_microstate
+            transformation.transformation.final_microstate
         ].smiles
         oechem.OESetSDData(oemol, "SMILES", smiles)
 
@@ -234,7 +234,7 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
     sorted_indices = [
         index
         for index in sorted_indices
-        if (float(oechem.OEGetSDData(oemols[index], "DDG (kcal/mol)")) < THRESHOLD)
+        if (float(oechem.OEGetSDData(oemols[index], "DDG (kcal/mol)")) < max_binding_free_energy)
     ]
 
     # Slice
@@ -242,18 +242,18 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
     refmols = [refmols[index] for index in sorted_indices]
 
     # Write sorted molecules
-    for filename in ["ligands.sdf", "ligands.csv", "ligands.mol2"]:
+    for filename in ["transformations-final-ligands.sdf", "transformations-final-ligands.csv", "transformations-final-ligands.mol2"]:
         with oechem.oemolostream(os.path.join(results_path, filename)) as ofs:
             for oemol in track(oemols, description=f"Writing {filename}"):
                 oechem.OEWriteMolecule(ofs, oemol)
 
     # Write PDF report
     write_pdf_report(
-        oemols, os.path.join(results_path, "ligands.pdf"), series.metadata.name
+        oemols, os.path.join(results_path, "transformations-final-ligands.pdf"), series.metadata.name
     )
 
     # Write reference molecules
-    for filename in ["reference.sdf", "reference.mol2"]:
+    for filename in ["transformations-initial-ligands.sdf", "transformations-initial-ligands.mol2"]:
         with oechem.oemolostream(os.path.join(results_path, filename)) as ofs:
             for refmol in track(refmols, description=f"Writing {filename}"):
                 oechem.OEWriteMolecule(ofs, refmol)
@@ -286,4 +286,4 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str) -> None:
     for index, protein in enumerate(proteins):
         xyz[index, :, :] = protein.xyz[0, :, :]
     trajectory = md.Trajectory(xyz, proteins[0].topology)
-    trajectory.save(os.path.join(results_path, "proteins.pdb"))
+    trajectory.save(os.path.join(results_path, "transformations-final-proteins.pdb"))

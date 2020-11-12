@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple
 import networkx as nx
 import numpy as np
 from scipy.special import logsumexp
+from .constants import KT_KCALMOL, KCALMOL_KT
 
 from ..schema import (
     Compound,
@@ -121,7 +122,7 @@ def _validate_inputs(
     )
 
     for microstate in compound_microstates - transformation_microstates:
-        logging.warning("No transformation data for microstate '%s'", microstate)
+        logging.info("No transformation data for microstate '%s'", microstate)
 
     missing_microstates = transformation_microstates - compound_microstates
     if missing_microstates:
@@ -285,16 +286,16 @@ def combine_free_energies(
 
         # Compute normalized microstate probabilities
         p_is = np.exp(-g_is - logsumexp(-g_is))
-
+        
         # Apportion compound K_a according to microstate probability
         Ka_is = p_is * np.exp(-g_exp_compound)
-
+        
         for (node, _), Ka in zip(valid_nodes, Ka_is):
             if node in supergraph:
                 supergraph.nodes[node]["g_exp"] = -np.log(Ka)
                 # NOTE: naming of uncertainty fixed by Arsenic convention
                 # TODO: remove hard-coded value
-                supergraph.nodes[node]["g_dexp"] = 0.1
+                supergraph.nodes[node]["g_dexp"] = 0.1*KCALMOL_KT
             else:
                 logging.warning(
                     "Compound microstate '%s' has experimental data, "
@@ -307,7 +308,7 @@ def combine_free_energies(
     # energies.
 
     for graph in valid_subgraphs:
-        gs, C = stats.mle(graph, factor="g_ij", node_factor="g_exp")
+        gs, C = stats.mle(graph, factor="g_ij", node_factor="g_exp")        
         errs = np.sqrt(np.diag(C))
         for node, g, g_err in zip(graph.nodes, gs, errs):
             graph.nodes[node]["g"] = g
@@ -343,7 +344,7 @@ def combine_free_energies(
         try:
             free_energy = get_compound_free_energy(microstates)
         except AnalysisError as exc:
-            logging.warning(
+            logging.info(
                 "Failed to estimate free energy for compound '%s': %s",
                 compound.metadata.compound_id,
                 exc,

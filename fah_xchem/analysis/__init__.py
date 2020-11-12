@@ -197,7 +197,11 @@ def generate_artifacts(
 
     if snapshots and report:
         logging.info("Generating pdf report")
-        generate_report(series=series, results_path=output_dir)
+        generate_report(
+            series=series,
+            results_path=output_dir,
+            max_binding_free_energy=config.max_binding_free_energy,
+        )
 
     if website:
         logging.info("Generating website")

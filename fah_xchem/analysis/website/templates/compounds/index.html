@@ -16,6 +16,7 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.compounds | lengt
     <th colspan="2">Compound</th>
     <th>SMILES</th>
     <th>ΔG / kcal M<sup>-1</sup></th>
+    <th>pIC50</th>    
   </tr>
   {% for compound in compounds %}
   <tr>
@@ -27,6 +28,7 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.compounds | lengt
       {{ compound.metadata.compound_id }}
       {% endif %}
       {{ postera.maybe_link(compound.metadata.compound_id) }}
+      {{ postera.maybe_experimental_data(compound) }}
     </td>
     <td class="thumbnail">
       <a href="molecule_images/{{ compound.metadata.smiles | smiles_to_filename }}.svg">
@@ -39,6 +41,16 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.compounds | lengt
       <span class="estimate">
         <span class="point">{{ (compound.free_energy * KT_KCALMOL) | format_point }}</span>
         <span class="stderr"> ± {{ (compound.free_energy * KT_KCALMOL) | format_stderr }}</span>
+      </span>
+      {% else %}
+      no data
+      {% endif %}
+    </td>
+    <td class="binding">
+      {% if compound.free_energy %}
+      <span class="estimate">
+        <span class="point">{{ (-compound.free_energy * KT_PIC50) | format_point }}</span>
+        <span class="stderr"> ± {{ (compound.free_energy * KT_PIC50) | format_stderr }}</span>
       </span>
       {% else %}
       no data
