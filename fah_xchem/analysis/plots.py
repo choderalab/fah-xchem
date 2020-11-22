@@ -321,7 +321,7 @@ def plot_cumulative_distribution(
     max_delta_f_kcal: float = 5,
     cmap: str = "PiYG",
     n_bins: int = 100,
-    markers_kcal: List[float] = [-2, -1, 0, 1, 2],
+    markers_kcal: List[float] = [-6, -5, -4, -3, -2, -1, 0, 1, 2],
 ) -> None:
     """
     Plot cumulative distribution of ligand affinities
@@ -361,7 +361,7 @@ def plot_cumulative_distribution(
 
     for marker_kcal in markers_kcal:
         n_below = (relative_delta_fs_kcal < marker_kcal).astype(int).sum()
-        plt.vlines(-marker_kcal, 0, Y.max(), "grey", linestyles="dashed")
+        plt.vlines(marker_kcal, 0, Y.max(), "grey", linestyles="dashed")
         plt.text(
             marker_kcal - 0.5,
             0.8 * Y.max(),

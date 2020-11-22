@@ -358,40 +358,42 @@ def generate_representative_snapshot(
         run_id = transformation.transformation.run_id
 
         # Extract representative snapshot
-        sliced_snapshots, components = extract_snapshot(
-            project_dir=project_dir,
-            project_data_dir=project_data_dir,
-            run=run_id,
-            clone=gen_work[1].clone,
-            gen=gen_work[0].gen,
-            frame=frame,
-            fragment_id=transformation.transformation.xchem_fragment_id,
-            cache_dir=cache_dir,
-        )
+        try:
+            sliced_snapshots, components = extract_snapshot(
+                project_dir=project_dir,
+                project_data_dir=project_data_dir,
+                run=run_id,
+                clone=gen_work[1].clone,
+                gen=gen_work[0].gen,
+                frame=frame,
+                fragment_id=transformation.transformation.xchem_fragment_id,
+                cache_dir=cache_dir,
+            )
+            
+            # Write protein PDB
+            name = f"{ligand}_protein"
+            os.makedirs(os.path.join(output_dir, f"RUN{run_id}"), exist_ok=True)
+            
+            sliced_snapshots["protein"].save(
+                os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb")
+            )
 
-        # Write protein PDB
-        name = f"{ligand}_protein"
-        os.makedirs(os.path.join(output_dir, f"RUN{run_id}"), exist_ok=True)
+            # Write old and new complex PDBs
+            name = f"{ligand}_complex"
+            sliced_snapshots[name].save(
+                os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb")
+            )
 
-        sliced_snapshots["protein"].save(
-            os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb")
-        )
-
-        # Write old and new complex PDBs
-        name = f"{ligand}_complex"
-        sliced_snapshots[name].save(
-            os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb")
-        )
-
-        # Write ligand SDFs
-        from openeye import oechem
-
-        name = f"{ligand}_ligand"
-        with oechem.oemolostream(
-            os.path.join(output_dir, f"RUN{run_id}", f"{name}.sdf")
-        ) as ofs:
-            oechem.OEWriteMolecule(ofs, components[name])
-
+            # Write ligand SDFs
+            from openeye import oechem
+            
+            name = f"{ligand}_ligand"
+            with oechem.oemolostream(
+                    os.path.join(output_dir, f"RUN{run_id}", f"{name}.sdf")
+            ) as ofs:
+                oechem.OEWriteMolecule(ofs, components[name])
+        except Exception as e:
+            print(e)
 
 def generate_representative_snapshots(
     transformations: List[TransformationAnalysis],
