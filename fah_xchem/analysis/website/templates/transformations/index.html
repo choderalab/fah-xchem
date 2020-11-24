@@ -12,12 +12,12 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.transformations |
 </div>
 <table class="table table-striped table-hover">
   <tr>
-    <th>RUN</th>
-    <th colspan=4>Initial microstate</th>
-    <th colspan=2>Final microstate</th>
-    <th>ΔΔG / kcal M<sup>-1</sup></th>
-    <th>Work distributions</th>
-    <th>Convergence</th>
+    <th>RUN <i type="button" class="fa fa-info-circle" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="top" data-title="RUN" data-content="test."></i></th>
+    <th colspan=4>Initial microstate <i type="button" class="fa fa-info-circle" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="top" data-title="Initial microstate" data-content="test."></i></th>
+    <th colspan=2>Final microstate <i type="button" class="fa fa-info-circle" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="top" data-title="Final microstate" data-content="test."></i></th>
+    <th>ΔΔG / kcal M<sup>-1</sup> <i type="button" class="fa fa-info-circle" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="top" data-title="Relative binding free energy" data-content="test."></i></th>
+    <th>Work distribution <i type="button" class="fa fa-info-circle" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="top" data-title="Work distribution" data-content="test."></i></th>
+    <th>Convergence <i type="button" class="fa fa-info-circle" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="top" data-title="Convergence" data-content="test."></i></th>
   </tr>
   {% for transformation in transformations %}
   <tr>
