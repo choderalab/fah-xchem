@@ -12,12 +12,12 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.transformations |
 </div>
 <table class="table table-striped table-hover">
   <tr>
-    <th>RUN</th>
-    <th colspan=4>Initial microstate</th>
-    <th colspan=4>Final microstate</th>
-    <th>ΔΔG / kcal M<sup>-1</sup></th>
-    <th>Work distributions</th>
-    <th>Convergence</th>
+    <th>RUN <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>RUN</b>" data-content="The unique run analysing the transformation between the initial and final microstate. <br /><br /> Each RUN consists of a number of iterations (GENs)."></i></th>
+    <th colspan=4>Initial microstate <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Initial microstate</b>" data-content="The initial microstate that is alchemically transformed to the final microstate"></i></th>
+    <th colspan=4>Final microstate <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Final microstate</b>" data-content="The final microstate that has been generated via alchemically transforming the initial microstate."></i></th>
+    <th>ΔΔG / kcal M<sup>-1</sup> <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Relative binding free energy</b>" data-content="The calculated relative binding free energy of the transformation between the inital and final microstate."></i></th>
+    <th>Work distribution <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Work distribution</b>" data-content="The computed work distributions for both the forward (initial -> final) and reverse (final -> initial) transformations."></i></th>
+    <th>Convergence <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Convergence</b>" data-content="<b>Top plot</b>: Green points represent relative binding free energy (RBFE) estimates from individual iterations (GENs) with a 95% confidence interval (pale green shaded region). Confidence in the RBFE estimate is higher if RBFEs between iterations are in good agreement. <br /><br /> <b>Lower plot</b>: Binding free energy estimates of solvent (blue) and complex (red) phases."></i></th>
   </tr>
   {% for transformation in transformations %}
   <tr>
