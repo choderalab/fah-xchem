@@ -19,6 +19,7 @@ dependencies:
   - pydantic
   - pymbar
   - python >= 3.6
+  - rdkit
   - rich
   - seaborn >= 0.11
   - simplejson
@@ -26,4 +27,5 @@ dependencies:
   - pip
   - pip:
       - git+https://github.com/openforcefield/Arsenic.git@0.1.0
+      - git+https://github.com/xchem/fragalysis-api.git
 
