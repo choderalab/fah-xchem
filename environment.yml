@@ -4,6 +4,7 @@ channels:
   - defaults
   - omnia
   - openeye
+  - schrodinger
 dependencies:
   - fire
   - jinja2
@@ -19,6 +20,7 @@ dependencies:
   - pydantic
   - pymbar
   - python >= 3.6
+  - pymol
   - rdkit
   - rich
   - seaborn >= 0.11
