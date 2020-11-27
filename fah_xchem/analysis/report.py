@@ -131,7 +131,131 @@ def RenderData(image, mol, tags):
         table.DrawText(cell, value)
 
 
-def generate_report(series: CompoundSeriesAnalysis, results_path: str, max_binding_free_energy: float=0.0) -> None:
+def upload_fragalyis(
+    ligand_filename: str,
+    proteins_filename: str,
+    ref_url: str,
+    target_name: str,
+    ref_mols: str,
+    ref_pdb: str,
+    method: str,
+):
+    """
+    Generate input for fragalysis from ligand_filename and proteins_filename​
+
+    Fragalysis spec:https://discuss.postera.ai/t/providing-computed-poses-for-others-to-look-at/1155/8?u=johnchodera​
+
+    Parameters
+    ----------
+    ligand_filename : str
+        The name of the ligand file to upload. An SDF file.
+    pdf_filename : str
+        The name of the protein file to upload. An PDB file.
+    ref_url : str
+        URL to postera.ai/covid forum post
+    target_name : str
+        The fragalysis dataset name e.g. 'foldingathome-sprint-4'
+    ref_mols : str
+        A comma separated list of the fragments that inspired the design of the new molecule (codes as they appear in fragalysis - e.g. 'x0104_0,x0692_0')
+    ref_pdb : str
+        The name of the fragment (and corresponding Mpro fragment structure) with the best scoring hybrid docking pose
+    method : str
+        The name for the method used to generate the compound poses (e.g. 'Sprint 4')
+
+    """
+
+    from openeye import oechem
+    from rich.progress import track
+
+    fragalysis_sdf_filename = f"{target_name}.sdf"
+    submitter_name = "Folding@home"
+
+    # Read ligand poses
+    molecules = list()
+
+    with oechem.oemolistream(ligands_filename) as ifs:
+        oemol = oechem.OEGraphMol()
+        while oechem.OEReadMolecule(ifs, oemol):
+            molecules.append(oemol.CreateCopy())
+    print(f"{len(molecules)} ligands read")
+
+    descriptions = {
+        "DDG (kcal/mol)": "Relative computed free energy difference",
+        "dDDG (kcal/mol)": "Uncertainty in computed relative free energy difference",
+        "ref_mols": "a comma separated list of the fragments that inspired the design of the new molecule (codes as they appear in fragalysis - e.g. x0104_0,x0692_0)",
+        "ref_pdb": "The name of the fragment (and corresponding Mpro fragment structure) with the best scoring hybrid docking pose",
+        "original SMILES": "the original SMILES of the compound before any computation was carried out",
+    }
+
+    # Preprocess molecules
+    tags_to_retain = {"DDG (kcal/mol)", "dDDG (kcal/mol)"}
+    for oemol in track(molecules, "Preprocessing molecules..."):
+        # Remove hydogrens
+        oechem.OESuppressHydrogens(oemol, True)
+        # Get original SMILES
+        original_smiles = oechem.OEGetSDData(oemol, "SMILES")
+        # Remove irrelevant SD tags
+        for sdpair in oechem.OEGetSDDataPairs(oemol):
+            tag = sdpair.GetTag()
+            value = sdpair.GetValue()
+            if tag not in tags_to_retain:
+                oechem.OEDeleteSDData(oemol, tag)
+        # Add required SD tags
+        oechem.OESetSDData(oemol, "ref_mols", ref_mols)
+        oechem.OESetSDData(oemol, "ref_pdb", ref_pdb)  # TODO: Upload corresponding PDBs
+        oechem.OESetSDData(oemol, "original SMILES", original_smiles)
+
+    # Add initial blank molecule (that includes distances)
+    import copy
+    from datetime import datetime
+
+    # Find a molecule that includes distances, if present
+    oemol = molecules[0].CreateCopy()
+    # Add descriptions to each SD field
+    for sdpair in oechem.OEGetSDDataPairs(oemol):
+        tag = sdpair.GetTag()
+        value = sdpair.GetValue()
+        oechem.OESetSDData(oemol, tag, descriptions[tag])
+
+    # Add other fields
+    oemol.SetTitle("ver_1.2")
+    oechem.OESetSDData(oemol, "ref_url", ref_url)
+    oechem.OESetSDData(oemol, "submitter_name", submitter_name)
+    oechem.OESetSDData(oemol, "submitter_email", "john.chodera@choderalab.org")
+    oechem.OESetSDData(oemol, "submitter_institution", "MSKCC")
+    oechem.OESetSDData(oemol, "generation_date", datetime.today().strftime("%Y-%m-%d"))
+    oechem.OESetSDData(oemol, "method", method)
+    molecules.insert(0, oemol)  # make it first molecule
+
+    # Write sorted molecules
+    with oechem.oemolostream(fragalysis_sdf_filename) as ofs:
+        for oemol in track(molecules, description="Writing fragalysis SDF file..."):
+            oechem.OEWriteMolecule(ofs, oemol)
+
+    # Upload to fragalysis
+    print("Uploading to fragalysis...")
+    from fragalysis_api.xcextracter.computed_set_update import update_cset, REQ_URL
+
+    upload_key = ""  # TODO add upload key
+    update_set = "None"  # new upload
+    update_set = "".join(submitter_name.split()) + "-" + "".join(method.split())
+    cs_target_name = "Mpro" # name of the target in Fragalysis that the computed set is for
+    update_cset(
+        REQ_URL,
+        target_name=cs_target_name,
+        fragalysis_sdf_filename,
+        update_set=update_set,
+        upload_key=upload_key,
+        submit_choice=1,
+        add=False,
+    )
+
+
+def generate_report(
+    series: CompoundSeriesAnalysis,
+    results_path: str,
+    max_binding_free_energy: float = 0.0,
+) -> None:
     """
     Postprocess results of calculations to extract summary for compound prioritization
 
@@ -234,7 +358,10 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str, max_bindi
     sorted_indices = [
         index
         for index in sorted_indices
-        if (float(oechem.OEGetSDData(oemols[index], "DDG (kcal/mol)")) < max_binding_free_energy)
+        if (
+            float(oechem.OEGetSDData(oemols[index], "DDG (kcal/mol)"))
+            < max_binding_free_energy
+        )
     ]
 
     # Slice
@@ -242,18 +369,27 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str, max_bindi
     refmols = [refmols[index] for index in sorted_indices]
 
     # Write sorted molecules
-    for filename in ["transformations-final-ligands.sdf", "transformations-final-ligands.csv", "transformations-final-ligands.mol2"]:
+    for filename in [
+        "transformations-final-ligands.sdf",
+        "transformations-final-ligands.csv",
+        "transformations-final-ligands.mol2",
+    ]:
         with oechem.oemolostream(os.path.join(results_path, filename)) as ofs:
             for oemol in track(oemols, description=f"Writing {filename}"):
                 oechem.OEWriteMolecule(ofs, oemol)
 
     # Write PDF report
     write_pdf_report(
-        oemols, os.path.join(results_path, "transformations-final-ligands.pdf"), series.metadata.name
+        oemols,
+        os.path.join(results_path, "transformations-final-ligands.pdf"),
+        series.metadata.name,
     )
 
     # Write reference molecules
-    for filename in ["transformations-initial-ligands.sdf", "transformations-initial-ligands.mol2"]:
+    for filename in [
+        "transformations-initial-ligands.sdf",
+        "transformations-initial-ligands.mol2",
+    ]:
         with oechem.oemolostream(os.path.join(results_path, filename)) as ofs:
             for refmol in track(refmols, description=f"Writing {filename}"):
                 oechem.OEWriteMolecule(ofs, refmol)
@@ -276,7 +412,7 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str, max_bindi
             continue
 
     if not proteins:
-        return # DEBUG
+        return  # DEBUG
         raise ValueError("No protein snapshots found")
 
     n_proteins = len(proteins)
@@ -287,3 +423,4 @@ def generate_report(series: CompoundSeriesAnalysis, results_path: str, max_bindi
         xyz[index, :, :] = protein.xyz[0, :, :]
     trajectory = md.Trajectory(xyz, proteins[0].topology)
     trajectory.save(os.path.join(results_path, "transformations-final-proteins.pdb"))
+
