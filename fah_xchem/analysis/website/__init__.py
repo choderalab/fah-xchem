@@ -201,7 +201,7 @@ def generate_website(
     environment.filters["experimental_data_url"] = experimental_data_url
     environment.filters["smiles_to_filename"] = get_image_filename
 
-    for subdir in ["compounds", "microstates", "transformations"]:
+    for subdir in ["compounds", "microstates", "transformations", "filtered_transformations"]:
         os.makedirs(os.path.join(path, subdir), exist_ok=True)
 
     def write_html(
@@ -297,4 +297,13 @@ def generate_website(
         items=series.transformations,
         items_per_page=items_per_page,
         description="Generating html for transformations index",
+    )
+
+    #TODO use filtered transformation data, currently just a copy of the transformations page
+    _generate_paginated_index(
+    write_html=lambda items, **kwargs: write_html(transformations=items, **kwargs),
+    url_prefix="filtered_transformations",
+    items=series.transformations,
+    items_per_page=items_per_page,
+    description="Generating html for filtered transformations index",
     )
