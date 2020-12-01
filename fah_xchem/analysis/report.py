@@ -231,10 +231,10 @@ def generate_report(
 
         # Filter by consistency of GENs if requested
         if filter_gen_consistency:
-            reliable_transform = gens_are_consistent(transformation)
-            transformation.transformation.reliable_transform = reliable_transform
-            if not reliable_transform:
+            if not gens_are_consistent(transformation):
                 continue        
+            # Label current iteration as reliable (JSON boolean)
+            transformation.transformation.reliable_transform = "true"
 
         run = f"RUN{transformation.transformation.run_id}"
         path = os.path.join(results_path, "transformations", run)
