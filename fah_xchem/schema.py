@@ -125,6 +125,7 @@ class Transformation(Model):
         description="The RUN number corresponding to the Folding@Home directory structure",
     )
     xchem_fragment_id: str = Field(None, description="The XChem fragment screening ID")
+    reliable_transform: bool = Field(False, description="Specify if the transformation is reliable or not")
     initial_microstate: CompoundMicrostate
     final_microstate: CompoundMicrostate
 
