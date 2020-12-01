@@ -369,7 +369,7 @@ def consolidate_protein_snapshots_into_pdb(
         return # DEBUG
         raise ValueError("No protein snapshots found")
 
-    logger.info(f"Writing consolidated snapshots to {pdb_filename}")
+    logging.info(f"Writing consolidated snapshots to {pdb_filename}")
     n_proteins = len(proteins)
     n_atoms = proteins[0].topology.n_atoms
     n_dim = 3
