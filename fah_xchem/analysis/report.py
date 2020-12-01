@@ -140,7 +140,7 @@ def gens_are_consistent(
     
     The last `ngens` generations will be checked for consistency with the overall estimate,
     and those with estimates that deviate by more than `nsigma` standard errors will be dropped.
-
+sprint-5-minimal-test.json
     Parameters
     ----------
     transformation : TransformationAnalysis
@@ -231,9 +231,11 @@ def generate_report(
 
         # Filter by consistency of GENs if requested
         if filter_gen_consistency:
-            if not gens_are_consistent(transformation):
+            reliable_transform = gens_are_consistent(transformation)
+            transformation.transformation.reliable_transform = reliable_transform
+            if not reliable_transform:
                 continue        
-        
+
         run = f"RUN{transformation.transformation.run_id}"
         path = os.path.join(results_path, "transformations", run)
 
