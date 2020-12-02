@@ -125,7 +125,6 @@ class Transformation(Model):
         description="The RUN number corresponding to the Folding@Home directory structure",
     )
     xchem_fragment_id: str = Field(None, description="The XChem fragment screening ID")
-    reliable_transform: bool = Field("false", description="Specify if the transformation is reliable or not") # JSON boolean
     initial_microstate: CompoundMicrostate
     final_microstate: CompoundMicrostate
 
@@ -167,6 +166,7 @@ class PhaseAnalysis(Model):
 
 class TransformationAnalysis(Model):
     transformation: Transformation
+    reliable_transformation: bool = Field(None, description="Specify if the transformation is reliable or not") # JSON boolean
     binding_free_energy: PointEstimate
     complex_phase: PhaseAnalysis
     solvent_phase: PhaseAnalysis
