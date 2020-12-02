@@ -72,6 +72,7 @@ def analyze_transformation(
     projects: ProjectPair,
     server: FahConfig,
     config: AnalysisConfig,
+    filter_gen_consistency: Optional[bool] = True,
 ) -> TransformationAnalysis:
 
     analyze_phase_partial = partial(
@@ -80,13 +81,40 @@ def analyze_transformation(
 
     complex_phase = analyze_phase_partial(project=projects.complex_phase)
     solvent_phase = analyze_phase_partial(project=projects.solvent_phase)
+    binding_free_energy = complex_phase.free_energy.delta_f - solvent_phase.free_energy.delta_f
 
-    return TransformationAnalysis(
-        transformation=transformation,
-        binding_free_energy=complex_phase.free_energy.delta_f - solvent_phase.free_energy.delta_f, 
-        complex_phase=complex_phase,
-        solvent_phase=solvent_phase,
-    )
+    from .report import gens_are_consistent
+
+    # Check for consistency across GENS, if requested
+    if filter_gen_consistency:
+        if gens_are_consistent(complex_phase=complex_phase, solvent_phase=solvent_phase):
+
+            return TransformationAnalysis(
+                transformation=transformation,
+                reliable_transformation=True,
+                binding_free_energy=binding_free_energy, 
+                complex_phase=complex_phase,
+                solvent_phase=solvent_phase,
+            )
+
+        else:
+
+            return TransformationAnalysis(
+                transformation=transformation,
+                reliable_transformation=False,
+                binding_free_energy=binding_free_energy, 
+                complex_phase=complex_phase,
+                solvent_phase=solvent_phase,
+            )
+
+    else:
+
+        return TransformationAnalysis(
+            transformation=transformation,
+            binding_free_energy=binding_free_energy,
+            complex_phase=complex_phase,
+            solvent_phase=solvent_phase,
+            )
 
 
 def analyze_transformation_or_warn(
