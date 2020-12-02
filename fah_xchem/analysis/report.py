@@ -130,8 +130,10 @@ def RenderData(image, mol, tags):
         cell = table.GetBodyCell(row + 1, 1)
         table.DrawText(cell, value)
 
+
 def gens_are_consistent(
-        transformation: TransformationAnalysis,
+        complex_phase,
+        solvent_phase,
         ngens: Optional[int] = 2,
         nsigma: Optional[float] = 3,
 ) -> bool:
@@ -143,19 +145,21 @@ def gens_are_consistent(
 sprint-5-minimal-test.json
     Parameters
     ----------
-    transformation : TransformationAnalysis
-        The TransformationAnalysis object to check for consistency
+    complex_phase : ProjectPair
+        The complex phase ProjectPair object to use to check for consistency
+    solvent_phase : ProjectPair
+        The solvent phase ProjectPair object to use to check for consistency
     ngens : int, optional, default=2
         The last `ngens` generations will be checked for consistency with the overall estimate
     nsigma : int, optional, default=3
         Number of standard errors of overall estimate to use for consistency check
     """
     # Collect free energy estimates for each GEN
-    ngens = min( len(transformation.complex_phase.gens), len(transformation.solvent_phase.gens) )
+    ngens = min( len(complex_phase.gens), len(solvent_phase.gens) )
     gen_estimates = list()
     for gen in range(ngens):
-        complex_delta_f = transformation.complex_phase.gens[gen].free_energy.delta_f
-        solvent_delta_f = transformation.solvent_phase.gens[gen].free_energy.delta_f
+        complex_delta_f = complex_phase.gens[gen].free_energy.delta_f
+        solvent_delta_f = solvent_phase.gens[gen].free_energy.delta_f
         if (complex_delta_f is None) or (solvent_delta_f is None):
             continue
         binding_delta_f = complex_delta_f - solvent_delta_f
@@ -167,7 +171,7 @@ sprint-5-minimal-test.json
 
     # Flag inconsistent if any GEN estimate is more than nsigma stderrs away from overall estimate
     for gen_delta_f in gen_estimates[-ngens:]:
-        overall_delta_f = transformation.binding_free_energy
+        overall_delta_f = complex_phase.free_energy.delta_f - solvent_phase.free_energy.delta_f
         delta_f = overall_delta_f - gen_delta_f
         #print(gen_delta_f, overall_delta_f, delta_f)
         #if abs(delta_f.point) > nsigma*delta_f.stderr:
@@ -175,6 +179,7 @@ sprint-5-minimal-test.json
             return False
         
     return True
+
 
 def generate_report(
         series: CompoundSeriesAnalysis,
@@ -233,8 +238,6 @@ def generate_report(
         if filter_gen_consistency:
             if not gens_are_consistent(transformation):
                 continue        
-            # Label current iteration as reliable (JSON boolean)
-            transformation.transformation.reliable_transform = "true"
 
         run = f"RUN{transformation.transformation.run_id}"
         path = os.path.join(results_path, "transformations", run)
