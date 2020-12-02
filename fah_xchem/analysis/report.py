@@ -234,9 +234,10 @@ def generate_report(
         if transformation.binding_free_energy.point >= max_binding_free_energy:
             continue
 
+        # TODO adapt the GEN consistency to write out to a different CSV etc files
         # Filter by consistency of GENs if requested
         if filter_gen_consistency:
-            if not gens_are_consistent(transformation):
+            if not transformation.reliable_transformation:
                 continue        
 
         run = f"RUN{transformation.transformation.run_id}"
