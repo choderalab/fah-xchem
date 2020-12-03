@@ -81,16 +81,20 @@ def analyze_transformation(
 
     complex_phase = analyze_phase_partial(project=projects.complex_phase)
     solvent_phase = analyze_phase_partial(project=projects.solvent_phase)
-    binding_free_energy = complex_phase.free_energy.delta_f - solvent_phase.free_energy.delta_f
+    binding_free_energy = (
+        complex_phase.free_energy.delta_f - solvent_phase.free_energy.delta_f
+    )
 
     # Check for consistency across GENS, if requested
     if filter_gen_consistency:
-        consistent_bool = gens_are_consistent(complex_phase=complex_phase, solvent_phase=solvent_phase, nsigma=1)
+        consistent_bool = gens_are_consistent(
+            complex_phase=complex_phase, solvent_phase=solvent_phase, nsigma=1
+        )
 
         return TransformationAnalysis(
             transformation=transformation,
             reliable_transformation=consistent_bool,
-            binding_free_energy=binding_free_energy, 
+            binding_free_energy=binding_free_energy,
             complex_phase=complex_phase,
             solvent_phase=solvent_phase,
         )
@@ -102,7 +106,7 @@ def analyze_transformation(
             binding_free_energy=binding_free_energy,
             complex_phase=complex_phase,
             solvent_phase=solvent_phase,
-            )
+        )
 
 
 def analyze_transformation_or_warn(
@@ -145,9 +149,11 @@ def analyze_compound_series(
         ]
 
     # Sort transformations by RUN
-    #transformations.sort(key=lambda transformation_analysis : transformation_analysis.transformation.run_id)
+    # transformations.sort(key=lambda transformation_analysis : transformation_analysis.transformation.run_id)
     # Sort transformations by free energy difference
-    transformations.sort(key=lambda transformation_analysis : transformation_analysis.binding_free_energy.point)
+    transformations.sort(
+        key=lambda transformation_analysis: transformation_analysis.binding_free_energy.point
+    )
 
     # Warn about failures
     num_failed = len(series.transformations) - len(transformations)
