@@ -302,7 +302,7 @@ def generate_report(
             if transformation.reliable_transformation:
                 mols["reliable"]["oemols"].append(oemol)
 
-    logging.info(f"{len(oemols) + len(reliable_oemols)} molecules read")
+    logging.info(f"{len(mols["unreliable"]["oemols"])} molecules read")
 
     # Sort ligands in order of most favorable transformations
     import numpy as np
@@ -337,7 +337,7 @@ def generate_report(
     reliable_oemols = [mols["reliable"]["oemols"][index] for index in sorted_indices_reliable]
     reliable_refmols = [mols["reliable"]["refmols"][index] for index in sorted_indices_reliable]
 
-    logging.info(f"{len(oemols) + len(reliable_oemols)} molecules remain after filtering based on {max_binding_free_energy} threshold")
+    logging.info(f"{len(oemols)} molecules remain after filtering based on {max_binding_free_energy} threshold")
 
     # Write sorted molecules
     for filename in ["transformations-final-ligands.sdf", "transformations-final-ligands.csv", "transformations-final-ligands.mol2"]:
