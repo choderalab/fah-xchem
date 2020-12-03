@@ -302,7 +302,8 @@ def generate_report(
             if transformation.reliable_transformation:
                 mols["reliable"]["oemols"].append(oemol)
 
-    logging.info(f"{len(mols["unreliable"]["oemols"])} molecules read")
+
+    logging.info(f"{len(mols['unreliable']['oemols'])} molecules read")
 
     # Sort ligands in order of most favorable transformations
     import numpy as np
