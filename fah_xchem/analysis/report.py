@@ -132,15 +132,18 @@ def RenderData(image, mol, tags):
         table.DrawText(cell, value)
 
 
-def upload_fragalyis(
-    ligand_filename: str,
-    proteins_filename: str,
-    ref_url: str,
-    target_name: str,
-    ref_mols: str,
-    ref_pdb: str,
-    method: str,
-):
+def generate_fragalysis(
+    results_path: str,
+    ligands_filename: str = "transformations-final-ligands.sdf",
+    proteins_filename: str = "transformations-final-proteins.pdb",
+    ref_url: str = "",
+    target_name: str = "MPro",
+    ref_mols: str = "x12073",  # TODO generate automatically (?)
+    ref_pdb: str = "x12073",  # TODO generate automatically (?)
+    submitter_name: str = "Folding@home",
+    method: str = "Sprint 5",  # TODO generate automatically (?)
+    upload_key: str = "U7ffDqkPhLvS3gF9",
+) -> None:
 
     """
     Generate input for fragalysis from ligand_filename and proteins_filename​
@@ -149,33 +152,37 @@ def upload_fragalyis(
 
     Parameters
     ----------
-    ligand_filename : str
+    ligands_filename : str
         The name of the ligand file to upload. An SDF file.
     pdf_filename : str
         The name of the protein file to upload. An PDB file.
     ref_url : str
         URL to postera.ai/covid forum post
     target_name : str
-        The fragalysis dataset name e.g. 'foldingathome-sprint-4'
+        The fragalysis dataset name e.g. 'foldingathome-sprint-5'
     ref_mols : str
         A comma separated list of the fragments that inspired the design of the new molecule (codes as they appear in fragalysis - e.g. 'x0104_0,x0692_0')
     ref_pdb : str
         The name of the fragment (and corresponding Mpro fragment structure) with the best scoring hybrid docking pose
     method : str
-        The name for the method used to generate the compound poses (e.g. 'Sprint 4')
+        The name for the method used to generate the compound poses (e.g. 'Sprint 5')
 
     """
 
+    # TODO: use reliable runs check
+
+    import os
     from openeye import oechem
     from rich.progress import track
 
     fragalysis_sdf_filename = f"{target_name}.sdf"
-    submitter_name = "Folding@home"
 
     # Read ligand poses
-    molecules = list()
+    molecules = []
+    ligands_path = os.path.join(results_path, ligands_filename)
+    proteins_path = os.path.join(results_path, proteins_filename)
 
-    with oechem.oemolistream(ligands_filename) as ifs:
+    with oechem.oemolistream(ligands_path) as ifs:
         oemol = oechem.OEGraphMol()
         while oechem.OEReadMolecule(ifs, oemol):
             molecules.append(oemol.CreateCopy())
@@ -238,7 +245,6 @@ def upload_fragalyis(
     print("Uploading to fragalysis...")
     from fragalysis_api.xcextracter.computed_set_update import update_cset, REQ_URL
 
-    upload_key = ""  # TODO add upload key
     update_set = "None"  # new upload
     update_set = "".join(submitter_name.split()) + "-" + "".join(method.split())
     cs_target_name = (
@@ -248,7 +254,7 @@ def upload_fragalyis(
     update_cset(
         REQ_URL,
         target_name=cs_target_name,
-        fragalysis_sdf_filename,
+        sdf_path=fragalysis_sdf_filename,
         update_set=update_set,
         upload_key=upload_key,
         submit_choice=1,
@@ -314,6 +320,7 @@ def generate_report(
     max_binding_free_energy: float = 0.0,
     consolidate_protein_snapshots: Optional[bool] = True,
     filter_gen_consistency: Optional[bool] = True,
+    upload_fragalysis: Optional[bool] = True,
 ) -> None:
     """
     Postprocess results of calculations to extract summary for compound prioritization
@@ -548,6 +555,9 @@ def generate_report(
                 results_path,
                 pdb_filename="reliable-transformations-final-proteins.pdb",
             )
+
+    if upload_fragalysis:
+        generate_fragalysis(results_path=results_path)
 
 
 from openeye import oechem
