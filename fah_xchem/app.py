@@ -15,6 +15,7 @@ from .schema import (
     CompoundSeries,
     CompoundSeriesAnalysis,
     Model,
+    FragalysisConfig
 )
 
 
@@ -141,7 +142,7 @@ def generate_artifacts(
     report: bool = True,
     website: bool = True,
     log: str = "WARN",
-    upload_fragalysis: bool = True,
+    fragalysis_config: Optional[str] = None,
 ) -> None:
     """
     Given results of free energy analysis as JSON, generate analysis
@@ -191,6 +192,8 @@ def generate_artifacts(
 
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
 
+    fragalysis_config = _get_config(FragalysisConfig, fragalysis_config, "fragalysis configuration")
+
     with open(compound_series_analysis_file, "r") as infile:
         tsa = TimestampedAnalysis.parse_obj(json.load(infile))
 
@@ -208,7 +211,7 @@ def generate_artifacts(
         plots=plots,
         report=report,
         website=website,
-        upload_fragalysis=upload_fragalysis,
+        fragalysis_config=fragalysis_config,
     )
 
 

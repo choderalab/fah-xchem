@@ -1,7 +1,12 @@
 import logging
 from typing import List, Optional
 
-from ..schema import CompoundMicrostate, CompoundSeriesAnalysis, TransformationAnalysis
+from ..schema import (
+    CompoundMicrostate,
+    CompoundSeriesAnalysis,
+    TransformationAnalysis,
+    FragalysisConfig,
+)
 from .constants import KT_KCALMOL
 
 
@@ -134,10 +139,8 @@ def RenderData(image, mol, tags):
 
 def generate_fragalysis(
     series: CompoundSeriesAnalysis,
+    fragalysis_config: FragalysisConfig,
     results_path: str,
-    ligands_filename: str = "reliable-transformations-final-ligands.sdf",
-    proteins_filename: str = "reliable-transformations-final-proteins.pdb",
-    ref_url: str = "https://discuss.postera.ai/t/folding-home-sprint-5/2423",
     target_name: str = "MPro",
     submitter_name: str = "Folding@home",
     upload_key: str = "U7ffDqkPhLvS3gF9",
@@ -168,29 +171,28 @@ def generate_fragalysis(
         The Fragalysis upload key
     """
 
+    # TODO: read in function arguments with JSON
+
     import os
     from openeye import oechem
     from rich.progress import track
 
     # Assume name from series object in the form: sprint-5-x12073-monomer-neutral
-    name = series.metadata.name.split("-")
-    method = name[0].title() + " " + name[1]  # Sprint 5
-    ref_mols = name[2]  # x12073
-    ref_pdb = name[2]  # x12073
 
-    # set fragalysis sdf file name in the form 'compount-set_<name>.sdf
-    name_tuple = (name[0], "-", name[1])
-    fragalysis_sdf_filename = f"compound-set_foldingathome-{''.join(name_tuple)}.sdf"
+    ref_mols = fragalysis_config.ref_mols  # e.g. x12073
+    ref_pdb = fragalysis_config.ref_pdb  # e.g. x12073
 
-    ligands_path = os.path.join(results_path, ligands_filename)
-    proteins_path = os.path.join(results_path, proteins_filename)
+    # set paths
+    ligands_path = os.path.join(results_path, fragalysis_config.ligands_filename)
+    proteins_path = os.path.join(results_path, fragalysis_config.proteins_filename)
+    fa_ligands_path = os.path.join(
+        results_path, fragalysis_config.fragalysis_sdf_filename
+    )
 
-    # copy reliable sdf to new name for fragalysis
+    # copy sprint generated sdf to new name for fragalysis input
     from shutil import copyfile
-    copyfile(ligands_path, os.path.join(results_path, fragalysis_sdf_filename))
 
-    # get the path for the newly named ligands SDF to be uploaded to fragalysis
-    fa_ligands_path = os.path.join(results_path, fragalysis_sdf_filename)
+    copyfile(ligands_path, fa_ligands_path)
 
     # Read ligand poses
     molecules = []
@@ -223,8 +225,10 @@ def generate_fragalysis(
             if tag not in tags_to_retain:
                 oechem.OEDeleteSDData(oemol, tag)
         # Add required SD tags
-        oechem.OESetSDData(oemol, "ref_mols", ref_mols)
-        oechem.OESetSDData(oemol, "ref_pdb", ref_pdb)  # TODO: Upload corresponding PDBs
+        oechem.OESetSDData(oemol, "ref_mols", fragalysis_config.ref_mols)
+        oechem.OESetSDData(
+            oemol, "ref_pdb", fragalysis_config.ref_pdb
+        )  # TODO: Upload corresponding PDBs
         oechem.OESetSDData(oemol, "original SMILES", original_smiles)
 
     # Add initial blank molecule (that includes distances)
@@ -241,12 +245,12 @@ def generate_fragalysis(
 
     # Add other fields
     oemol.SetTitle("ver_1.2")
-    oechem.OESetSDData(oemol, "ref_url", ref_url)
-    oechem.OESetSDData(oemol, "submitter_name", submitter_name)
-    oechem.OESetSDData(oemol, "submitter_email", "john.chodera@choderalab.org")
+    oechem.OESetSDData(oemol, "ref_url", fragalysis_config.ref_url)
+    oechem.OESetSDData(oemol, "submitter_name", fragalysis_config.submitter_name)
+    oechem.OESetSDData(oemol, "submitter_email", fragalysis_config.submitter_email)
     oechem.OESetSDData(oemol, "submitter_institution", "MSKCC")
     oechem.OESetSDData(oemol, "generation_date", datetime.today().strftime("%Y-%m-%d"))
-    oechem.OESetSDData(oemol, "method", method)
+    oechem.OESetSDData(oemol, "method", fragalysis_config.method)
     molecules.insert(0, oemol)  # make it first molecule
 
     # Write sorted molecules
@@ -258,23 +262,31 @@ def generate_fragalysis(
 
     # Upload to fragalysis
     print("Uploading to fragalysis...")
+    print(f"\t Target: {target_name}")
+
     from fragalysis_api.xcextracter.computed_set_update import update_cset, REQ_URL
 
-    update_set = "None"  # new upload
-    update_set = "".join(submitter_name.split()) + "-" + "".join(method.split())
+    if fragalysis_config.new_upload:
+        update_set = ""  # new upload
+        print(f"\t Uploading a new set")
+    else:
+        update_set = (
+            "".join(fragalysis_config.submitter_name.split())
+            + "-"
+            + "".join(fragalysis_config.method.split())
+        )
 
-    print(f"\t Target: {target_name}")
-    print(f"\t Updating set: {update_set}")
+        print(f"\t Updating set: {update_set}")
 
-    update_cset(
-        REQ_URL,
-        target_name=target_name,
-        sdf_path=fa_ligands_path,
-        update_set=update_set,
-        upload_key=upload_key,
-        submit_choice=1,
-        add=False,
-    )
+    # update_cset(
+    #     REQ_URL,
+    #     target_name=target_name,
+    #     sdf_path=fa_ligands_path,
+    #     update_set=update_set,
+    #     upload_key=upload_key,
+    #     submit_choice=1,
+    #     add=False,
+    # )
 
 
 def gens_are_consistent(
@@ -331,11 +343,11 @@ def gens_are_consistent(
 
 def generate_report(
     series: CompoundSeriesAnalysis,
+    fragalysis_config: FragalysisConfig,
     results_path: str,
     max_binding_free_energy: float = 0.0,
     consolidate_protein_snapshots: Optional[bool] = True,
     filter_gen_consistency: Optional[bool] = True,
-    upload_fragalysis: Optional[bool] = True,
 ) -> None:
     """
     Postprocess results of calculations to extract summary for compound prioritization
@@ -571,8 +583,12 @@ def generate_report(
                 pdb_filename="reliable-transformations-final-proteins.pdb",
             )
 
-    if upload_fragalysis:
-        generate_fragalysis(series=series, results_path=results_path)
+    if fragalysis_config.run:
+        generate_fragalysis(
+            series=series,
+            results_path=results_path,
+            fragalysis_config=fragalysis_config,
+        )
 
 
 from openeye import oechem
