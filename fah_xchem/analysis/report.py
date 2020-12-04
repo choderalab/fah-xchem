@@ -1,6 +1,7 @@
 import logging
+from typing import List, Optional
 
-from ..schema import CompoundMicrostate, CompoundSeriesAnalysis
+from ..schema import CompoundMicrostate, CompoundSeriesAnalysis, TransformationAnalysis
 from .constants import KT_KCALMOL
 
 
@@ -249,12 +250,64 @@ def upload_fragalyis(
         submit_choice=1,
         add=False,
     )
+def gens_are_consistent(
+    complex_phase,
+    solvent_phase,
+    ngens: Optional[int] = 2,
+    nsigma: Optional[float] = 3,
+) -> bool:
+    """
+        Return True if GENs are consistent.
+
+        The last `ngens` generations will be checked for consistency with the overall estimate,
+        and those with estimates that deviate by more than `nsigma` standard errors will be dropped.
+    sprint-5-minimal-test.json
+        Parameters
+        ----------
+        complex_phase : ProjectPair
+            The complex phase ProjectPair object to use to check for consistency
+        solvent_phase : ProjectPair
+            The solvent phase ProjectPair object to use to check for consistency
+        ngens : int, optional, default=2
+            The last `ngens` generations will be checked for consistency with the overall estimate
+        nsigma : int, optional, default=3
+            Number of standard errors of overall estimate to use for consistency check
+    """
+    # Collect free energy estimates for each GEN
+    ngens = min(len(complex_phase.gens), len(solvent_phase.gens))
+    gen_estimates = list()
+    for gen in range(ngens):
+        complex_delta_f = complex_phase.gens[gen].free_energy.delta_f
+        solvent_delta_f = solvent_phase.gens[gen].free_energy.delta_f
+        if (complex_delta_f is None) or (solvent_delta_f is None):
+            continue
+        binding_delta_f = complex_delta_f - solvent_delta_f
+        gen_estimates.append(binding_delta_f)
+
+    if len(gen_estimates) < ngens:
+        # We don't have enough GENs
+        return False
+
+    # Flag inconsistent if any GEN estimate is more than nsigma stderrs away from overall estimate
+    for gen_delta_f in gen_estimates[-ngens:]:
+        overall_delta_f = (
+            complex_phase.free_energy.delta_f - solvent_phase.free_energy.delta_f
+        )
+        delta_f = overall_delta_f - gen_delta_f
+        # print(gen_delta_f, overall_delta_f, delta_f)
+        # if abs(delta_f.point) > nsigma*delta_f.stderr:
+        if abs(delta_f.point) > nsigma * gen_delta_f.stderr:
+            return False
+
+    return True
 
 
 def generate_report(
     series: CompoundSeriesAnalysis,
     results_path: str,
     max_binding_free_energy: float = 0.0,
+    consolidate_protein_snapshots: Optional[bool] = True,
+    filter_gen_consistency: Optional[bool] = True,
 ) -> None:
     """
     Postprocess results of calculations to extract summary for compound prioritization
@@ -267,9 +320,14 @@ def generate_report(
         Path to write results
     max_binding_free_energy : str, optional, default=0
         Don't report compounds with free energies greater than this (in kT)
+    consolidate_protein_snapshots : bool, optional, default=True
+        If True, consolidate all protein snapshots into a single PDB file
     """
 
     import os
+
+    if filter_gen_consistency:
+        logging.info(f"Filtering transformations for GEN-to-GEN consitency...")
 
     # Load all molecules, attaching properties
     # TODO: Generalize this to handle other than x -> 0 star map transformations
@@ -286,13 +344,18 @@ def generate_report(
     }
 
     # TODO: Take this cutoff from global configuration
-    oemols = list()  # target molecules
-    refmols = list()  # reference molecules
+    # dictionary for target and reference molecules, with reliable and unreliable transformations
+    mols = {
+        "reliable": {"oemols": [], "refmols": []},
+        "unreliable": {"oemols": [], "refmols": []},
+    }
+
     # TODO : Iterate over compounds instead of transformations
     # Store optimal microstates for each compound, and representative snapshot paths for each microstate and compound in analysis
     for transformation in track(series.transformations, description="Reading ligands"):
 
-        # Enforce a cutoff
+        # Don't bother reading ligands with transformation free energies above max
+        # since snapshots aren't generated for these
         if transformation.binding_free_energy.point >= max_binding_free_energy:
             continue
 
@@ -313,7 +376,12 @@ def generate_report(
         reference_ligand_sdf_filename = os.path.join(path, "old_ligand.sdf")
         with oechem.oemolistream(reference_ligand_sdf_filename) as ifs:
             oechem.OEReadMolecule(ifs, refmol)
-        refmols.append(refmol)
+
+        mols["unreliable"]["refmols"].append(refmol)
+
+        if filter_gen_consistency:
+            if transformation.reliable_transformation:
+                mols["reliable"]["refmols"].append(refmol)
 
         # Set ligand title
         title = transformation.transformation.final_microstate.microstate_id
@@ -334,7 +402,7 @@ def generate_report(
         oechem.OESetSDData(
             oemol,
             "DDG (kcal/mol)",
-            f"{KT_KCALMOL*transformation.binding_free_energy.stderr:.2f}",
+            f"{KT_KCALMOL*transformation.binding_free_energy.point:.2f}",
         )
         oechem.OESetSDData(
             oemol,
@@ -343,30 +411,73 @@ def generate_report(
         )
 
         # Store compound
-        oemols.append(oemol)
+        mols["unreliable"]["oemols"].append(oemol)
 
-    logging.info(f"{len(oemols)} molecules read")
+        if filter_gen_consistency:
+            if transformation.reliable_transformation:
+                mols["reliable"]["oemols"].append(oemol)
+
+    logging.info(f"{len(mols['unreliable']['oemols'])} molecules read")
 
     # Sort ligands in order of most favorable transformations
     import numpy as np
 
+    logging.info(f"Sorting molecules to prioritize most favorable transformations")
     sorted_indices = np.argsort(
-        [float(oechem.OEGetSDData(oemol, "DDG (kcal/mol)")) for oemol in oemols]
+        [
+            float(oechem.OEGetSDData(oemol, "DDG (kcal/mol)"))
+            for oemol in mols["unreliable"]["oemols"]
+        ]
     )
+
+    if filter_gen_consistency:
+        sorted_indices_reliable = np.argsort(
+            [
+                float(oechem.OEGetSDData(oemol, "DDG (kcal/mol)"))
+                for oemol in mols["reliable"]["oemols"]
+            ]
+        )
 
     # Filter based on threshold
     sorted_indices = [
         index
         for index in sorted_indices
         if (
-            float(oechem.OEGetSDData(oemols[index], "DDG (kcal/mol)"))
+            float(oechem.OEGetSDData(
+                    mols["unreliable"]["oemols"][index], "DDG (kcal/mol)"
+                )
+            )
             < max_binding_free_energy
         )
     ]
 
+    if filter_gen_consistency:
+        sorted_indices_reliable = [
+            index
+            for index in sorted_indices_reliable
+            if (
+                float(
+                    oechem.OEGetSDData(
+                        mols["reliable"]["oemols"][index], "DDG (kcal/mol)"
+                    )
+                )
+                < max_binding_free_energy
+            )
+        ]
+
     # Slice
-    oemols = [oemols[index] for index in sorted_indices]
-    refmols = [refmols[index] for index in sorted_indices]
+    oemols = [mols["unreliable"]["oemols"][index] for index in sorted_indices]
+    refmols = [mols["unreliable"]["refmols"][index] for index in sorted_indices]
+    reliable_oemols = [
+        mols["reliable"]["oemols"][index] for index in sorted_indices_reliable
+    ]
+    reliable_refmols = [
+        mols["reliable"]["refmols"][index] for index in sorted_indices_reliable
+    ]
+
+    logging.info(
+        f"{len(oemols)} molecules remain after filtering based on {max_binding_free_energy} threshold"
+    )
 
     # Write sorted molecules
     for filename in [
@@ -378,12 +489,29 @@ def generate_report(
             for oemol in track(oemols, description=f"Writing {filename}"):
                 oechem.OEWriteMolecule(ofs, oemol)
 
+    if filter_gen_consistency:
+        for filename in [
+            "reliable-transformations-final-ligands.sdf",
+            "reliable-transformations-final-ligands.csv",
+            "reliable-transformations-final-ligands.mol2",
+        ]:
+            with oechem.oemolostream(os.path.join(results_path, filename)) as ofs:
+                for oemol in track(reliable_oemols, description=f"Writing {filename}"):
+                    oechem.OEWriteMolecule(ofs, oemol)
+
     # Write PDF report
     write_pdf_report(
         oemols,
         os.path.join(results_path, "transformations-final-ligands.pdf"),
         series.metadata.name,
     )
+
+    if filter_gen_consistency:
+        write_pdf_report(
+            reliable_oemols,
+            os.path.join(results_path, "reliable-transformations-final-ligands.pdf"),
+            series.metadata.name,
+        )
 
     # Write reference molecules
     for filename in [
@@ -394,12 +522,58 @@ def generate_report(
             for refmol in track(refmols, description=f"Writing {filename}"):
                 oechem.OEWriteMolecule(ofs, refmol)
 
-    # Compile proteins
+    if filter_gen_consistency:
+        for filename in [
+            "reliable-transformations-initial-ligands.sdf",
+            "reliable-transformations-initial-ligands.mol2",
+        ]:
+            with oechem.oemolostream(os.path.join(results_path, filename)) as ofs:
+                for refmol in track(
+                    reliable_refmols, description=f"Writing {filename}"
+                ):
+                    oechem.OEWriteMolecule(ofs, refmol)
+
+    if consolidate_protein_snapshots:
+        consolidate_protein_snapshots_into_pdb(oemols, results_path)
+        if filter_gen_consistency:
+            consolidate_protein_snapshots_into_pdb(
+                reliable_oemols,
+                results_path,
+                pdb_filename="reliable-transformations-final-proteins.pdb",
+            )
+
+
+from openeye import oechem
+
+
+def consolidate_protein_snapshots_into_pdb(
+    oemols: List[oechem.OEMol],
+    results_path: str,
+    pdb_filename: Optional[str] = "transformations-final-proteins.pdb",
+):
+    """
+    Consolidate protein snapshots into a single file
+
+    Parameters
+    ----------
+    oemols : list of OEMol
+        List of annotated OEMols
+    results_path : str
+        Analysis results path
+    pdb_filename : str, optional, default='transformations-final-proteins.pdb'
+        Filename (without path) to write compiled PDB file to
+    """
     import mdtraj as md
     import numpy as np
+    import os
+
+    # TODO: Replace this with something that writes models as we read them
+    # since this is highly memory inefficient and slow
 
     proteins = list()
-    for oemol in track(oemols, description="Consolidating protein snapshots"):
+    from rich.progress import track
+
+    for oemol in track(oemols, description="Reading protein snapshots"):
         RUN = oechem.OEGetSDData(oemol, "RUN")
         protein_pdb_filename = os.path.join(
             results_path, "transformations", RUN, "old_protein.pdb"
@@ -415,6 +589,7 @@ def generate_report(
         return  # DEBUG
         raise ValueError("No protein snapshots found")
 
+    logging.info(f"Writing consolidated snapshots to {pdb_filename}")
     n_proteins = len(proteins)
     n_atoms = proteins[0].topology.n_atoms
     n_dim = 3
@@ -422,5 +597,4 @@ def generate_report(
     for index, protein in enumerate(proteins):
         xyz[index, :, :] = protein.xyz[0, :, :]
     trajectory = md.Trajectory(xyz, proteins[0].topology)
-    trajectory.save(os.path.join(results_path, "transformations-final-proteins.pdb"))
-
+    trajectory.save(os.path.join(results_path, pdb_filename))

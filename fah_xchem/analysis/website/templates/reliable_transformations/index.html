@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% import "postera.html" as postera %}
+{% set active_page = "reliable_transformations" %}
+{% block content %}
+<h3>Reliable Transformations <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Reliable transformations</b>" data-content="This page contains transformations that are deemed reliable based on consistency between GENs."></i></th></h3>
+<div class="my-3">
+Showing {{ start_index }} through {{ end_index }} of {{ series.transformations | length }}
+<span style="white-space: nowrap;">
+{% if prev_page %}<a href={{ prev_page }}><i class="fa fa-backward px-1"></i></a>{% endif %}
+{% if next_page %}<a href={{ next_page }}><i class="fa fa-forward px-1"></i></a>{% endif %}
+</span>
+</div>
+<table class="table table-striped table-hover">
+  <tr>
+    <th>RUN <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>RUN</b>" data-content="The RUN index within the Folding@home project generating this data. <br /><br /> Each RUN consists of a number of independent samples (CLONEs) that are run for multiple iterations (GENs) of nonequilibrium cycles."></i></th>
+    <th colspan=4>Initial microstate <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Initial microstate</b>" data-content="The unique identifier of the initial microstate for the relative free energy transformation."></i></th>
+    <th colspan=4>Final microstate <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Final microstate</b>" data-content="The unique identifier of the final microstate for the relative free energy transformation."></i></th>
+    <th>ΔΔG / kcal M<sup>-1</sup> <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Relative binding free energy</b>" data-content="The computed relative free energy for transforming the initial microstate into the final microstate. <br /><br /> Negative ΔΔG values indicate the final microstate binds more favorably than the initial microstate, while positive ΔΔG values indicate the final microstate binds less favorably. <br /><br /> <b>Note</b>: the ΔΔG values reported here will not be identical to differences in ΔG reported for microstates because DiffNet is used to account for thermodynamic self-consistency in reported microstate absolute ΔG values."></i></th>
+    <th>Work distribution <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Work distribution</b>" data-content="The computed work distributions for both the forward (initial -> final) and reverse (final -> initial) transformations. <br /><br /> Multi-modal distributions indicate that that there may be slow conformational degrees of freedom that may hinder convergence, while non-overlapping forward and backward work distributions indicate the transformation is too large to be computed reliably."></i></th>
+    <th>Convergence <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Convergence</b>" data-content="<b>Top plot</b>: Green points represent relative binding free energy (RBFE) estimates from individual iterations (GENs) with a 95% confidence interval (pale green shaded region). Confidence in the RBFE estimate is higher if RBFEs between iterations are in good agreement, ideally falling within the 95% confidence interval. <br /><br /> <b>Lower plot</b>: Binding free energy estimates of solvent (blue) and complex (red) phases."></i></th>
+  </tr>
+  {% for transformation in transformations %}
+  {% if transformation.reliable_transformation %}
+  <tr>
+    <td >RUN{{ transformation.transformation.run_id }}</td>
+    <td>{{ transformation.transformation.initial_microstate.microstate_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.initial_microstate.microstate_id) }}</td>
+    <td class="thumbnail">
+      <a href="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg">
+        <img src="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles }}">
+      </a>
+    </td>
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/old_ligand.sdf">
+        <button class="btn btn-outline-primary">sdf</button>
+      </a>
+    </td>
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/old_protein.pdb">
+        <button class="btn btn-outline-primary">pdb</button>
+      </a>
+    </td>
+    <td>{{ transformation.transformation.final_microstate.microstate_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.final_microstate.microstate_id) }}</td>
+    <td class="thumbnail">
+      <a href="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg">
+        <img src="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.final_microstate][1].smiles }}">
+      </a>
+    </td>
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/new_ligand.sdf">
+        <button class="btn btn-outline-primary">sdf</button>
+      </a>
+    </td>
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/new_protein.pdb">
+        <button class="btn btn-outline-primary">pdb</button>
+      </a>
+    </td>
+    <td class="binding">
+      <span class="estimate">
+        <span class="point">{{ (transformation.binding_free_energy * KT_KCALMOL) | format_point }}</span>
+        <span class="stderr"> ± {{ (transformation.binding_free_energy * KT_KCALMOL) | format_stderr }}</span>
+      </span>
+    </td>
+    <td class="thumbnail">
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/works.pdf">
+        <img src="transformations/RUN{{ transformation.transformation.run_id }}/works.png" alt="work distributions">
+      </a>
+    </td>
+    <td class="thumbnail">
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/convergence.pdf">
+        <img src="transformations/RUN{{ transformation.transformation.run_id }}/convergence.png" alt="convergence plot">
+      </a>
+    </td>
+  </tr>
+  {% endif %}
+  {% endfor %}
+</table>
+{% endblock %}

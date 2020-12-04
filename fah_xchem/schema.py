@@ -166,6 +166,7 @@ class PhaseAnalysis(Model):
 
 class TransformationAnalysis(Model):
     transformation: Transformation
+    reliable_transformation: bool = Field(None, description="Specify if the transformation is reliable or not") # JSON boolean
     binding_free_energy: PointEstimate
     complex_phase: PhaseAnalysis
     solvent_phase: PhaseAnalysis
