@@ -29,5 +29,7 @@ dependencies:
   - pip
   - pip:
       - git+https://github.com/openforcefield/Arsenic.git@0.1.0
+      - git+https://github.com/xchem/pandda_gemmi.git
+      - git+https://github.com/xchem/fragalysis-api.git
       - git+https://github.com/xchem/fragalysis-api.git
 
