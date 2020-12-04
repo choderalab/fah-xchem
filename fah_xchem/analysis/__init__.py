@@ -86,28 +86,19 @@ def analyze_transformation(
     )
 
     # Check for consistency across GENS, if requested
+    consistent_bool = None
     if filter_gen_consistency:
         consistent_bool = gens_are_consistent(
-            complex_phase=complex_phase, solvent_phase=solvent_phase, nsigma=1
+            complex_phase=complex_phase, solvent_phase=solvent_phase, nsigma=3
         )
 
-        return TransformationAnalysis(
-            transformation=transformation,
-            reliable_transformation=consistent_bool,
-            binding_free_energy=binding_free_energy,
-            complex_phase=complex_phase,
-            solvent_phase=solvent_phase,
-        )
-
-    else:
-
-        return TransformationAnalysis(
-            transformation=transformation,
-            binding_free_energy=binding_free_energy,
-            complex_phase=complex_phase,
-            solvent_phase=solvent_phase,
-        )
-
+    return TransformationAnalysis(
+        transformation=transformation,
+        reliable_transformation=consistent_bool,
+        binding_free_energy=binding_free_energy,
+        complex_phase=complex_phase,
+        solvent_phase=solvent_phase,
+    )
 
 def analyze_transformation_or_warn(
     transformation: Transformation, **kwargs
