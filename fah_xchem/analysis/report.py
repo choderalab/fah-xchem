@@ -133,54 +133,67 @@ def RenderData(image, mol, tags):
 
 
 def generate_fragalysis(
+    series: CompoundSeriesAnalysis,
     results_path: str,
-    ligands_filename: str = "transformations-final-ligands.sdf",
-    proteins_filename: str = "transformations-final-proteins.pdb",
-    ref_url: str = "",
+    ligands_filename: str = "reliable-transformations-final-ligands.sdf",
+    proteins_filename: str = "reliable-transformations-final-proteins.pdb",
+    ref_url: str = "https://discuss.postera.ai/t/folding-home-sprint-5/2423",
     target_name: str = "MPro",
-    ref_mols: str = "x12073",  # TODO generate automatically (?)
-    ref_pdb: str = "x12073",  # TODO generate automatically (?)
     submitter_name: str = "Folding@home",
-    method: str = "Sprint 5",  # TODO generate automatically (?)
     upload_key: str = "U7ffDqkPhLvS3gF9",
 ) -> None:
 
     """
-    Generate input for fragalysis from ligand_filename and proteins_filename​
+    Generate input and upload to fragalysis from ligand_filename and proteins_filename​
 
     Fragalysis spec:https://discuss.postera.ai/t/providing-computed-poses-for-others-to-look-at/1155/8?u=johnchodera​
 
     Parameters
     ----------
+    series : CompoundSeriesAnalysis
+        Analysis results
+    results_path : str
+        The path to the results
     ligands_filename : str
         The name of the ligand file to upload. An SDF file.
-    pdf_filename : str
+    proteins_filename : str
         The name of the protein file to upload. An PDB file.
     ref_url : str
         URL to postera.ai/covid forum post
     target_name : str
-        The fragalysis dataset name e.g. 'foldingathome-sprint-5'
-    ref_mols : str
-        A comma separated list of the fragments that inspired the design of the new molecule (codes as they appear in fragalysis - e.g. 'x0104_0,x0692_0')
-    ref_pdb : str
-        The name of the fragment (and corresponding Mpro fragment structure) with the best scoring hybrid docking pose
-    method : str
-        The name for the method used to generate the compound poses (e.g. 'Sprint 5')
-
+        The fragalysis dataset name e.g. 'MPro'
+    submitter_name : str
+        The name of the submitter e.g. 'Folding@home'
+    upload_key : str
+        The Fragalysis upload key
     """
-
-    # TODO: use reliable runs check
 
     import os
     from openeye import oechem
     from rich.progress import track
 
-    fragalysis_sdf_filename = f"{target_name}.sdf"
+    # Assume name from series object in the form: sprint-5-x12073-monomer-neutral
+    name = series.metadata.name.split("-")
+    method = name[0].title() + " " + name[1]  # Sprint 5
+    ref_mols = name[2]  # x12073
+    ref_pdb = name[2]  # x12073
+
+    # set fragalysis sdf file name in the form 'compount-set_<name>.sdf
+    name_tuple = (name[0], "-", name[1])
+    fragalysis_sdf_filename = f"compound-set_foldingathome-{''.join(name_tuple)}.sdf"
+
+    ligands_path = os.path.join(results_path, ligands_filename)
+    proteins_path = os.path.join(results_path, proteins_filename)
+
+    # copy reliable sdf to new name for fragalysis
+    from shutil import copyfile
+    copyfile(ligands_path, os.path.join(results_path, fragalysis_sdf_filename))
+
+    # get the path for the newly named ligands SDF to be uploaded to fragalysis
+    fa_ligands_path = os.path.join(results_path, fragalysis_sdf_filename)
 
     # Read ligand poses
     molecules = []
-    ligands_path = os.path.join(results_path, ligands_filename)
-    proteins_path = os.path.join(results_path, proteins_filename)
 
     with oechem.oemolistream(ligands_path) as ifs:
         oemol = oechem.OEGraphMol()
@@ -241,20 +254,22 @@ def generate_fragalysis(
         for oemol in track(molecules, description="Writing fragalysis SDF file..."):
             oechem.OEWriteMolecule(ofs, oemol)
 
+    # TODO add check SDF step here?
+
     # Upload to fragalysis
     print("Uploading to fragalysis...")
     from fragalysis_api.xcextracter.computed_set_update import update_cset, REQ_URL
 
     update_set = "None"  # new upload
     update_set = "".join(submitter_name.split()) + "-" + "".join(method.split())
-    cs_target_name = (
-        "Mpro"  # name of the target in Fragalysis that the computed set is for
-    )
+
+    print(f"\t Target: {target_name}")
+    print(f"\t Updating set: {update_set}")
 
     update_cset(
         REQ_URL,
-        target_name=cs_target_name,
-        sdf_path=fragalysis_sdf_filename,
+        target_name=target_name,
+        sdf_path=fa_ligands_path,
         update_set=update_set,
         upload_key=upload_key,
         submit_choice=1,
@@ -557,7 +572,7 @@ def generate_report(
             )
 
     if upload_fragalysis:
-        generate_fragalysis(results_path=results_path)
+        generate_fragalysis(series=series, results_path=results_path)
 
 
 from openeye import oechem
