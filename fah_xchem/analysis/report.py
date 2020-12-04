@@ -280,10 +280,10 @@ def generate_fragalysis(
 
     update_cset(
         REQ_URL,
-        target_name=target_name,
+        target_name=fragalysis_config.target_name,
         sdf_path=fa_ligands_path,
         update_set=update_set,
-        upload_key=upload_key,
+        upload_key=fragalysis_config.upload_key,
         submit_choice=1,
         add=False,
     )
