@@ -141,6 +141,7 @@ def generate_artifacts(
     report: bool = True,
     website: bool = True,
     log: str = "WARN",
+    upload_fragalysis: bool = True,
 ) -> None:
     """
     Given results of free energy analysis as JSON, generate analysis
@@ -182,6 +183,8 @@ def generate_artifacts(
         Whether to generate HTML for static site
     log : str, optional
         Logging level
+    upload_fragalysis : bool, optional
+        Whether to push results to Fragalysis
     """
 
     logging.basicConfig(level=getattr(logging, log.upper()))
@@ -205,6 +208,7 @@ def generate_artifacts(
         plots=plots,
         report=report,
         website=website,
+        upload_fragalysis=upload_fragalysis,
     )
 
 

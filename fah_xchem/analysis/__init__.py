@@ -186,6 +186,7 @@ def generate_artifacts(
     plots: bool = True,
     report: bool = True,
     website: bool = True,
+    upload_fragalysis: bool = True,
 ) -> None:
 
     complex_project_dir = os.path.join(
@@ -223,6 +224,7 @@ def generate_artifacts(
             series=series,
             results_path=output_dir,
             max_binding_free_energy=config.max_binding_free_energy,
+            upload_fragalysis=upload_fragalysis,
         )
 
     if website:
