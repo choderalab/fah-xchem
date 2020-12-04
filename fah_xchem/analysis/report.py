@@ -278,15 +278,15 @@ def generate_fragalysis(
 
         print(f"\t Updating set: {update_set}")
 
-    # update_cset(
-    #     REQ_URL,
-    #     target_name=target_name,
-    #     sdf_path=fa_ligands_path,
-    #     update_set=update_set,
-    #     upload_key=upload_key,
-    #     submit_choice=1,
-    #     add=False,
-    # )
+    update_cset(
+        REQ_URL,
+        target_name=target_name,
+        sdf_path=fa_ligands_path,
+        update_set=update_set,
+        upload_key=upload_key,
+        submit_choice=1,
+        add=False,
+    )
 
 
 def gens_are_consistent(
