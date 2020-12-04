@@ -141,6 +141,7 @@ def upload_fragalyis(
     ref_pdb: str,
     method: str,
 ):
+
     """
     Generate input for fragalysis from ligand_filename and proteins_filename​
 
@@ -240,7 +241,10 @@ def upload_fragalyis(
     upload_key = ""  # TODO add upload key
     update_set = "None"  # new upload
     update_set = "".join(submitter_name.split()) + "-" + "".join(method.split())
-    cs_target_name = "Mpro" # name of the target in Fragalysis that the computed set is for
+    cs_target_name = (
+        "Mpro"  # name of the target in Fragalysis that the computed set is for
+    )
+
     update_cset(
         REQ_URL,
         target_name=cs_target_name,
@@ -250,6 +254,8 @@ def upload_fragalyis(
         submit_choice=1,
         add=False,
     )
+
+
 def gens_are_consistent(
     complex_phase,
     solvent_phase,
@@ -443,7 +449,8 @@ def generate_report(
         index
         for index in sorted_indices
         if (
-            float(oechem.OEGetSDData(
+            float(
+                oechem.OEGetSDData(
                     mols["unreliable"]["oemols"][index], "DDG (kcal/mol)"
                 )
             )
