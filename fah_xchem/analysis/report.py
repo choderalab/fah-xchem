@@ -141,9 +141,6 @@ def generate_fragalysis(
     series: CompoundSeriesAnalysis,
     fragalysis_config: FragalysisConfig,
     results_path: str,
-    target_name: str = "MPro",
-    submitter_name: str = "Folding@home",
-    upload_key: str = "U7ffDqkPhLvS3gF9",
 ) -> None:
 
     """
@@ -155,29 +152,15 @@ def generate_fragalysis(
     ----------
     series : CompoundSeriesAnalysis
         Analysis results
+    fragalysis_config : FragalysisConfig
+        Fragalysis input paramters
     results_path : str
         The path to the results
-    ligands_filename : str
-        The name of the ligand file to upload. An SDF file.
-    proteins_filename : str
-        The name of the protein file to upload. An PDB file.
-    ref_url : str
-        URL to postera.ai/covid forum post
-    target_name : str
-        The fragalysis dataset name e.g. 'MPro'
-    submitter_name : str
-        The name of the submitter e.g. 'Folding@home'
-    upload_key : str
-        The Fragalysis upload key
     """
-
-    # TODO: read in function arguments with JSON
 
     import os
     from openeye import oechem
     from rich.progress import track
-
-    # Assume name from series object in the form: sprint-5-x12073-monomer-neutral
 
     ref_mols = fragalysis_config.ref_mols  # e.g. x12073
     ref_pdb = fragalysis_config.ref_pdb  # e.g. x12073
