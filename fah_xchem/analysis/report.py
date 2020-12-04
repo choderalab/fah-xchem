@@ -250,7 +250,7 @@ def generate_fragalysis(
     molecules.insert(0, oemol)  # make it first molecule
 
     # Write sorted molecules
-    with oechem.oemolostream(fragalysis_sdf_filename) as ofs:
+    with oechem.oemolostream(fa_ligands_path) as ofs:
         for oemol in track(molecules, description="Writing fragalysis SDF file..."):
             oechem.OEWriteMolecule(ofs, oemol)
 
