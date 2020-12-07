@@ -245,13 +245,13 @@ def generate_fragalysis(
 
     # Upload to fragalysis
     print("Uploading to fragalysis...")
-    print(f"\t Target: {target_name}")
+    print(f"\t Target: {fragalysis_config.target_name}")
 
     from fragalysis_api.xcextracter.computed_set_update import update_cset, REQ_URL
 
     if fragalysis_config.new_upload:
-        update_set = ""  # new upload
-        print(f"\t Uploading a new set")
+        update_set = 'None'  # new upload
+        print(f"--> Uploading a new set")
     else:
         update_set = (
             "".join(fragalysis_config.submitter_name.split())
@@ -259,9 +259,9 @@ def generate_fragalysis(
             + "".join(fragalysis_config.method.split())
         )
 
-        print(f"\t Updating set: {update_set}")
+        print(f"--> Updating set: {update_set}")
 
-    update_cset(
+    taskurl = update_cset(
         REQ_URL,
         target_name=fragalysis_config.target_name,
         sdf_path=fa_ligands_path,
@@ -271,6 +271,7 @@ def generate_fragalysis(
         add=False,
     )
 
+    print(f"Upload complete, check upload status: {taskurl}")
 
 def gens_are_consistent(
     complex_phase,
