@@ -184,8 +184,8 @@ def generate_artifacts(
         Whether to generate HTML for static site
     log : str, optional
         Logging level
-    upload_fragalysis : bool, optional
-        Whether to push results to Fragalysis
+    fragalysis_config : str, optional
+        File containing information for Fragalysis upload as JSON-encoded :class: ~`fah_xchem.schema.FragalysisConfig`
     """
 
     logging.basicConfig(level=getattr(logging, log.upper()))
