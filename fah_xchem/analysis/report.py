@@ -231,7 +231,7 @@ def generate_fragalysis(
     oechem.OESetSDData(oemol, "ref_url", fragalysis_config.ref_url)
     oechem.OESetSDData(oemol, "submitter_name", fragalysis_config.submitter_name)
     oechem.OESetSDData(oemol, "submitter_email", fragalysis_config.submitter_email)
-    oechem.OESetSDData(oemol, "submitter_institution", "MSKCC")
+    oechem.OESetSDData(oemol, "submitter_institution", fragalysis_config.submitter_institution)
     oechem.OESetSDData(oemol, "generation_date", datetime.today().strftime("%Y-%m-%d"))
     oechem.OESetSDData(oemol, "method", fragalysis_config.method)
     molecules.insert(0, oemol)  # make it first molecule
