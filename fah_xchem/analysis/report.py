@@ -286,8 +286,6 @@ def generate_fragalysis(
     else:
         pdb_zip_path = None
 
-    print(f"pdb_zip_path is: {pdb_zip_path}")
-
     taskurl = update_cset(
         REQ_URL,
         target_name=fragalysis_config.target_name,
