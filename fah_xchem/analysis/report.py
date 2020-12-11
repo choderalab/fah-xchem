@@ -162,15 +162,17 @@ def generate_fragalysis(
     from openeye import oechem
     from rich.progress import track
 
+    # make a directory to store fragalysis upload data
+    fa_path = os.path.join(results_path, "fragalysis_upload")
+    os.makedirs(fa_path, exist_ok=True)
+
     ref_mols = fragalysis_config.ref_mols  # e.g. x12073
     ref_pdb = fragalysis_config.ref_pdb  # e.g. x12073
 
     # set paths
     ligands_path = os.path.join(results_path, fragalysis_config.ligands_filename)
     proteins_path = os.path.join(results_path, fragalysis_config.proteins_filename)
-    fa_ligands_path = os.path.join(
-        results_path, fragalysis_config.fragalysis_sdf_filename
-    )
+    fa_ligands_path = os.path.join(fa_path, fragalysis_config.fragalysis_sdf_filename)
 
     # copy sprint generated sdf to new name for fragalysis input
     from shutil import copyfile
@@ -186,6 +188,15 @@ def generate_fragalysis(
             molecules.append(oemol.CreateCopy())
     print(f"{len(molecules)} ligands read")
 
+    # Get zipped PDB
+    consolidate_protein_snapshots_into_pdb(
+        oemols=molecules,
+        results_path=results_path,
+        pdb_filename="references.pdb",
+        fragalysis_input=True,
+        fragalysis_path=fa_path,
+    )
+
     descriptions = {
         "DDG (kcal/mol)": "Relative computed free energy difference",
         "dDDG (kcal/mol)": "Uncertainty in computed relative free energy difference",
@@ -196,7 +207,7 @@ def generate_fragalysis(
 
     # Preprocess molecules
     tags_to_retain = {"DDG (kcal/mol)", "dDDG (kcal/mol)"}
-    for oemol in track(molecules, "Preprocessing molecules..."):
+    for oemol in track(molecules, "Preprocessing molecules for Fragalysis..."):
         # Remove hydogrens
         oechem.OESuppressHydrogens(oemol, True)
         # Get original SMILES
@@ -231,26 +242,28 @@ def generate_fragalysis(
     oechem.OESetSDData(oemol, "ref_url", fragalysis_config.ref_url)
     oechem.OESetSDData(oemol, "submitter_name", fragalysis_config.submitter_name)
     oechem.OESetSDData(oemol, "submitter_email", fragalysis_config.submitter_email)
-    oechem.OESetSDData(oemol, "submitter_institution", fragalysis_config.submitter_institution)
+    oechem.OESetSDData(
+        oemol, "submitter_institution", fragalysis_config.submitter_institution
+    )
     oechem.OESetSDData(oemol, "generation_date", datetime.today().strftime("%Y-%m-%d"))
     oechem.OESetSDData(oemol, "method", fragalysis_config.method)
     molecules.insert(0, oemol)  # make it first molecule
 
     # Write sorted molecules
     with oechem.oemolostream(fa_ligands_path) as ofs:
-        for oemol in track(molecules, description="Writing fragalysis SDF file..."):
+        for oemol in track(molecules, description="Writing Fragalysis SDF file..."):
             oechem.OEWriteMolecule(ofs, oemol)
 
     # TODO add check SDF step here?
 
     # Upload to fragalysis
-    print("Uploading to fragalysis...")
-    print(f"\t Target: {fragalysis_config.target_name}")
+    print("Uploading to Fragalysis...")
+    print(f"--> Target: {fragalysis_config.target_name}")
 
     from fragalysis_api.xcextracter.computed_set_update import update_cset, REQ_URL
 
     if fragalysis_config.new_upload:
-        update_set = 'None'  # new upload
+        update_set = "None"  # new upload
         print(f"--> Uploading a new set")
     else:
         update_set = (
@@ -272,6 +285,7 @@ def generate_fragalysis(
     )
 
     print(f"Upload complete, check upload status: {taskurl}")
+
 
 def gens_are_consistent(
     complex_phase,
@@ -581,7 +595,9 @@ from openeye import oechem
 def consolidate_protein_snapshots_into_pdb(
     oemols: List[oechem.OEMol],
     results_path: str,
+    fragalysis_path: Optional[str] = "./",
     pdb_filename: Optional[str] = "transformations-final-proteins.pdb",
+    fragalysis_input: bool = False,
 ):
     """
     Consolidate protein snapshots into a single file
@@ -592,9 +608,14 @@ def consolidate_protein_snapshots_into_pdb(
         List of annotated OEMols
     results_path : str
         Analysis results path
+    fragalysis_path : str, optional,  default = './'
+        The path to where fragalysis data is stored
     pdb_filename : str, optional, default='transformations-final-proteins.pdb'
-        Filename (without path) to write compiled PDB file to
+        Filename (without path and with '.pdb.' extension) to write compiled PDB file to
+    fragalysis_input : bool, default = False
+        Specify if the snapshots are for Fragalysis
     """
+
     import mdtraj as md
     import numpy as np
     import os
@@ -608,7 +629,7 @@ def consolidate_protein_snapshots_into_pdb(
     for oemol in track(oemols, description="Reading protein snapshots"):
         RUN = oechem.OEGetSDData(oemol, "RUN")
         protein_pdb_filename = os.path.join(
-            results_path, "transformations", RUN, "old_protein.pdb"
+            results_path, "transformations", RUN, "new_protein.pdb"
         )
         try:
             protein = md.load(protein_pdb_filename)
@@ -622,11 +643,40 @@ def consolidate_protein_snapshots_into_pdb(
         raise ValueError("No protein snapshots found")
 
     logging.info(f"Writing consolidated snapshots to {pdb_filename}")
-    n_proteins = len(proteins)
-    n_atoms = proteins[0].topology.n_atoms
-    n_dim = 3
-    xyz = np.zeros([n_proteins, n_atoms, n_dim], np.float32)
-    for index, protein in enumerate(proteins):
-        xyz[index, :, :] = protein.xyz[0, :, :]
-    trajectory = md.Trajectory(xyz, proteins[0].topology)
-    trajectory.save(os.path.join(results_path, pdb_filename))
+
+    # produce multiple PDB files and zip for fragalysis upload
+    if fragalysis_input:
+        base_pdb_filename = os.path.basename(pdb_filename).split(".")[0]
+        n_proteins = 1
+        n_atoms = proteins[0].topology.n_atoms
+        n_dim = 3
+        for index, protein in enumerate(proteins):
+            xyz = np.zeros([n_proteins, n_atoms, n_dim], np.float32)
+            xyz[0, :, :] = protein.xyz[0, :, :]
+            trajectory = md.Trajectory(xyz, protein.topology)
+            trajectory.save(
+                os.path.join(fragalysis_path, f"{base_pdb_filename}_{index}.pdb")
+            )
+
+        from zipfile import ZipFile
+
+        with ZipFile(os.path.join(fragalysis_path, "references.zip"), "w") as zipobj:
+            for _, _, filenames in os.walk(fragalysis_path):
+                for pdb_file in track(
+                    filenames, description="Zipping protein snapshots for Fragalysis..."
+                ):
+                    if pdb_file.endswith(".pdb"):
+                        zipobj.write(os.path.join(fragalysis_path, pdb_file))
+
+            zipobj.close()
+
+    # produce one PDB file with multiple frames
+    else:
+        n_proteins = len(proteins)
+        n_atoms = proteins[0].topology.n_atoms
+        n_dim = 3
+        xyz = np.zeros([n_proteins, n_atoms, n_dim], np.float32)
+        for index, protein in enumerate(proteins):
+            xyz[index, :, :] = protein.xyz[0, :, :]
+        trajectory = md.Trajectory(xyz, proteins[0].topology)
+        trajectory.save(os.path.join(results_path, pdb_filename))
