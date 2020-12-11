@@ -121,7 +121,7 @@ Description of the JSON parameters:
 * `fragalysis_sdf_filename`: the name to use for the SDF Fragalysis upload. This will be a copy of `ligands_filename` but must be in the form `compound-set_name.sdf`.
 * `ref_url`: the url to the post that describes the work e.g. for [Sprint 5](https://discuss.postera.ai/t/folding-home-sprint-5/2423).
 * `ref_mol`: a comma separated list of the fragments that inspired the design of the new molecule (codes as they appear in fragalysis - e.g. x0104_0,x0692_0).
-* `ref_pdb`: 1) the name of the protein PDB zipped file to upload, this should be named `references.zip`(recommended) or 2) the code to the fragment pdb from fragalysis that should be used (e.g. x0692_0).
+* `ref_pdb`: 1) the name of the protein PDB zipped file to upload, this should be named `references.zip` (recommended) or 2) the code to the fragment pdb from fragalysis that should be used (e.g. x0692_0).
 * `target_name`: the name of the target protein.
 * `submitter_name`: the name of the submitter.
 * `submitter_email`: the email address of the submitter.
