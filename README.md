@@ -54,7 +54,7 @@ Generate representative snapshots, plots, PDF report, and static site HTML in `r
 fah-xchem generate-artifacts \
         --compound-series-analysis-file results/analysis.json \
         --config-file config.json \
-        --fragalysis-config fragalysis_config.json
+        --fragalysis-config fragalysis_config.json \
         --fah-projects-dir /path/to/projects/ \
         --fah-data-dir /path/to/data/SVR314342810/ \
         --output-dir results \
