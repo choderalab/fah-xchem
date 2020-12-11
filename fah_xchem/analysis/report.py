@@ -144,7 +144,7 @@ def generate_fragalysis(
 ) -> None:
 
     """
-    Generate input and upload to fragalysis from ligand_filename and proteins_filename​
+    Generate input and upload to fragalysis from fragalysis_config
 
     Fragalysis spec:https://discuss.postera.ai/t/providing-computed-poses-for-others-to-look-at/1155/8?u=johnchodera​
 
@@ -171,7 +171,6 @@ def generate_fragalysis(
 
     # set paths
     ligands_path = os.path.join(results_path, fragalysis_config.ligands_filename)
-    proteins_path = os.path.join(results_path, fragalysis_config.proteins_filename)
     fa_ligands_path = os.path.join(fa_path, fragalysis_config.fragalysis_sdf_filename)
 
     # copy sprint generated sdf to new name for fragalysis input

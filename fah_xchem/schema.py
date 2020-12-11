@@ -203,7 +203,6 @@ class FahConfig(Model):
 class FragalysisConfig(Model):
     run: bool = Field(False)
     ligands_filename: str = None
-    proteins_filename: str = None
     fragalysis_sdf_filename: str = None
     ref_url: str = None
     ref_mols: str = None
