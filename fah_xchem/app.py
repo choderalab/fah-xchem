@@ -15,6 +15,7 @@ from .schema import (
     CompoundSeries,
     CompoundSeriesAnalysis,
     Model,
+    FragalysisConfig
 )
 
 
@@ -141,6 +142,7 @@ def generate_artifacts(
     report: bool = True,
     website: bool = True,
     log: str = "WARN",
+    fragalysis_config: Optional[str] = None,
 ) -> None:
     """
     Given results of free energy analysis as JSON, generate analysis
@@ -182,11 +184,15 @@ def generate_artifacts(
         Whether to generate HTML for static site
     log : str, optional
         Logging level
+    fragalysis_config : str, optional
+        File containing information for Fragalysis upload as JSON-encoded :class: ~`fah_xchem.schema.FragalysisConfig`
     """
 
     logging.basicConfig(level=getattr(logging, log.upper()))
 
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
+
+    fragalysis_config = _get_config(FragalysisConfig, fragalysis_config, "fragalysis configuration")
 
     with open(compound_series_analysis_file, "r") as infile:
         tsa = TimestampedAnalysis.parse_obj(json.load(infile))
@@ -205,6 +211,7 @@ def generate_artifacts(
         plots=plots,
         report=report,
         website=website,
+        fragalysis_config=fragalysis_config,
     )
 
 

@@ -198,3 +198,19 @@ class AnalysisConfig(Model):
 class FahConfig(Model):
     projects_dir: str = "projects"
     data_dir: str = "data"
+
+
+class FragalysisConfig(Model):
+    run: bool = Field(False)
+    ligands_filename: str = None
+    fragalysis_sdf_filename: str = None
+    ref_url: str = None
+    ref_mols: str = None
+    ref_pdb: str = None
+    target_name: str = None
+    submitter_name: str = None
+    submitter_email: str = None
+    submitter_institution: str = None
+    method: str = None
+    upload_key: str = None
+    new_upload: bool = Field(False)

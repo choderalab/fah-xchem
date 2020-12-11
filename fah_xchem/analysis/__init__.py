@@ -18,6 +18,7 @@ from ..schema import (
     Transformation,
     TransformationAnalysis,
     WorkPair,
+    FragalysisConfig,
 )
 from .diffnet import combine_free_energies
 from .exceptions import AnalysisError, DataValidationError
@@ -165,6 +166,7 @@ def analyze_compound_series(
 
 def generate_artifacts(
     series: CompoundSeriesAnalysis,
+    fragalysis_config: FragalysisConfig,
     timestamp: dt.datetime,
     projects_dir: str,
     data_dir: str,
@@ -214,6 +216,7 @@ def generate_artifacts(
             series=series,
             results_path=output_dir,
             max_binding_free_energy=config.max_binding_free_energy,
+            fragalysis_config=fragalysis_config,
         )
 
     if website:
