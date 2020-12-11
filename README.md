@@ -117,7 +117,7 @@ Description of the JSON parameters:
 
 * `run`: specify whether to run the Fragalysis upload. If set to `false` the results will not be uploaded (even if the JSON is supplied via the `--fragalysis-config` option).
 * `ligands_filename`: the name of the SDF file to upload to Fragalysis.
-* `proteins_filename`: the name of the PDB file to upload to Fragalysis - **not implemented yet**.
+* `proteins_filename`: the name of the PDB file to upload to Fragalysis.
 * `fragalysis_sdf_filename`: the name to use for the SDF Fragalysis upload. This will be a copy of `ligands_filename` but must be in the form `compound-set_name.sdf`.
 * `ref_url`: the url to the post that describes the work e.g. for [Sprint 5](https://discuss.postera.ai/t/folding-home-sprint-5/2423).
 * `ref_mol`: a comma separated list of the fragments that inspired the design of the new molecule (codes as they appear in fragalysis - e.g. x0104_0,x0692_0).
