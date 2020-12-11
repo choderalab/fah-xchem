@@ -130,7 +130,11 @@ Description of the JSON parameters:
 * `upload_key`: the unique upload key used to upload to Fragalysis.
 * `new_upload`: specifies whether to upload a new set (`true`) or to update an existing set (`false`).
 
-For more information see this forum [post](https://discuss.postera.ai/t/providing-computed-poses-for-others-to-look-at/1155/8).
+For more information on the upload format see this forum [post](https://discuss.postera.ai/t/providing-computed-poses-for-others-to-look-at/1155/8).
+
+A unique `upload_key` is needed to push to Fragalysis, this can be requested [here](https://fragalysis.diamond.ac.uk/viewer/cset_key/).
+
+For more information on the entire upload process see this forum [post](https://discuss.postera.ai/t/instructions-around-the-docking-results-category/1212/2).
 
 #### Server-specific configuration
 
