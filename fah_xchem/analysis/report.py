@@ -225,7 +225,7 @@ def generate_fragalysis(
 
         # If ref_pdb is zip file, use this
         if fragalysis_config.ref_pdb == "references.zip":
-            oechem.OESetSDData(oemol, "ref_pdb", f"references/reference_{index}.pdb"),
+            oechem.OESetSDData(oemol, "ref_pdb", f"references/references_{index}.pdb"),
             index += 1
         else:
             oechem.OESetSDData(oemol, "ref_pdb", fragalysis_config.ref_pdb)

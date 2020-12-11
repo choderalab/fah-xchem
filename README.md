@@ -100,7 +100,7 @@ To upload sprint results to [Fragalysis](https://fragalysis.diamond.ac.uk/viewer
         "fragalysis_sdf_filename": "compound-set_foldingathome-sprint-X.sdf",
         "ref_url": "https://url-link",
         "ref_mols": "x00000",
-        "ref_pdb": "x00000",
+        "ref_pdb": "references.zip",
         "target_name": "protein-target",
         "submitter_name": "Folding@home",
         "submitter_email": "first.last@email.org",
@@ -115,13 +115,13 @@ The JSON file is passed on the command line using the `--fragalysis-config` opti
 
 Description of the JSON parameters:
 
-* `run`: specify whehter to run the Fragalysis upload. If set to `false` the results will not be uploaded (even if the JSON is supplied via the `--fragalysis-config` option).
+* `run`: specify whether to run the Fragalysis upload. If set to `false` the results will not be uploaded (even if the JSON is supplied via the `--fragalysis-config` option).
 * `ligands_filename`: the name of the SDF file to upload to Fragalysis.
 * `proteins_filename`: the name of the PDB file to upload to Fragalysis - **not implemented yet**.
 * `fragalysis_sdf_filename`: the name to use for the SDF Fragalysis upload. This will be a copy of `ligands_filename` but must be in the form `compound-set_name.sdf`.
 * `ref_url`: the url to the post that describes the work e.g. for [Sprint 5](https://discuss.postera.ai/t/folding-home-sprint-5/2423).
 * `ref_mol`: a comma separated list of the fragments that inspired the design of the new molecule (codes as they appear in fragalysis - e.g. x0104_0,x0692_0).
-* `ref_pdb`: 1) the file path of the pdb file in the uploaded zip file or 2) the code to the fragment pdb from fragalysis that should be used (e.g. x0692_0).
+* `ref_pdb`: 1) the name of the protein PDB zipped file to upload, this should be named `references.zip`(recommended) or 2) the code to the fragment pdb from fragalysis that should be used (e.g. x0692_0).
 * `target_name`: the name of the target protein.
 * `submitter_name`: the name of the submitter.
 * `submitter_email`: the email address of the submitter.
