@@ -208,8 +208,8 @@ class FragalysisConfig(Model):
     ref_url: str = None
     ref_mols: str = None
     ref_pdb: str = None
-    target_name: str = "MPro"
-    submitter_name: str = "Folding@home"
+    target_name: str = None
+    submitter_name: str = None
     submitter_email: str = None
     submitter_institution: str = None
     method: str = None
