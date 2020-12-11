@@ -188,14 +188,15 @@ def generate_fragalysis(
             molecules.append(oemol.CreateCopy())
     print(f"{len(molecules)} ligands read")
 
-    # Get zipped PDB
-    consolidate_protein_snapshots_into_pdb(
-        oemols=molecules,
-        results_path=results_path,
-        pdb_filename="references.pdb",
-        fragalysis_input=True,
-        fragalysis_path=fa_path,
-    )
+    # Get zipped PDB if specified
+    if fragalysis_config.ref_pdb == "references.zip":
+        consolidate_protein_snapshots_into_pdb(
+            oemols=molecules,
+            results_path=results_path,
+            pdb_filename="references.pdb",
+            fragalysis_input=True,
+            fragalysis_path=fa_path,
+        )
 
     descriptions = {
         "DDG (kcal/mol)": "Relative computed free energy difference",
@@ -207,6 +208,7 @@ def generate_fragalysis(
 
     # Preprocess molecules
     tags_to_retain = {"DDG (kcal/mol)", "dDDG (kcal/mol)"}
+    index = 0
     for oemol in track(molecules, "Preprocessing molecules for Fragalysis..."):
         # Remove hydogrens
         oechem.OESuppressHydrogens(oemol, True)
@@ -220,9 +222,14 @@ def generate_fragalysis(
                 oechem.OEDeleteSDData(oemol, tag)
         # Add required SD tags
         oechem.OESetSDData(oemol, "ref_mols", fragalysis_config.ref_mols)
-        oechem.OESetSDData(
-            oemol, "ref_pdb", fragalysis_config.ref_pdb
-        )  # TODO: Upload corresponding PDBs
+
+        # If ref_pdb is zip file, use this
+        if fragalysis_config.ref_pdb == "references.zip":
+            oechem.OESetSDData(oemol, "ref_pdb", f"references/reference_{index}.pdb"),
+            index += 1
+        else:
+            oechem.OESetSDData(oemol, "ref_pdb", fragalysis_config.ref_pdb)
+
         oechem.OESetSDData(oemol, "original SMILES", original_smiles)
 
     # Add initial blank molecule (that includes distances)
@@ -274,10 +281,18 @@ def generate_fragalysis(
 
         print(f"--> Updating set: {update_set}")
 
+    if fragalysis_config.ref_pdb == "references.zip":
+        pdb_zip_path = os.path.join(fa_path, "references.zip")
+    else:
+        pdb_zip_path = None
+
+    print(f"pdb_zip_path is: {pdb_zip_path}")
+
     taskurl = update_cset(
         REQ_URL,
         target_name=fragalysis_config.target_name,
         sdf_path=fa_ligands_path,
+        pdb_zip_path=pdb_zip_path,
         update_set=update_set,
         upload_key=fragalysis_config.upload_key,
         submit_choice=1,
