@@ -201,7 +201,7 @@ def generate_website(
     environment.filters["experimental_data_url"] = experimental_data_url
     environment.filters["smiles_to_filename"] = get_image_filename
 
-    for subdir in ["compounds", "microstates", "transformations", "reliable_transformations"]:
+    for subdir in ["compounds", "microstates", "transformations", "reliable_transformations", "retrospective_analysis"]:
         os.makedirs(os.path.join(path, subdir), exist_ok=True)
 
     def write_html(
@@ -252,6 +252,14 @@ def generate_website(
         items=compounds_sorted,
         items_per_page=items_per_page,
         description="Generating html for compounds index",
+    )
+
+    _generate_paginated_index(
+    write_html=lambda items, **kwargs: write_html(compounds=items, num_top_compounds=num_top_compounds, **kwargs),
+    url_prefix="retrospective_analysis",
+    items=compounds_sorted,
+    items_per_page=items_per_page,
+    description="Generating html for retrospective_analysis index",
     )
 
     for compound in track(
