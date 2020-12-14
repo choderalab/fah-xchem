@@ -254,14 +254,6 @@ def generate_website(
         description="Generating html for compounds index",
     )
 
-    _generate_paginated_index(
-    write_html=lambda items, **kwargs: write_html(compounds=items, num_top_compounds=num_top_compounds, **kwargs),
-    url_prefix="retrospective_analysis",
-    items=compounds_sorted,
-    items_per_page=items_per_page,
-    description="Generating html for retrospective_analysis index",
-    )
-
     for compound in track(
         compounds_sorted[:num_top_compounds],
         description="Generating html for individual compound views",
@@ -313,4 +305,12 @@ def generate_website(
     items=series.transformations,
     items_per_page=items_per_page,
     description="Generating html for reliable transformations index",
+    )
+
+    _generate_paginated_index(
+    write_html=lambda items, **kwargs: write_html(transformations=items, **kwargs),
+    url_prefix="retrospective_analysis",
+    items=series.transformations,
+    items_per_page=items_per_page,
+    description="Generating html for retrospective analysis index",
     )
