@@ -5,6 +5,8 @@ import logging
 import multiprocessing
 import os
 from typing import List, Optional
+import networkx as nx
+import numpy as np
 
 from ..fah_utils import list_results
 from ..schema import (
@@ -20,6 +22,7 @@ from ..schema import (
     TransformationAnalysis,
     WorkPair,
 )
+from .constants import KT_KCALMOL
 from .diffnet import combine_free_energies, pIC50_to_DG
 from .exceptions import AnalysisError, DataValidationError
 from .extract_work import extract_work_pair
@@ -88,7 +91,7 @@ def analyze_transformation(
     )
 
     # get associated DDGs between compounds, if experimentally known
-    exp_ddg = calc_retrospective(transformation=transformation, compounds=compounds)
+    exp_ddg = calc_exp_ddg(transformation=transformation, compounds=compounds)
 
     # Check for consistency across GENS, if requested
     if filter_gen_consistency:
@@ -116,17 +119,16 @@ def analyze_transformation(
         )
 
 
-def calc_retrospective(
+def calc_exp_ddg(
     transformation: TransformationAnalysis, compounds: CompoundSeries
 ):
 
     # TODO add docs
-    # TODO change func name?
-
-    import networkx as nx
 
     graph = nx.DiGraph()
 
+    # make a simple two node graph
+    # NOTE there may be a faster way of doing this
     graph.add_edge(
         transformation.initial_microstate,
         transformation.final_microstate,
@@ -141,10 +143,10 @@ def calc_retrospective(
             if node in graph:
                 graph.nodes[node]["compound"] = compound
                 graph.nodes[node]["microstate"] = microstate
-
+                
     for node_1, node_2, edge in graph.edges(data=True):
-        # see if both nodes contain experimental pIC50 data
-        # if they do calculate the free energy difference between them
+        # if both nodes contain exp pIC50 calculate the free energy difference between them
+        # NOTE assume star map (node 1 is our reference)
         try:
             node_1_pic50 = graph.nodes[node_1]["compound"].metadata.experimental_data[
                 "pIC50"
@@ -153,13 +155,13 @@ def calc_retrospective(
                 "pIC50"
             ]  # new molecule
 
-            # TODO need to add microstate check here
-            # print(f"length: {len(graph.nodes[node_2]['compound'].microstates)}")
-            # print(graph.nodes[node_2]['compound'].microstates)
-            # n_microstates = len(graph.nodes[node_2]['compound'].microstates)
+            n_microstates = len(graph.nodes[node_2]['compound'].microstates)
 
             # Get experimental DeltaDeltaG by subtracting from experimental inspiration fragment (ref)
             exp_ddg_ij = pIC50_to_DG(node_1_pic50) - pIC50_to_DG(node_2_pic50)
+
+            if n_microstates > 1:
+                exp_ddg_ij += (0.6 * np.log(n_microstates)) / KT_KCALMOL # TODO check this is correct
 
             # TODO get error
 

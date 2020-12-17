@@ -9,6 +9,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.font_manager import FontProperties
 import multiprocessing
 import numpy as np
+import networkx as nx
 import pandas as pd
 from pymbar import BAR
 from typing import Generator, Iterable, List, Optional
@@ -28,36 +29,26 @@ def plot_retrospective(
     filename: str = 'retrospective.png',
     ):
 
-    import networkx as nx
-    import os
-
     graph = nx.DiGraph()
 
+    # TODO this loop can be sped up
     for analysis in transformations:
         transformation = analysis.transformation
 
-        if analysis.binding_free_energy is None:
+        # Only interested if the compounds have an experimental DDG
+        if analysis.binding_free_energy and analysis.exp_ddg is None:
             continue
 
-        print(transformation)
-
-        # Only interested if the compounds have an experimental DDG
-        if analysis.exp_ddg is not None:
-
-            graph.add_edge(
-                transformation.initial_microstate,
-                transformation.final_microstate,
-                exp_DDG=analysis.exp_ddg,
-                exp_dDDG=0.0, # TODO get error
-                calc_DDG=analysis.binding_free_energy.point,
-                calc_dDDG=analysis.binding_free_energy.stderr,
-            )
+        graph.add_edge(
+            transformation.initial_microstate,
+            transformation.final_microstate,
+            exp_DDG=analysis.exp_ddg,
+            exp_dDDG=0.0, # TODO get error
+            calc_DDG=analysis.binding_free_energy.point,
+            calc_dDDG=analysis.binding_free_energy.stderr,
+        )
 
     plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename))
-
-
-
-
 
 
 def plot_work_distributions(
