@@ -11,6 +11,7 @@ from ..schema import (
     AnalysisConfig,
     CompoundSeries,
     CompoundSeriesAnalysis,
+    CompoundMicrostate,
     FahConfig,
     GenAnalysis,
     PhaseAnalysis,
@@ -19,7 +20,7 @@ from ..schema import (
     TransformationAnalysis,
     WorkPair,
 )
-from .diffnet import combine_free_energies
+from .diffnet import combine_free_energies, pIC50_to_DG
 from .exceptions import AnalysisError, DataValidationError
 from .extract_work import extract_work_pair
 from .free_energy import compute_relative_free_energy
@@ -69,6 +70,7 @@ def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisCon
 
 def analyze_transformation(
     transformation: Transformation,
+    compounds: CompoundSeries,
     projects: ProjectPair,
     server: FahConfig,
     config: AnalysisConfig,
@@ -85,6 +87,9 @@ def analyze_transformation(
         complex_phase.free_energy.delta_f - solvent_phase.free_energy.delta_f
     )
 
+    # get associated DDGs between compounds, if experimentally known
+    exp_ddg = calc_retrospective(transformation=transformation, compounds=compounds)
+
     # Check for consistency across GENS, if requested
     if filter_gen_consistency:
         consistent_bool = gens_are_consistent(
@@ -97,6 +102,7 @@ def analyze_transformation(
             binding_free_energy=binding_free_energy,
             complex_phase=complex_phase,
             solvent_phase=solvent_phase,
+            exp_ddg=exp_ddg,
         )
 
     else:
@@ -106,7 +112,62 @@ def analyze_transformation(
             binding_free_energy=binding_free_energy,
             complex_phase=complex_phase,
             solvent_phase=solvent_phase,
+            exp_ddg=exp_ddg,
         )
+
+
+def calc_retrospective(
+    transformation: TransformationAnalysis, compounds: CompoundSeries
+):
+
+    # TODO add docs
+    # TODO change func name?
+
+    import networkx as nx
+
+    graph = nx.DiGraph()
+
+    graph.add_edge(
+        transformation.initial_microstate,
+        transformation.final_microstate,
+    )
+
+    for compound in compounds:
+        for microstate in compound.microstates:
+            node = CompoundMicrostate(
+                compound_id=compound.metadata.compound_id,
+                microstate_id=microstate.microstate_id,
+            )
+            if node in graph:
+                graph.nodes[node]["compound"] = compound
+                graph.nodes[node]["microstate"] = microstate
+
+    for node_1, node_2, edge in graph.edges(data=True):
+        # see if both nodes contain experimental pIC50 data
+        # if they do calculate the free energy difference between them
+        try:
+            node_1_pic50 = graph.nodes[node_1]["compound"].metadata.experimental_data[
+                "pIC50"
+            ]  # ref molecule
+            node_2_pic50 = graph.nodes[node_2]["compound"].metadata.experimental_data[
+                "pIC50"
+            ]  # new molecule
+
+            # TODO need to add microstate check here
+            # print(f"length: {len(graph.nodes[node_2]['compound'].microstates)}")
+            # print(graph.nodes[node_2]['compound'].microstates)
+            # n_microstates = len(graph.nodes[node_2]['compound'].microstates)
+
+            # Get experimental DeltaDeltaG by subtracting from experimental inspiration fragment (ref)
+            exp_ddg_ij = pIC50_to_DG(node_1_pic50) - pIC50_to_DG(node_2_pic50)
+
+            # TODO get error
+
+        except KeyError:
+            logging.info("Failed to get experimental pIC50 value")
+            exp_ddg_ij = None
+
+    return exp_ddg_ij
 
 
 def analyze_transformation_or_warn(
@@ -135,6 +196,7 @@ def analyze_compound_series(
                 projects=series.metadata.fah_projects,
                 server=server,
                 config=config,
+                compounds=series.compounds,
             ),
             series.transformations,
         )
