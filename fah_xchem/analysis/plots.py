@@ -19,6 +19,45 @@ from ..schema import (
     TransformationAnalysis,
 )
 from .constants import KT_KCALMOL
+from arsenic import plotting
+
+
+def plot_retrospective(
+    transformations: List[TransformationAnalysis],
+    output_dir: str,
+    filename: str = 'retrospective.png',
+    ):
+
+    import networkx as nx
+    import os
+
+    graph = nx.DiGraph()
+
+    for analysis in transformations:
+        transformation = analysis.transformation
+
+        if analysis.binding_free_energy is None:
+            continue
+
+        print(transformation)
+
+        # Only interested if the compounds have an experimental DDG
+        if analysis.exp_ddg is not None:
+
+            graph.add_edge(
+                transformation.initial_microstate,
+                transformation.final_microstate,
+                exp_DDG=analysis.exp_ddg,
+                exp_dDDG=0.0, # TODO get error
+                calc_DDG=analysis.binding_free_energy.point,
+                calc_dDDG=analysis.binding_free_energy.stderr,
+            )
+
+    plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename))
+
+
+
+
 
 
 def plot_work_distributions(
@@ -682,6 +721,11 @@ def generate_plots(
     )
 
     # Summary plots
+
+    plot_retrospective(
+        output_dir=output_dir,
+        transformations=series.transformations
+        )
 
     with save_summary_plot(
         name="relative_fe_dist",
