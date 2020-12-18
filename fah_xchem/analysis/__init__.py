@@ -156,15 +156,17 @@ def calc_exp_ddg(
                 "pIC50"
             ]  # new molecule
 
-            n_microstates = len(graph.nodes[node_2]['compound'].microstates)
+            n_microstates_node_1 = len(graph.nodes[node_1]['compound'].microstates)
+            n_microstates_node_2 = len(graph.nodes[node_2]['compound'].microstates)
 
             # Get experimental DeltaDeltaG by subtracting from experimental inspiration fragment (ref)
-            exp_ddg_ij = pIC50_to_DG(node_1_pic50) - pIC50_to_DG(node_2_pic50)
+            
+            node_1_DG = pIC50_to_DG(node_1_pic50) + (0.6 * np.log(n_microstates_node_1)) / KT_KCALMOL # TODO check this is correct
+            node_2_DG = pIC50_to_DG(node_2_pic50) + (0.6 * np.log(n_microstates_node_2)) / KT_KCALMOL # TODO check this is correct
 
-            if n_microstates > 1:
-                exp_ddg_ij += (0.6 * np.log(n_microstates)) / KT_KCALMOL # TODO check this is correct
+            exp_ddg_ij = node_1_DG - node_2_DG
 
-            exp_ddg_ij_err = 0.01
+            exp_ddg_ij_err = 0.1 # TODO temporary fix
 
         except KeyError:
             logging.info("Failed to get experimental pIC50 value")

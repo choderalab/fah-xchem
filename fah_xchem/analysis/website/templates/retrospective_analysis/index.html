@@ -69,7 +69,7 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.transformations |
     <td class="binding">
       <span class="estimate">
         <span class="point">{{ (transformation.exp_ddg * KT_KCALMOL) | format_point }}</span>
-        <!-- <span class="stderr"> ± {{ (transformation.exp_ddg * KT_KCALMOL) }}</span> -->
+        <span class="stderr"> ± {{ (transformation.exp_ddg * KT_KCALMOL) | format_stderr }}</span>
       </span>
     </td>
     <td class="thumbnail">
