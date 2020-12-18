@@ -26,8 +26,8 @@ from arsenic import plotting
 def plot_retrospective(
     transformations: List[TransformationAnalysis],
     output_dir: str,
-    filename: str = 'retrospective.png',
-    ):
+    filename: str = "retrospective",
+):
 
     graph = nx.DiGraph()
 
@@ -48,7 +48,9 @@ def plot_retrospective(
             calc_dDDG=analysis.binding_free_energy.stderr * KT_KCALMOL,
         )
 
-    plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename))
+    filename_png = filename + ".png"
+
+    plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename_png))
 
 
 def plot_work_distributions(
@@ -713,11 +715,6 @@ def generate_plots(
 
     # Summary plots
 
-    plot_retrospective(
-        output_dir=output_dir,
-        transformations=series.transformations
-        )
-
     with save_summary_plot(
         name="relative_fe_dist",
     ):
@@ -729,7 +726,7 @@ def generate_plots(
     ):
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
-        
+
     with _save_table_pdf(path=output_dir, name="poor_complex_convergence_fe_table"):
         plot_poor_convergence_fe_table(series.transformations)
 
@@ -748,3 +745,10 @@ def generate_plots(
             description="Generating plots",
         ):
             pass
+
+    # Retrospective plots
+
+    # NOTE this is handled by Arsenic
+    # this needs to be plotted last as the figure isn't cleared by default in Arsenic
+    # TODO generate time stamp
+    plot_retrospective(output_dir=output_dir, transformations=series.transformations)

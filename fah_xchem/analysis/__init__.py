@@ -120,9 +120,7 @@ def analyze_transformation(
         )
 
 
-def calc_exp_ddg(
-    transformation: TransformationAnalysis, compounds: CompoundSeries
-):
+def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeries):
 
     # TODO add docs
 
@@ -144,7 +142,7 @@ def calc_exp_ddg(
             if node in graph:
                 graph.nodes[node]["compound"] = compound
                 graph.nodes[node]["microstate"] = microstate
-                
+
     for node_1, node_2, edge in graph.edges(data=True):
         # if both nodes contain exp pIC50 calculate the free energy difference between them
         # NOTE assume star map (node 1 is our reference)
@@ -156,17 +154,23 @@ def calc_exp_ddg(
                 "pIC50"
             ]  # new molecule
 
-            n_microstates_node_1 = len(graph.nodes[node_1]['compound'].microstates)
-            n_microstates_node_2 = len(graph.nodes[node_2]['compound'].microstates)
+            n_microstates_node_1 = len(graph.nodes[node_1]["compound"].microstates)
+            n_microstates_node_2 = len(graph.nodes[node_2]["compound"].microstates)
 
             # Get experimental DeltaDeltaG by subtracting from experimental inspiration fragment (ref)
-            
-            node_1_DG = pIC50_to_DG(node_1_pic50) + (0.6 * np.log(n_microstates_node_1)) / KT_KCALMOL # TODO check this is correct
-            node_2_DG = pIC50_to_DG(node_2_pic50) + (0.6 * np.log(n_microstates_node_2)) / KT_KCALMOL # TODO check this is correct
+
+            node_1_DG = (
+                pIC50_to_DG(node_1_pic50)
+                + (0.6 * np.log(n_microstates_node_1)) / KT_KCALMOL
+            )  # TODO check this is correct
+            node_2_DG = (
+                pIC50_to_DG(node_2_pic50)
+                + (0.6 * np.log(n_microstates_node_2)) / KT_KCALMOL
+            )  # TODO check this is correct
 
             exp_ddg_ij = node_1_DG - node_2_DG
 
-            exp_ddg_ij_err = 0.1 # TODO temporary fix
+            exp_ddg_ij_err = 0.1  # TODO temporary fix
 
         except KeyError:
             logging.info("Failed to get experimental pIC50 value")
