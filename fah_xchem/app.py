@@ -124,7 +124,7 @@ def run_analysis(
 
     os.makedirs(output_dir, exist_ok=True)
     with open(os.path.join(output_dir, "analysis.json"), "w") as output_file:
-        output_file.write(output.json())
+        output_file.write(output.json(indent=3))
 
 
 def generate_artifacts(
