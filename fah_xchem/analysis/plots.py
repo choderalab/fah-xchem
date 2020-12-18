@@ -36,14 +36,14 @@ def plot_retrospective(
         transformation = analysis.transformation
 
         # Only interested if the compounds have an experimental DDG
-        if analysis.binding_free_energy and analysis.exp_ddg is None:
+        if analysis.binding_free_energy and analysis.exp_ddg.point is None:
             continue
 
         graph.add_edge(
             transformation.initial_microstate,
             transformation.final_microstate,
-            exp_DDG=analysis.exp_ddg,
-            exp_dDDG=0.0, # TODO get error
+            exp_DDG=analysis.exp_ddg.point,
+            exp_dDDG=analysis.exp_ddg.stderr,
             calc_DDG=analysis.binding_free_energy.point,
             calc_dDDG=analysis.binding_free_energy.stderr,
         )

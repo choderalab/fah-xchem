@@ -17,6 +17,7 @@ from ..schema import (
     FahConfig,
     GenAnalysis,
     PhaseAnalysis,
+    PointEstimate,
     ProjectPair,
     Transformation,
     TransformationAnalysis,
@@ -163,13 +164,14 @@ def calc_exp_ddg(
             if n_microstates > 1:
                 exp_ddg_ij += (0.6 * np.log(n_microstates)) / KT_KCALMOL # TODO check this is correct
 
-            # TODO get error
+            exp_ddg_ij_err = 0.01
 
         except KeyError:
             logging.info("Failed to get experimental pIC50 value")
             exp_ddg_ij = None
+            exp_ddg_ij_err = None
 
-    return exp_ddg_ij
+    return PointEstimate(point=exp_ddg_ij, stderr=exp_ddg_ij_err)
 
 
 def analyze_transformation_or_warn(

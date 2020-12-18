@@ -25,7 +25,7 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.transformations |
     <th>Convergence <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Convergence</b>" data-content="<b>Top plot</b>: Green points represent relative binding free energy (RBFE) estimates from individual iterations (GENs) with a 95% confidence interval (pale green shaded region). Confidence in the RBFE estimate is higher if RBFEs between iterations are in good agreement, ideally falling within the 95% confidence interval. <br /><br /> <b>Lower plot</b>: Binding free energy estimates of solvent (blue) and complex (red) phases."></i></th>
   </tr>
   {% for transformation in transformations %}
-  {% if transformation.exp_ddg %}
+  {% if transformation.exp_ddg.point is not none %}
   <tr>
     <td >RUN{{ transformation.transformation.run_id }}</td>
     <td>{{ transformation.transformation.initial_microstate.compound_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.initial_microstate.compound_id) }}</td>
@@ -68,8 +68,8 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.transformations |
     </td>
     <td class="binding">
       <span class="estimate">
-        <span class="point">{{ (transformation.exp_ddg * KT_KCALMOL) }}</span>
-        <span class="stderr"> ± {{ (transformation.exp_ddg * KT_KCALMOL) }}</span>
+        <span class="point">{{ (transformation.exp_ddg * KT_KCALMOL) | format_point }}</span>
+        <!-- <span class="stderr"> ± {{ (transformation.exp_ddg * KT_KCALMOL) }}</span> -->
       </span>
     </td>
     <td class="thumbnail">
