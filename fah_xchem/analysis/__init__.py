@@ -170,7 +170,7 @@ def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeri
 
             exp_ddg_ij = node_1_DG - node_2_DG
 
-            exp_ddg_ij_err = 0.1  # TODO temporary fix
+            exp_ddg_ij_err = 0.1  # TODO check this is correct
 
         except KeyError:
             logging.info("Failed to get experimental pIC50 value")
