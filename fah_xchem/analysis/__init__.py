@@ -22,6 +22,7 @@ from ..schema import (
     Transformation,
     TransformationAnalysis,
     WorkPair,
+    FragalysisConfig,
 )
 from .constants import KT_KCALMOL
 from .diffnet import combine_free_energies, pIC50_to_DG
@@ -95,6 +96,7 @@ def analyze_transformation(
     exp_ddg = calc_exp_ddg(transformation=transformation, compounds=compounds)
 
     # Check for consistency across GENS, if requested
+    consistent_bool = None
     if filter_gen_consistency:
         consistent_bool = gens_are_consistent(
             complex_phase=complex_phase, solvent_phase=solvent_phase, nsigma=1
@@ -119,6 +121,13 @@ def analyze_transformation(
             exp_ddg=exp_ddg,
         )
 
+    return TransformationAnalysis(
+        transformation=transformation,
+        reliable_transformation=consistent_bool,
+        binding_free_energy=binding_free_energy,
+        complex_phase=complex_phase,
+        solvent_phase=solvent_phase,
+    )
 
 def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeries):
 
@@ -246,6 +255,7 @@ def analyze_compound_series(
 
 def generate_artifacts(
     series: CompoundSeriesAnalysis,
+    fragalysis_config: FragalysisConfig,
     timestamp: dt.datetime,
     projects_dir: str,
     data_dir: str,
@@ -295,6 +305,7 @@ def generate_artifacts(
             series=series,
             results_path=output_dir,
             max_binding_free_energy=config.max_binding_free_energy,
+            fragalysis_config=fragalysis_config,
         )
 
     if website:
