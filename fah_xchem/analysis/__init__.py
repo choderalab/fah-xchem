@@ -94,7 +94,8 @@ def analyze_transformation(
 
     # get associated DDGs between compounds, if experimentally known
     exp_ddg = calc_exp_ddg(transformation=transformation, compounds=compounds)
-
+    absolute_error = abs(binding_free_energy - exp_ddg) if (exp_ddg.point is not None) else None
+    
     # Check for consistency across GENS, if requested
     consistent_bool = None
     if filter_gen_consistency:
@@ -109,6 +110,7 @@ def analyze_transformation(
             complex_phase=complex_phase,
             solvent_phase=solvent_phase,
             exp_ddg=exp_ddg,
+            absolute_error=absolute_error,
         )
 
     else:
@@ -129,10 +131,18 @@ def analyze_transformation(
         solvent_phase=solvent_phase,
     )
 
-def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeries):
+def calc_exp_ddg_DEPRECATED(transformation: TransformationAnalysis, compounds: CompoundSeries):
+    """
+    Compute experimental free energy difference between two compounds, if available.
 
-    # TODO add docs
+    Parameters
+    ----------
+    transformation : TransformationAnalysis
+        The transformation of interest
+    compounds : CompoundSeries
+       Data for the compound series.
 
+    """
     graph = nx.DiGraph()
 
     # make a simple two node graph
@@ -188,6 +198,39 @@ def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeri
 
     return PointEstimate(point=exp_ddg_ij, stderr=exp_ddg_ij_err)
 
+def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeries):
+    """
+    Compute experimental free energy difference between two compounds, if available.
+
+    NOTE: This method makes the approximation that each microstate has the same affinity as the parent compound.
+
+    Parameters
+    ----------
+    transformation : TransformationAnalysis
+        The transformation of interest
+    compounds : CompoundSeries
+       Data for the compound series.
+
+    Returns
+    -------
+    ddg : PointEstimate
+        Point estimate of free energy difference for this transformation, 
+        or PointEstimate(None, None) if not available.
+
+    """
+    compounds_by_microstate = { microstate.microstate_id : compound for compound in compounds for microstate in compound.microstates }
+
+    initial_experimental_data = compounds_by_microstate[transformation.initial_microstate.microstate_id].metadata.experimental_data
+    final_experimental_data = compounds_by_microstate[transformation.final_microstate.microstate_id].metadata.experimental_data
+
+    if ('pIC50' in initial_experimental_data) and ('pIC50' in final_experimental_data):
+        exp_ddg_ij_err = 0.2  # TODO check this is correct                
+        initial_dg = PointEstimate(point=pIC50_to_DG(initial_experimental_data['pIC50']), stderr=exp_ddg_ij_err)
+        final_dg = PointEstimate(point=pIC50_to_DG(final_experimental_data['pIC50']), stderr=exp_ddg_ij_err)
+        error = (final_dg - initial_dg)
+        return error
+    else:
+        return PointEstimate(point=None, stderr=None)
 
 def analyze_transformation_or_warn(
     transformation: Transformation, **kwargs

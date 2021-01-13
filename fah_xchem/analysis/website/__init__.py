@@ -5,6 +5,7 @@ from math import isfinite
 import os
 import re
 from typing import Any, NamedTuple, Optional
+import numpy as np
 
 import jinja2
 import requests
@@ -193,6 +194,7 @@ def generate_website(
     template_path = os.path.join(os.path.dirname(__file__), "templates")
     template_loader = jinja2.FileSystemLoader(searchpath=template_path)
     environment = jinja2.Environment(loader=template_loader)
+    environment.filters["np"] = np # numpy
     environment.filters["format_point"] = format_point
     environment.filters["format_stderr"] = format_stderr
     environment.filters["format_compound_id"] = format_compound_id
@@ -310,7 +312,10 @@ def generate_website(
     _generate_paginated_index(
     write_html=lambda items, **kwargs: write_html(transformations=items, **kwargs),
     url_prefix="retrospective_analysis",
-    items=series.transformations,
+    items=sorted(
+        [transformation for transformation in series.transformations if (transformation.absolute_error is not None)],
+        key = lambda transformation : -transformation.absolute_error.point
+    ),
     items_per_page=items_per_page,
     description="Generating html for retrospective analysis index",
     )
