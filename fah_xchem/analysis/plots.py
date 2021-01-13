@@ -751,4 +751,5 @@ def generate_plots(
     # NOTE this is handled by Arsenic
     # this needs to be plotted last as the figure isn't cleared by default in Arsenic
     # TODO generate time stamp
-    plot_retrospective(output_dir=output_dir, transformations=series.transformations)
+    plot_retrospective(output_dir=output_dir, transformations=series.transformations, filename='retrospective')
+    plot_retrospective(output_dir=output_dir, transformations=[transformation for transformation in series.transformations if transformation.reliable_transformation], filename='retrospective-reliable')
