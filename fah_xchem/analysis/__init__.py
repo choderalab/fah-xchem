@@ -38,7 +38,7 @@ from .website import generate_website
 def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisConfig):
 
     paths = list_results(config=server, run=run, project=project)
-
+    
     if not paths:
         raise AnalysisError(f"No data found for project {project}, RUN {run}")
 
@@ -263,6 +263,7 @@ def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeri
 def analyze_transformation_or_warn(
     transformation: Transformation, **kwargs
 ) -> Optional[TransformationAnalysis]:
+
     try:
         return analyze_transformation(transformation, **kwargs)
     except AnalysisError as exc:
@@ -270,7 +271,7 @@ def analyze_transformation_or_warn(
         return None
 
 
-def analyze_compound_series(
+def analyze_compound_series(    
     series: CompoundSeries,
     config: AnalysisConfig,
     server: FahConfig,
@@ -279,6 +280,12 @@ def analyze_compound_series(
 
     from rich.progress import track
 
+    # Pre-filter based on which transformations have any data
+    available_transformations = [
+        transformation for transformation in series.transformations
+        if len(list_results(config=server, run=transformation.run_id, project=series.metadata.fah_projects.complex_phase)) > 0
+        and len(list_results(config=server, run=transformation.run_id, project=series.metadata.fah_projects.solvent_phase)) > 0
+    ]
     with multiprocessing.Pool(num_procs) as pool:
         results_iter = pool.imap_unordered(
             partial(
@@ -288,13 +295,13 @@ def analyze_compound_series(
                 config=config,
                 compounds=series.compounds,
             ),
-            series.transformations,
+            available_transformations,            
         )
         transformations = [
             result
             for result in track(
                 results_iter,
-                total=len(series.transformations),
+                total=len(available_transformations),
                 description="Computing transformation free energies",
             )
             if result is not None
@@ -349,10 +356,17 @@ def generate_artifacts(
         data_dir, f"PROJ{series.metadata.fah_projects.complex_phase}"
     )
 
+    # Pre-filter based on which transformations have any data
+    available_transformations = [
+        transformation for transformation in series.transformations
+        if transformation.binding_free_energy is not None
+        and transformation.binding_free_energy.point is not None
+    ]
+    
     if snapshots:
         logging.info("Generating representative snapshots")
         generate_representative_snapshots(
-            transformations=series.transformations,
+            transformations=available_transformations,
             project_dir=complex_project_dir,
             project_data_dir=complex_data_dir,
             output_dir=os.path.join(output_dir, "transformations"),
