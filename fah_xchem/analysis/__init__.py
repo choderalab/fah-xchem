@@ -28,7 +28,7 @@ from .constants import KT_KCALMOL
 from .diffnet import combine_free_energies, pIC50_to_DG
 from .exceptions import AnalysisError, DataValidationError
 from .extract_work import extract_work_pair
-from .free_energy import compute_relative_free_energy
+from .free_energy import compute_relative_free_energy, InsufficientDataError
 from .plots import generate_plots
 from .report import generate_report, gens_are_consistent
 from .structures import generate_representative_snapshots
@@ -67,9 +67,18 @@ def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisCon
         # TODO: round raw work output?
         return GenAnalysis(gen=gen, works=filtered_works, free_energy=free_energy)
 
+    # Analyze gens, omitting incomplete gens
+    gens = list()
+    for gen, works in works_by_gen.items():
+        try:
+            gens.append( get_gen_analysis(gen, works) )
+        except InsufficientDataError as e:
+            # It's OK if we don't have sufficient data here
+            pass
+        
     return PhaseAnalysis(
         free_energy=free_energy,
-        gens=[get_gen_analysis(gen, works) for gen, works in works_by_gen.items()],
+        gens=gens,
     )
 
 
