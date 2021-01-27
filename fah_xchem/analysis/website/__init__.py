@@ -61,7 +61,7 @@ def postera_url(compound_or_microstate_id: str) -> Optional[str]:
     import re
 
     match = re.match(
-        "^(?P<compound_id>[A-Z]{3}-[A-Z]{3}-[0-9a-f]{8}-[0-9]+)(_(?P<microstate_index>[0-9]+))?$",
+        "^(?P<compound_id>[A-Z_]{3}-[A-Z_]{3}-[0-9a-f]{8}-[0-9]+)(_(?P<microstate_index>[0-9]+))?$",
         compound_or_microstate_id,
     )
 
