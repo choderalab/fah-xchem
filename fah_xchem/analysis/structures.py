@@ -135,6 +135,7 @@ def extract_snapshot(
     frame: int,
     fragment_id: str,
     cache_dir: Optional[str],
+    suppress_hydrogens: Optional[bool] = True 
 ):
     """
     Extract the specified snapshot, align it to the reference fragment, and write protein and ligands to separate PDB files
@@ -154,6 +155,8 @@ def extract_snapshot(
       Fragment ID (e.g. 'x10789')
     cache_dir : str or None
        If specified, cache relevant parts of "htf.npz" file in a local directory of this name
+    suppress_hydrogens : bool, optional, default=True
+       If True, suppress non-polar hydrogens
 
     Returns
     -------
@@ -184,7 +187,10 @@ def extract_snapshot(
     components = dict()
     for name in ["protein", "old_ligand", "new_ligand"]:
         components[name] = mdtraj_to_oemol(sliced_snapshot[name])
-
+        if suppress_hydrogens:
+            from openeye import oechem
+            oechem.OESuppressHydrogens(components[name], retainPolar=True)
+        
     return sliced_snapshot, components
 
 
