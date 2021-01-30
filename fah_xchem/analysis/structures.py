@@ -189,7 +189,8 @@ def extract_snapshot(
         components[name] = mdtraj_to_oemol(sliced_snapshot[name])
         if suppress_hydrogens:
             from openeye import oechem
-            oechem.OESuppressHydrogens(components[name], retainPolar=True)
+            retainPolar = True
+            oechem.OESuppressHydrogens(components[name], retainPolar)
         
     return sliced_snapshot, components
 

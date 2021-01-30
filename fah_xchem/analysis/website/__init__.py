@@ -239,12 +239,14 @@ def generate_website(
         num_top_compounds=num_top_compounds,
     )
 
-    compound_free_energies = [
-        (compound.free_energy.point, compound)
-        for compound in series.compounds
-        if compound.free_energy
-    ]
-    compounds_sorted = [p[1] for p in sorted(compound_free_energies)]
+    compounds_sorted = sorted(
+        [
+            compound
+            for compound in series.compounds
+            if compound.free_energy
+        ],
+        key = lambda m : m.free_energy.point
+    )
 
     _generate_paginated_index(
         write_html=lambda items, **kwargs: write_html(
@@ -274,15 +276,16 @@ def generate_website(
             ],
         )
 
-    microstate_free_energies = [
-        (microstate.free_energy.point, microstate)
-        for compound in series.compounds
-        for microstate in compound.microstates
-        if microstate.free_energy
-    ]
-
-    microstates_sorted = [p[1] for p in sorted(microstate_free_energies)]
-
+    microstates_sorted = sorted(
+        [
+            microstate
+            for compound in series.compounds
+            for microstate in compound.microstates
+            if microstate.free_energy
+        ],
+        key = lambda m : m.free_energy.point
+        )
+    
     _generate_paginated_index(
         write_html=lambda items, **kwargs: write_html(
             microstates=items, total_microstates=len(microstates_sorted), **kwargs
