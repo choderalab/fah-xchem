@@ -702,6 +702,8 @@ def generate_plots(
     """
     from rich.progress import track
 
+    # TODO: Cache results and only update RUNs for which we have received new data
+    
     binding_delta_fs = [
         transformation.binding_free_energy.point
         for transformation in series.transformations
@@ -746,10 +748,27 @@ def generate_plots(
         ):
             pass
 
+    #
     # Retrospective plots
-
+    #
+    
     # NOTE this is handled by Arsenic
     # this needs to be plotted last as the figure isn't cleared by default in Arsenic
     # TODO generate time stamp
-    plot_retrospective(output_dir=output_dir, transformations=series.transformations, filename='retrospective')
-    plot_retrospective(output_dir=output_dir, transformations=[transformation for transformation in series.transformations if transformation.reliable_transformation], filename='retrospective-reliable')
+
+    # All transformations
+    plot_retrospective(output_dir=output_dir, transformations=series.transformations, filename='retrospective-transformations-all')
+
+    # Reliable subset of transformations
+    plot_retrospective(output_dir=output_dir, transformations=[transformation for transformation in series.transformations if transformation.reliable_transformation], filename='retrospective-transformations-reliable')
+
+    # Transformations not involving racemates
+    # TODO: Find a simpler way to filter non-racemates
+    nmicrostates = { compound.metadata.compound_id : len(compound.microstates) for compound in series.compounds }
+    def is_racemate(microstate):
+        return True if (nmicrostates[microstate.compound_id] > 1) else False
+    plot_retrospective(
+        output_dir=output_dir,
+        transformations=[transformation for transformation in series.transformations if (not is_racemate(transformation.transformation.initial_microstate) and not is_racemate(transformation.transformation.final_microstate))],
+        filename='retrospective-transformations-noracemates'
+    )

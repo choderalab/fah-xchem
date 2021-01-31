@@ -91,6 +91,7 @@ def run_analysis(
             transformations=compound_series.transformations[:max_transformations]
         )
 
+    # TODO: Remove this?
     if use_only_reference_compound_data:
         # Strip experimental data frorm all but reference compound
         logging.warning(f'Stripping experimental data from all but reference compound')

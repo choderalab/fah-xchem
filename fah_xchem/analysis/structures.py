@@ -174,7 +174,8 @@ def extract_snapshot(
 
     # Align the trajectory to the fragment (in place)
     #trajectory.image_molecules(inplace=True) # No need to image molecules anymore now that perses adds zero-energy bonds between protein and ligand!
-    trajectory.superpose(fragment, atom_indices=fragment.top.select("name CA"))
+    #trajectory.superpose(fragment, atom_indices=fragment.top.select("name CA"))
+    trajectory.superpose(fragment, atom_indices=fragment.top.select("(name CA) and (residue 145 or residue 41 or residue 164 or residue 165 or residue 142 or residue 163)")) # DEBUG : Mpro active site only
 
     # Extract the snapshot
     snapshot = trajectory[frame]
@@ -338,6 +339,8 @@ def generate_representative_snapshot(
     None
     """
 
+    # TODO: Cache results and only update RUNs for which we have received new data
+    
     if (
         max_binding_free_energy is not None
         and transformation.binding_free_energy.point > max_binding_free_energy

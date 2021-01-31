@@ -23,6 +23,7 @@ from ..schema import (
     TransformationAnalysis,
     WorkPair,
     FragalysisConfig,
+    RunStatus
 )
 from .constants import KT_KCALMOL
 from .diffnet import combine_free_energies, pIC50_to_DG
@@ -219,6 +220,8 @@ def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeri
 
     NOTE: This method makes the approximation that each microstate has the same affinity as the parent compound.
 
+    TODO: Instead, solve DiffNet without experimental data and use derived DDGs between compounds (not transformations).
+
     Parameters
     ----------
     transformation : TransformationAnalysis
@@ -270,22 +273,31 @@ def analyze_transformation_or_warn(
         logging.warning("Failed to analyze RUN%d: %s", transformation.run_id, exc)
         return None
 
-
 def analyze_compound_series(    
     series: CompoundSeries,
     config: AnalysisConfig,
     server: FahConfig,
     num_procs: Optional[int] = None,
 ) -> CompoundSeriesAnalysis:
+    """
+    Analyze a compound series to generate JSON.
 
+    """    
     from rich.progress import track
 
-    # Pre-filter based on which transformations have any data
+    # TODO: Cache results and only update RUNs for which we have received new data
+
+    # Pre-filter based on which transformations have any work data
+    logging.info(f'Pre-filtering {len(series.transformations)} transformations to identify those with work data...')
     available_transformations = [
         transformation for transformation in series.transformations
         if len(list_results(config=server, run=transformation.run_id, project=series.metadata.fah_projects.complex_phase)) > 0
         and len(list_results(config=server, run=transformation.run_id, project=series.metadata.fah_projects.solvent_phase)) > 0
     ]
+    #available_transformations = series.transformations[:50]
+    
+    # Process compound series in parallel
+    logging.info(f'Processing {len(available_transformations)} / {len(series.transformations)} available transformations in parallel...')
     with multiprocessing.Pool(num_procs) as pool:
         results_iter = pool.imap_unordered(
             partial(
@@ -307,6 +319,36 @@ def analyze_compound_series(
             if result is not None
         ]
 
+    # Reprocess transformation experimental errors to only include most favorable transformation
+    # NOTE: This is a hack, and should be replaced by a more robust method for accounting for racemic mixtures
+    # Compile list of all microstate transformations for each compound
+    compound_ddgs = dict()
+    for transformation in transformations:
+        compound_id = transformation.transformation.final_microstate.compound_id
+        if compound_id in compound_ddgs:
+            compound_ddgs[compound_id].append(transformation.binding_free_energy.point)
+        else:
+            compound_ddgs[compound_id] = [transformation.binding_free_energy.point]
+    # Collapse to a single estimate
+    from scipy.special import logsumexp
+    for compound_id, ddgs in compound_ddgs.items():
+        compound_ddgs[compound_id] = -logsumexp(-np.array(ddgs)) + np.log(len(ddgs))
+    # Regenerate list of transformations
+    for index, t in enumerate(transformations):
+        if (t.exp_ddg is None) or (t.exp_ddg.point is None):
+            continue
+        compound_id = t.transformation.final_microstate.compound_id
+        absolute_error_point = abs(t.exp_ddg.point - compound_ddgs[compound_id])
+        transformations[index] = TransformationAnalysis(
+            transformation=t.transformation,
+            reliable_transformation=t.reliable_transformation,
+            binding_free_energy=t.binding_free_energy,
+            complex_phase=t.complex_phase,
+            solvent_phase=t.solvent_phase,
+            exp_ddg=t.exp_ddg,            
+            absolute_error=PointEstimate(point=absolute_error_point, stderr=t.absolute_error.stderr),
+        )
+        
     # Sort transformations by RUN
     # transformations.sort(key=lambda transformation_analysis : transformation_analysis.transformation.run_id)
     # Sort transformations by free energy difference
