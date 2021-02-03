@@ -61,7 +61,7 @@ def postera_url(compound_or_microstate_id: str) -> Optional[str]:
     import re
 
     match = re.match(
-        "^(?P<compound_id>[A-Z_]{3}-[A-Z_]{3}-[0-9a-f]{8}-[0-9]+)(_(?P<microstate_index>[0-9]+))?$",
+        "^(?P<compound_id>[A-Z_]{3}-[A-Z_]{3}-[0-9a-f]{8}-[0-9]+)(_(?P<microstate_index>[0-9]+))?([_0-9]*)$",
         compound_or_microstate_id,
     )
 
@@ -203,7 +203,7 @@ def generate_website(
     environment.filters["experimental_data_url"] = experimental_data_url
     environment.filters["smiles_to_filename"] = get_image_filename
 
-    for subdir in ["compounds", "microstates", "transformations", "reliable_transformations", "retrospective_analysis"]:
+    for subdir in ["compounds", "microstates", "transformations", "reliable_transformations", "retrospective_transformations"]:
         os.makedirs(os.path.join(path, subdir), exist_ok=True)
 
     def write_html(
@@ -239,12 +239,14 @@ def generate_website(
         num_top_compounds=num_top_compounds,
     )
 
-    compound_free_energies = [
-        (compound.free_energy.point, compound)
-        for compound in series.compounds
-        if compound.free_energy
-    ]
-    compounds_sorted = [p[1] for p in sorted(compound_free_energies)]
+    compounds_sorted = sorted(
+        [
+            compound
+            for compound in series.compounds
+            if compound.free_energy
+        ],
+        key = lambda m : m.free_energy.point
+    )
 
     _generate_paginated_index(
         write_html=lambda items, **kwargs: write_html(
@@ -274,15 +276,16 @@ def generate_website(
             ],
         )
 
-    microstate_free_energies = [
-        (microstate.free_energy.point, microstate)
-        for compound in series.compounds
-        for microstate in compound.microstates
-        if microstate.free_energy
-    ]
-
-    microstates_sorted = [p[1] for p in sorted(microstate_free_energies)]
-
+    microstates_sorted = sorted(
+        [
+            microstate
+            for compound in series.compounds
+            for microstate in compound.microstates
+            if microstate.free_energy
+        ],
+        key = lambda m : m.free_energy.point
+        )
+    
     _generate_paginated_index(
         write_html=lambda items, **kwargs: write_html(
             microstates=items, total_microstates=len(microstates_sorted), **kwargs
@@ -311,11 +314,11 @@ def generate_website(
 
     _generate_paginated_index(
     write_html=lambda items, **kwargs: write_html(transformations=items, **kwargs),
-    url_prefix="retrospective_analysis",
+    url_prefix="retrospective_transformations",
     items=sorted(
         [transformation for transformation in series.transformations if (transformation.absolute_error is not None)],
         key = lambda transformation : -transformation.absolute_error.point
     ),
     items_per_page=items_per_page,
-    description="Generating html for retrospective analysis index",
+    description="Generating html for retrospective transformations index",
     )

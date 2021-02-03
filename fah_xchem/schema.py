@@ -174,7 +174,7 @@ class TransformationAnalysis(Model):
     transformation: Transformation
     reliable_transformation: bool = Field(None, description="Specify if the transformation is reliable or not") # JSON boolean
     binding_free_energy: PointEstimate
-    exp_ddg: PointEstimate # TODO: Make optional, with None as deafault?
+    exp_ddg: PointEstimate # TODO: Make optional, with None as default?
     absolute_error: Optional[PointEstimate] = None
     complex_phase: PhaseAnalysis
     solvent_phase: PhaseAnalysis
@@ -222,3 +222,18 @@ class FragalysisConfig(Model):
     method: str = None
     upload_key: str = None
     new_upload: bool = Field(False)
+
+class RunStatus(Model):
+    run_id: int = Field(
+        None,
+        description="The RUN number corresponding to the Folding@Home directory structure",
+    )
+    complex_phase_work_units: int = Field(
+        0,
+        description="The number of completed complex phase work units",
+    )
+    solvent_phase_work_units: int = Field(
+        0,
+        description="The number of completed solvent phase work units",
+    )
+    has_changed: bool = True
