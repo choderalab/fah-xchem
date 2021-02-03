@@ -5,6 +5,7 @@ from math import isfinite
 import os
 import re
 from typing import Any, NamedTuple, Optional
+import numpy as np
 
 import jinja2
 import requests
@@ -60,7 +61,7 @@ def postera_url(compound_or_microstate_id: str) -> Optional[str]:
     import re
 
     match = re.match(
-        "^(?P<compound_id>[A-Z]{3}-[A-Z]{3}-[0-9a-f]{8}-[0-9]+)(_(?P<microstate_index>[0-9]+))?$",
+        "^(?P<compound_id>[A-Z_]{3}-[A-Z_]{3}-[0-9a-f]{8}-[0-9]+)(_(?P<microstate_index>[0-9]+))?$",
         compound_or_microstate_id,
     )
 
@@ -193,6 +194,7 @@ def generate_website(
     template_path = os.path.join(os.path.dirname(__file__), "templates")
     template_loader = jinja2.FileSystemLoader(searchpath=template_path)
     environment = jinja2.Environment(loader=template_loader)
+    environment.filters["np"] = np # numpy
     environment.filters["format_point"] = format_point
     environment.filters["format_stderr"] = format_stderr
     environment.filters["format_compound_id"] = format_compound_id
@@ -201,7 +203,7 @@ def generate_website(
     environment.filters["experimental_data_url"] = experimental_data_url
     environment.filters["smiles_to_filename"] = get_image_filename
 
-    for subdir in ["compounds", "microstates", "transformations", "reliable_transformations"]:
+    for subdir in ["compounds", "microstates", "transformations", "reliable_transformations", "retrospective_analysis"]:
         os.makedirs(os.path.join(path, subdir), exist_ok=True)
 
     def write_html(
@@ -305,4 +307,15 @@ def generate_website(
     items=series.transformations,
     items_per_page=items_per_page,
     description="Generating html for reliable transformations index",
+    )
+
+    _generate_paginated_index(
+    write_html=lambda items, **kwargs: write_html(transformations=items, **kwargs),
+    url_prefix="retrospective_analysis",
+    items=sorted(
+        [transformation for transformation in series.transformations if (transformation.absolute_error is not None)],
+        key = lambda transformation : -transformation.absolute_error.point
+    ),
+    items_per_page=items_per_page,
+    description="Generating html for retrospective analysis index",
     )

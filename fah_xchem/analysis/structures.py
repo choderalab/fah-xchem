@@ -170,7 +170,7 @@ def extract_snapshot(
     fragment = load_fragment(fragment_id)
 
     # Align the trajectory to the fragment (in place)
-    trajectory.image_molecules(inplace=True)
+    #trajectory.image_molecules(inplace=True) # No need to image molecules anymore now that perses adds zero-energy bonds between protein and ligand!
     trajectory.superpose(fragment, atom_indices=fragment.top.select("name CA"))
 
     # Extract the snapshot
@@ -363,8 +363,8 @@ def generate_representative_snapshot(
                 project_dir=project_dir,
                 project_data_dir=project_data_dir,
                 run=run_id,
-                clone=gen_work[1].clone,
-                gen=gen_work[0].gen,
+                clone=gen_work[1].clone, # TODO: Check index
+                gen=gen_work[0].gen, # TODO: Check index
                 frame=frame,
                 fragment_id=transformation.transformation.xchem_fragment_id,
                 cache_dir=cache_dir,
@@ -393,6 +393,7 @@ def generate_representative_snapshot(
             ) as ofs:
                 oechem.OEWriteMolecule(ofs, components[name])
         except Exception as e:
+            print(f'\nException occurred extracting snapshot from {project_dir} data {project_data_dir} run {run_id} clone {gen_work[1].clone} gen {gen_work[0].gen}')
             print(e)
 
 def generate_representative_snapshots(

@@ -172,7 +172,7 @@ def compute_relative_free_energy(
 
     # TODO: Flag problematic RUN/CLONE/GEN trajectories for further analysis and debugging
     works = _filter_work_values(all_works)
-
+    
     if len(works) < (min_num_work_values or 1):
         raise InsufficientDataError(
             f"Need at least {min_num_work_values} good work values for analysis, "

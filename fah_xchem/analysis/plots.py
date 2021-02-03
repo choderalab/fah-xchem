@@ -9,6 +9,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.font_manager import FontProperties
 import multiprocessing
 import numpy as np
+import networkx as nx
 import pandas as pd
 from pymbar import BAR
 from typing import Generator, Iterable, List, Optional
@@ -19,6 +20,37 @@ from ..schema import (
     TransformationAnalysis,
 )
 from .constants import KT_KCALMOL
+from arsenic import plotting
+
+
+def plot_retrospective(
+    transformations: List[TransformationAnalysis],
+    output_dir: str,
+    filename: str = "retrospective",
+):
+
+    graph = nx.DiGraph()
+
+    # TODO this loop can be sped up
+    for analysis in transformations:
+        transformation = analysis.transformation
+
+        # Only interested if the compounds have an experimental DDG
+        if analysis.binding_free_energy is None or analysis.exp_ddg.point is None:
+            continue
+
+        graph.add_edge(
+            transformation.initial_microstate,
+            transformation.final_microstate,
+            exp_DDG=analysis.exp_ddg.point * KT_KCALMOL,
+            exp_dDDG=analysis.exp_ddg.stderr * KT_KCALMOL,
+            calc_DDG=analysis.binding_free_energy.point * KT_KCALMOL,
+            calc_dDDG=analysis.binding_free_energy.stderr * KT_KCALMOL,
+        )
+
+    filename_png = filename + ".png"
+
+    plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename_png))
 
 
 def plot_work_distributions(
@@ -694,7 +726,7 @@ def generate_plots(
     ):
         plot_cumulative_distribution(binding_delta_fs)
         plt.title("Cumulative distribution")
-        
+
     with _save_table_pdf(path=output_dir, name="poor_complex_convergence_fe_table"):
         plot_poor_convergence_fe_table(series.transformations)
 
@@ -713,3 +745,11 @@ def generate_plots(
             description="Generating plots",
         ):
             pass
+
+    # Retrospective plots
+
+    # NOTE this is handled by Arsenic
+    # this needs to be plotted last as the figure isn't cleared by default in Arsenic
+    # TODO generate time stamp
+    plot_retrospective(output_dir=output_dir, transformations=series.transformations, filename='retrospective')
+    plot_retrospective(output_dir=output_dir, transformations=[transformation for transformation in series.transformations if transformation.reliable_transformation], filename='retrospective-reliable')
