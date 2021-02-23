@@ -522,7 +522,9 @@ def save_plot(
     """
 
     try:
-        yield
+        outfiles = [os.path.join(path, os.extsep.join([name, file_format]))
+                    for file_format in file_formats]
+        yield outfiles
 
         if timestamp is not None:
             plt.tight_layout(rect=(0, 0.05, 1, 1))  # leave space for timestamp
@@ -533,17 +535,20 @@ def save_plot(
         # Make sure the directory exists
         os.makedirs(path, exist_ok=True)
 
-        for file_format in file_formats:
+        for outfile in outfiles:
             plt.savefig(
-                os.path.join(path, os.extsep.join([name, file_format])),
+                outfile,
                 transparent=True,
             )
+
     finally:
         plt.close()
 
 
 def generate_transformation_plots(
-    transformation: TransformationAnalysis, output_dir: str
+    transformation: TransformationAnalysis,
+    output_dir: str,
+    overwrite: bool = False,
 ):
 
     run_id = transformation.transformation.run_id
@@ -551,7 +556,13 @@ def generate_transformation_plots(
         save_plot, path=os.path.join(output_dir, "transformations", f"RUN{run_id}")
     )
 
-    with save_transformation_plot(name="works"):
+    with save_transformation_plot(name="works") as outfiles:
+
+        # check if output files all exist; if so, skip unless we are told not to
+        if not overwrite:
+            if all(map(os.path.exists, outfiles)):
+                continue
+
         fig = plot_work_distributions(
             complex_forward_works=[
                 work.forward
@@ -578,7 +589,13 @@ def generate_transformation_plots(
         )
         fig.suptitle(f"RUN{run_id}")
 
-    with save_transformation_plot(name="convergence"):
+    with save_transformation_plot(name="convergence") as outfiles:
+
+        # check if output files all exist; if so, skip unless we are told not to
+        if not overwrite:
+            if all(map(os.path.exists, outfiles)):
+                continue
+
         # Filter to GENs for which free energy calculation is available
         complex_gens = [
             (gen.gen, gen.free_energy)
@@ -603,7 +620,12 @@ def generate_transformation_plots(
         )
         fig.suptitle(f"RUN{run_id}")
 
-    with save_transformation_plot(name="bootstrapped-CLONEs"):
+    with save_transformation_plot(name="bootstrapped-CLONEs") as outfiles:
+
+        # check if output files all exist; if so, skip unless we are told not to
+        if not overwrite:
+            if all(map(os.path.exists, outfiles)):
+                continue
 
         # Gather CLONES per GEN for run
         clones_per_gen = min(
@@ -633,6 +655,7 @@ def generate_plots(
     timestamp: dt.datetime,
     output_dir: str,
     num_procs: Optional[int] = None,
+    overwrite: bool = False,
 ) -> None:
     """
     Generate analysis plots in `output_dir`.
@@ -667,6 +690,11 @@ def generate_plots(
         "As of" timestamp to render on plots
     output_dir : str
         Where to write plot files
+    overwrite : bool
+        If `True`, write over existing output files if present.
+        Otherwise, skip writing output files for a given transformation when already present.
+        Assumes that for a given `run_id` the output files do not ever change;
+        does *no* checking that files wouldn't be different if inputs for a given `run_id` have changed.
     """
     from rich.progress import track
 
@@ -683,6 +711,7 @@ def generate_plots(
 
     # Summary plots
 
+    # we always regenerate these, since they concern all data
     with save_summary_plot(
         name="relative_fe_dist",
     ):
@@ -701,7 +730,9 @@ def generate_plots(
     # Transformation-level plots
 
     generate_transformation_plots_partial = partial(
-        generate_transformation_plots, output_dir=output_dir
+        generate_transformation_plots,
+        output_dir=output_dir,
+        overwrite=overwrite,
     )
 
     with multiprocessing.Pool(num_procs) as pool:

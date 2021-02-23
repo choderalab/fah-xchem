@@ -23,6 +23,16 @@ import mdtraj as md
 from ..schema import TransformationAnalysis
 
 
+def _transformation_to_file_mapping(output_dir, run_id, ligand):
+    fnames = [f"{ligand}_protein.pdb",
+              f"{ligand}_complex.pdb",
+              f"{ligand}_ligand.sdf"]
+
+    outfiles = [os.path.join(output_dir, f"RUN{run_id}", f"{fname}") for fname in fnames]
+
+    return outfiles
+
+
 def load_trajectory(
     project_dir: str, project_data_dir: str, run: int, clone: int, gen: int
 ) -> md.Trajectory:
@@ -298,6 +308,7 @@ def generate_representative_snapshot(
     output_dir: str,
     max_binding_free_energy: Optional[float],
     cache_dir: Optional[str] = None,
+    overwrite: bool = False,
 ) -> None:
 
     r"""
@@ -311,6 +322,8 @@ def generate_representative_snapshot(
 
     Parameters
     ----------
+    transformation: TransformationAnalysis
+        The transformation record to operate on.
     project_dir : str
         Path to project directory (e.g. '/home/server/server2/projects/13422')
     project_data_dir : str
@@ -325,11 +338,20 @@ def generate_representative_snapshot(
         Path where snapshots will be written
     cache_dir : str or None, optional
         If specified, cache relevant parts of "htf.npz" file in a local directory of this name
+    overwrite : bool
+        If `True`, write over existing output files if present.
+        Otherwise, skip writing output files for a given transformation when already present.
+        Assumes that for a given `run_id` the output files do not ever change;
+        does *no* checking that files wouldn't be different if inputs for a given `run_id` have changed.
+
 
     Returns
     -------
     None
     """
+    # create output directory if not present
+    os.makedirs(os.path.join(output_dir, f"RUN{run_id}"), exist_ok=True)
+    run_id = transformation.transformation.run_id
 
     if (
         max_binding_free_energy is not None
@@ -348,6 +370,13 @@ def generate_representative_snapshot(
     ]
 
     for ligand in ["old", "new"]:
+
+        # check if output files all exist; if so, skip unless we are told not to
+        if not overwrite:
+            outfiles = _transformation_to_file_mapping(output_dir, run_id, ligand)
+            if all(map(os.path.exists, outfiles)):
+                continue
+
         if ligand == "old":
             gen_work = min(gen_works, key=lambda gen_work: gen_work[1].reverse)
             frame = 3  # TODO: Magic numbers
@@ -355,7 +384,6 @@ def generate_representative_snapshot(
             gen_work = min(gen_works, key=lambda gen_work: gen_work[1].forward)
             frame = 1  # TODO: Magic numbers
 
-        run_id = transformation.transformation.run_id
 
         # Extract representative snapshot
         try:
@@ -372,7 +400,6 @@ def generate_representative_snapshot(
             
             # Write protein PDB
             name = f"{ligand}_protein"
-            os.makedirs(os.path.join(output_dir, f"RUN{run_id}"), exist_ok=True)
             
             sliced_snapshots["protein"].save(
                 os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb")
@@ -395,6 +422,7 @@ def generate_representative_snapshot(
         except Exception as e:
             print(e)
 
+
 def generate_representative_snapshots(
     transformations: List[TransformationAnalysis],
     project_dir: str,
@@ -403,6 +431,7 @@ def generate_representative_snapshots(
     max_binding_free_energy: Optional[float],
     cache_dir: Optional[str],
     num_procs: Optional[int],
+    overwrite: bool = False,
 ) -> None:
     from rich.progress import track
 
@@ -415,6 +444,7 @@ def generate_representative_snapshots(
                 output_dir=output_dir,
                 cache_dir=cache_dir,
                 max_binding_free_energy=max_binding_free_energy,
+                overwrite=overwrite
             ),
             transformations,
         )

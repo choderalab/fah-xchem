@@ -143,6 +143,7 @@ def generate_artifacts(
     website: bool = True,
     log: str = "WARN",
     fragalysis_config: Optional[str] = None,
+    overwrite: bool = False,
 ) -> None:
     """
     Given results of free energy analysis as JSON, generate analysis
@@ -186,6 +187,11 @@ def generate_artifacts(
         Logging level
     fragalysis_config : str, optional
         File containing information for Fragalysis upload as JSON-encoded :class: ~`fah_xchem.schema.FragalysisConfig`
+    overwrite : bool
+        If `True`, write over existing output files if present.
+        Otherwise, skip writing output files for a given transformation when already present.
+        Assumes that for a given `run_id` the output files do not ever change;
+        does *no* checking that files wouldn't be different if inputs for a given `run_id` have changed.
     """
 
     logging.basicConfig(level=getattr(logging, log.upper()))
@@ -212,6 +218,7 @@ def generate_artifacts(
         report=report,
         website=website,
         fragalysis_config=fragalysis_config,
+        overwrite=overwrite,
     )
 
 
