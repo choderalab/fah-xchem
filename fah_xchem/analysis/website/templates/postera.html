@@ -1,6 +1,14 @@
 {% macro maybe_link(thing_id) -%}
   {% set url = thing_id|postera_url -%}
   {% if url is not none %}
-  <a href="{{ url }}"><i class="fas fa-flask ml-2"></i></a>
+  <!-- <a href="{{ url }}"><i class="fa fa-flask ml-2"></i></a> -->
+  <a href="{{ url }}"><i class="fa fa-rocket ml-2"></i></a>
+  {% endif %}
+{%- endmacro %}
+
+{% macro maybe_experimental_data(compound) -%}
+  {% set url = compound|experimental_data_url -%}
+  {% if url is not none %}
+  <a href="{{ url }}"><i class="fa fa-flask ml-2"></i></a>
   {% endif %}
 {%- endmacro %}

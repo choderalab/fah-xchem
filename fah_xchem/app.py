@@ -15,6 +15,7 @@ from .schema import (
     CompoundSeries,
     CompoundSeriesAnalysis,
     Model,
+    FragalysisConfig
 )
 
 
@@ -48,8 +49,10 @@ def run_analysis(
     output_dir: str = "results",
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = 8,
+    max_transformations: Optional[int] = None,
+    use_only_reference_compound_data: Optional[bool] = False,
     log: str = "WARN",
-):
+) -> None:
     """
     Run free energy analysis and write JSON-serialized analysis
     consisting of input augmented with analysis results
@@ -70,6 +73,8 @@ def run_analysis(
         directory of this name
     num_procs : int, optional
         Number of parallel processes to run
+    max_transformations : int, optional
+        If not None, limit to this number of transformations
     """
 
     logging.basicConfig(level=getattr(logging, log.upper()))
@@ -78,8 +83,36 @@ def run_analysis(
         CompoundSeries, compound_series_file, "compound series"
     )
 
-    config = _get_config(AnalysisConfig, config_file, "analysis configuration")
+    if max_transformations is not None:
+        logging.warning(f'Limiting maximum number of transformations to {max_transformations}')
+        compound_series = CompoundSeries(
+            metadata=compound_series.metadata,
+            compounds=compound_series.compounds,
+            transformations=compound_series.transformations[:max_transformations]
+        )
 
+    if use_only_reference_compound_data:
+        # Strip experimental data frorm all but reference compound
+        logging.warning(f'Stripping experimental data from all but reference compound')
+        from .schema import CompoundMetadata, Compound
+        new_compounds = list()
+        for compound in compound_series.compounds:
+            metadata = compound.metadata
+            if metadata.compound_id == 'MAT-POS-8a69d52e-7': # TODO: Magic strings
+                new_compound = compound
+                print(compound)
+            else:
+                new_metadata = CompoundMetadata(compound_id=metadata.compound_id, smiles=metadata.smiles, experimental_data=dict())
+                new_compound = Compound(metadata=new_metadata, microstates=compound.microstates)
+            new_compounds.append(new_compound)
+        compound_series = CompoundSeries(
+            metadata=compound_series.metadata,
+            compounds=new_compounds,
+            transformations=compound_series.transformations
+        )
+    
+    config = _get_config(AnalysisConfig, config_file, "analysis configuration")
+    
     series_analysis = analyze_compound_series(
         series=compound_series,
         config=config,
@@ -109,6 +142,8 @@ def generate_artifacts(
     report: bool = True,
     website: bool = True,
     log: str = "WARN",
+    fragalysis_config: Optional[str] = None,
+    overwrite: bool = False,
 ) -> None:
     """
     Given results of free energy analysis as JSON, generate analysis
@@ -150,11 +185,20 @@ def generate_artifacts(
         Whether to generate HTML for static site
     log : str, optional
         Logging level
+    fragalysis_config : str, optional
+        File containing information for Fragalysis upload as JSON-encoded :class: ~`fah_xchem.schema.FragalysisConfig`
+    overwrite : bool
+        If `True`, write over existing output files if present.
+        Otherwise, skip writing output files for a given transformation when already present.
+        Assumes that for a given `run_id` the output files do not ever change;
+        does *no* checking that files wouldn't be different if inputs for a given `run_id` have changed.
     """
 
     logging.basicConfig(level=getattr(logging, log.upper()))
 
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
+
+    fragalysis_config = _get_config(FragalysisConfig, fragalysis_config, "fragalysis configuration")
 
     with open(compound_series_analysis_file, "r") as infile:
         tsa = TimestampedAnalysis.parse_obj(json.load(infile))
@@ -173,6 +217,8 @@ def generate_artifacts(
         plots=plots,
         report=report,
         website=website,
+        fragalysis_config=fragalysis_config,
+        overwrite=overwrite,
     )
 
 

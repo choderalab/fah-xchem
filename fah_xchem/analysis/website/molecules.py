@@ -5,16 +5,26 @@ import logging
 import os
 from typing import List
 
-from ...schema import Microstate
+from ...schema import Microstate, Compound
 
 
 def generate_molecule_images(
-    microstates: List[Microstate],
+    compounds: List[Compound],
     path: str,
 ) -> None:
     os.makedirs(path, exist_ok=True)
     render_molecule_partial = partial(render_molecule, path=path)
-    smiless = [microstate.smiles for microstate in microstates]
+    smiless = [
+        microstate_analysis.microstate.smiles
+        for compound in compounds
+        for microstate_analysis in compound.microstates
+    ] + [
+        compound_analysis.metadata.smiles
+        for compound_analysis in compounds
+    ]
+    # Remove duplicates
+    smiless = list(set(smiless))
+    # Generate images
     with multiprocessing.Pool() as pool:
         for _ in pool.imap_unordered(render_molecule_partial, smiless):
             pass
