@@ -12,8 +12,8 @@ from rich.progress import track
 from urllib.parse import urljoin
 
 from ..._version import get_versions
-from ...schema import CompoundMicrostate, CompoundSeriesAnalysis, PointEstimate
-from ..constants import KT_KCALMOL
+from ...schema import CompoundMicrostate, CompoundSeriesAnalysis, PointEstimate, CompoundAnalysis
+from ..constants import KT_KCALMOL, KT_PIC50
 from .molecules import generate_molecule_images, get_image_filename
 
 
@@ -27,13 +27,11 @@ def format_point(est: PointEstimate) -> str:
     if prec is None or not isfinite(est.point):
         return ""
     rounded = round(est.point, prec)
-    return (
-        f"{rounded:.{prec}f}"
-        if est.point > 0
-        else f'<span class="negative">−{abs(rounded):.{prec}f}</span>'
-    )
-
-
+    if est.point >= 0:
+        return f"{rounded:.{prec}f}"
+    else:
+        return f'<span class="negative">−{abs(rounded):.{prec}f}</span>'
+    
 def format_stderr(est: PointEstimate) -> str:
     """
     Format an uncertainty with appropriate precision (one significant
@@ -45,6 +43,16 @@ def format_stderr(est: PointEstimate) -> str:
     return f"{round(est.stderr, prec):.{prec}f}"
 
 
+def format_pIC50(compound: CompoundAnalysis) -> str:
+    """
+    Format the compound's experimental pIC50 if present, or TBD if not
+    """
+    experimental_data = compound.metadata.experimental_data
+    if 'pIC50' in experimental_data:
+        return experimental_data['pIC50']
+    else:
+        return 'TBD'
+
 def postera_url(compound_or_microstate_id: str) -> Optional[str]:
     """
     If `compound_id` matches regex, link to Postera compound details
@@ -52,7 +60,7 @@ def postera_url(compound_or_microstate_id: str) -> Optional[str]:
     import re
 
     match = re.match(
-        "^(?P<compound_id>[A-Z]{3}-[A-Z]{3}-[0-9a-f]{8}-[0-9])(_(?P<microstate_index>[0-9]+))?$",
+        "^(?P<compound_id>[A-Z]{3}-[A-Z]{3}-[0-9a-f]{8}-[0-9]+)(_(?P<microstate_index>[0-9]+))?$",
         compound_or_microstate_id,
     )
 
@@ -62,6 +70,25 @@ def postera_url(compound_or_microstate_id: str) -> Optional[str]:
         else None
     )
 
+def experimental_data_url(compound: CompoundAnalysis) -> Optional[str]:
+    """
+    If `compound_id` contains experimental data, return the URL to Postera compound details
+    """
+    experimental_data = compound.metadata.experimental_data
+    if 'pIC50' in experimental_data:
+        return postera_url(compound.metadata.compound_id)
+    else:
+        return None
+
+def format_compound_id(compound_id: str) -> str:
+    """
+    Format a compound ID as a link if it is in PostEra format
+    """
+    url = postera_url(compound_id)
+    if url is None:
+        return compound_id
+    else:
+        return f'<a href="{url}">{compound_id}</a>'
 
 class Progress(NamedTuple):
     completed: int
@@ -96,7 +123,10 @@ def _get_progress(
         logging.warning("Failed to get progress from FAH work server: %s", exc)
         return None
 
-    return Progress(completed=response["gens_completed"], total=response["gens"])
+    completed_work_units = response["gens_completed"]
+    total_work_units = response["runs"] * response["clones"] * response["gens"]
+    
+    return Progress(completed=completed_work_units, total=total_work_units)
 
 
 def get_sprint_number(description: str) -> Optional[int]:
@@ -156,11 +186,7 @@ def generate_website(
 ) -> None:
 
     generate_molecule_images(
-        microstates=[
-            microstate.microstate
-            for compound in series.compounds
-            for microstate in compound.microstates
-        ],
+        compounds=series.compounds,
         path=os.path.join(path, "molecule_images"),
     )
 
@@ -169,10 +195,13 @@ def generate_website(
     environment = jinja2.Environment(loader=template_loader)
     environment.filters["format_point"] = format_point
     environment.filters["format_stderr"] = format_stderr
+    environment.filters["format_compound_id"] = format_compound_id
+    environment.filters["format_pIC50"] = format_pIC50
     environment.filters["postera_url"] = postera_url
+    environment.filters["experimental_data_url"] = experimental_data_url
     environment.filters["smiles_to_filename"] = get_image_filename
 
-    for subdir in ["compounds", "microstates", "transformations"]:
+    for subdir in ["compounds", "microstates", "transformations", "reliable_transformations"]:
         os.makedirs(os.path.join(path, subdir), exist_ok=True)
 
     def write_html(
@@ -189,6 +218,7 @@ def generate_website(
             timestamp=timestamp,
             fah_xchem_version=get_versions()["version"],
             KT_KCALMOL=KT_KCALMOL,
+            KT_PIC50=KT_PIC50,            
             microstate_detail={
                 CompoundMicrostate(
                     compound_id=compound.metadata.compound_id,
@@ -267,4 +297,12 @@ def generate_website(
         items=series.transformations,
         items_per_page=items_per_page,
         description="Generating html for transformations index",
+    )
+
+    _generate_paginated_index(
+    write_html=lambda items, **kwargs: write_html(transformations=items, **kwargs),
+    url_prefix="reliable_transformations",
+    items=series.transformations,
+    items_per_page=items_per_page,
+    description="Generating html for reliable transformations index",
     )
