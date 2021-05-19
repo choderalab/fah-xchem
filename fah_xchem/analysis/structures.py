@@ -350,8 +350,8 @@ def generate_representative_snapshot(
     None
     """
     # create output directory if not present
-    os.makedirs(os.path.join(output_dir, f"RUN{run_id}"), exist_ok=True)
     run_id = transformation.transformation.run_id
+    os.makedirs(os.path.join(output_dir, f"RUN{run_id}"), exist_ok=True)
 
     if (
         max_binding_free_energy is not None

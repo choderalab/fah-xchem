@@ -106,7 +106,7 @@ def _filter_inclusive(
 
 def plot_relative_distribution(
     relative_delta_fs: List[float], min_delta_f: float = -30, max_delta_f: float = 30
-) -> None:
+) -> plt.Figure:
     """
     Plot the distribution of relative free energies
 
@@ -124,17 +124,19 @@ def plot_relative_distribution(
     )
     valid_relative_delta_fs_kcal = valid_relative_delta_fs * KT_KCALMOL
 
-    sns.displot(
-        valid_relative_delta_fs_kcal,
-        kind="kde",
-        rug=True,
-        color="hotpink",
-        fill=True,
-        rug_kws=dict(alpha=0.5),
-        label=f"$N={len(relative_delta_fs)}$",
-    )
+    fgrid = sns.displot(
+            valid_relative_delta_fs_kcal,
+            kind="kde",
+            rug=True,
+            color="hotpink",
+            fill=True,
+            rug_kws=dict(alpha=0.5),
+            label=f"$N={len(relative_delta_fs)}$",
+        )
     plt.xlabel(r"Relative free energy to reference fragment / kcal mol$^{-1}$")
     plt.legend()
+
+    return fgrid.fig
 
 
 def plot_convergence(
@@ -322,7 +324,7 @@ def plot_cumulative_distribution(
     cmap: str = "PiYG",
     n_bins: int = 100,
     markers_kcal: List[float] = [-6, -5, -4, -3, -2, -1, 0, 1, 2],
-) -> None:
+) -> plt.Figure:
     """
     Plot cumulative distribution of ligand affinities
 
@@ -357,7 +359,8 @@ def plot_cumulative_distribution(
     x_span = X.max() - X.min()
     C = [cm(((X.max() - x) / x_span)) for x in X]
 
-    plt.bar(X[:-1], Y, color=C, width=X[1] - X[0], edgecolor="k")
+    fig, ax  = plt.subplots()
+    ax.bar(X[:-1], Y, color=C, width=X[1] - X[0], edgecolor="k")
 
     for marker_kcal in markers_kcal:
         n_below = (relative_delta_fs_kcal < marker_kcal).astype(int).sum()
@@ -372,6 +375,8 @@ def plot_cumulative_distribution(
         )
     plt.xlabel(r"Relative free energy to reference fragment / kcal mol$^{-1}$")
     plt.ylabel("Cumulative $N$ ligands")
+
+    return fig
 
 
 def _bootstrap(
@@ -730,17 +735,13 @@ def generate_plots(
     # Summary plots
 
     # we always regenerate these, since they concern all data
-    with save_summary_plot(
-        name="relative_fe_dist",
-    ):
-        plot_relative_distribution(binding_delta_fs)
-        plt.title("Relative free energy")
+    fig = plot_relative_distribution(binding_delta_fs)
+    plt.title("Relative free energy")
+    save_summary_plot(name="relative_fe_dist", fig=fig)
 
-    with save_summary_plot(
-        name="cumulative_fe_dist",
-    ):
-        plot_cumulative_distribution(binding_delta_fs)
-        plt.title("Cumulative distribution")
+    fig = plot_cumulative_distribution(binding_delta_fs)
+    plt.title("Cumulative distribution")
+    save_summary_plot(name="cumulative_fe_dist", fig=fig)
         
     with _save_table_pdf(path=output_dir, name="poor_complex_convergence_fe_table"):
         plot_poor_convergence_fe_table(series.transformations)
