@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -11,8 +11,8 @@ class Model(BaseModel):
 
 
 class PointEstimate(Model):
-    point: float
-    stderr: float
+    point: Union[None, float]
+    stderr: Union[None, float]
 
     def __add__(self, other: "PointEstimate") -> "PointEstimate":
         from math import sqrt
@@ -22,6 +22,9 @@ class PointEstimate(Model):
             stderr=sqrt(self.stderr ** 2 + other.stderr ** 2),
         )
 
+    def __abs__(self) -> "PointEstimate":
+        return PointEstimate(point=abs(self.point), stderr=self.stderr)
+    
     def __neg__(self) -> "PointEstimate":
         return PointEstimate(point=-self.point, stderr=self.stderr)
 
@@ -34,7 +37,10 @@ class PointEstimate(Model):
     def precision_decimals(self) -> Optional[int]:
         from math import floor, isfinite, log10
 
-        return -floor(log10(self.stderr)) if isfinite(self.stderr) else None
+        if self.point is None:
+            return None
+        else:
+            return -floor(log10(self.stderr)) if isfinite(self.stderr) else None
 
 
 class ProjectPair(Model):
@@ -168,6 +174,8 @@ class TransformationAnalysis(Model):
     transformation: Transformation
     reliable_transformation: bool = Field(None, description="Specify if the transformation is reliable or not") # JSON boolean
     binding_free_energy: PointEstimate
+    exp_ddg: PointEstimate # TODO: Make optional, with None as default?
+    absolute_error: Optional[PointEstimate] = None
     complex_phase: PhaseAnalysis
     solvent_phase: PhaseAnalysis
 
@@ -214,3 +222,19 @@ class FragalysisConfig(Model):
     method: str = None
     upload_key: str = None
     new_upload: bool = Field(False)
+
+
+class RunStatus(Model):
+    run_id: int = Field(
+        None,
+        description="The RUN number corresponding to the Folding@Home directory structure",
+    )
+    complex_phase_work_units: int = Field(
+        0,
+        description="The number of completed complex phase work units",
+    )
+    solvent_phase_work_units: int = Field(
+        0,
+        description="The number of completed solvent phase work units",
+    )
+    has_changed: bool = True

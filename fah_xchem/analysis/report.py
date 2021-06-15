@@ -603,6 +603,27 @@ def generate_report(
 
 from openeye import oechem
 
+import os
+from contextlib import contextmanager
+@contextmanager
+def working_directory(path):
+    """
+    A context manager which changes the working directory to the given
+    path, and then changes it back to its previous value on exit.
+    Usage:
+    > # Do something in original directory
+    > with working_directory('/my/new/path'):
+    >     # Do something in new directory
+    > # Back to old directory
+    """
+
+    prev_cwd = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev_cwd)
+
 
 def consolidate_protein_snapshots_into_pdb(
     oemols: List[oechem.OEMol],
@@ -658,29 +679,26 @@ def consolidate_protein_snapshots_into_pdb(
 
     # produce multiple PDB files and zip for fragalysis upload
     if fragalysis_input:
-        base_pdb_filename = os.path.basename(pdb_filename).split(".")[0]
-        n_proteins = 1
-        n_atoms = proteins[0].topology.n_atoms
-        n_dim = 3
-        for index, protein in enumerate(proteins):
-            xyz = np.zeros([n_proteins, n_atoms, n_dim], np.float32)
-            xyz[0, :, :] = protein.xyz[0, :, :]
-            trajectory = md.Trajectory(xyz, protein.topology)
-            trajectory.save(
-                os.path.join(fragalysis_path, f"{base_pdb_filename}_{index}.pdb")
-            )
+        with working_directory(fragalysis_path):
+            base_pdb_filename = os.path.basename(pdb_filename).split(".")[0]
+            n_proteins = 1
+            n_atoms = proteins[0].topology.n_atoms
+            n_dim = 3
+            for index, protein in enumerate(proteins):
+                xyz = np.zeros([n_proteins, n_atoms, n_dim], np.float32)
+                xyz[0, :, :] = protein.xyz[0, :, :]
+                trajectory = md.Trajectory(xyz, protein.topology)
+                trajectory.save(f"{base_pdb_filename}_{index}.pdb")
 
-        from zipfile import ZipFile
+            from zipfile import ZipFile, ZIP_BZIP2
+            with ZipFile(os.path.join(fragalysis_path, "references.zip"), mode="w", compression=ZIP_BZIP2, compresslevel=9) as zipobj:
+                from glob import glob
+                pdb_files = glob('*.pdb')
+                for pdb_file in track(pdb_files, description="Zipping protein snapshots for Fragalysis..."):
+                    zipobj.write(pdb_file)
 
-        with ZipFile(os.path.join(fragalysis_path, "references.zip"), "w") as zipobj:
-            for _, _, filenames in os.walk(fragalysis_path):
-                for pdb_file in track(
-                    filenames, description="Zipping protein snapshots for Fragalysis..."
-                ):
-                    if pdb_file.endswith(".pdb"):
-                        zipobj.write(os.path.join(fragalysis_path, pdb_file))
-
-            zipobj.close()
+                # TODO: Is this necessary?
+                zipobj.close()
 
     # produce one PDB file with multiple frames
     else:

@@ -16,6 +16,7 @@ dependencies:
   - openmmtools
   - pandas >= 1.1
   - perses
+  - plotly
   - pydantic
   - pymbar
   - python >= 3.6
