@@ -223,6 +223,7 @@ class FragalysisConfig(Model):
     upload_key: str = None
     new_upload: bool = Field(False)
 
+
 class RunStatus(Model):
     run_id: int = Field(
         None,

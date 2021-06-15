@@ -172,7 +172,10 @@ def extract_snapshot(
     # Align the trajectory to the fragment (in place)
     #trajectory.image_molecules(inplace=True) # No need to image molecules anymore now that perses adds zero-energy bonds between protein and ligand!
     #trajectory.superpose(fragment, atom_indices=fragment.top.select("name CA"))
-    trajectory.superpose(fragment, atom_indices=fragment.top.select("(name CA) and (residue 145 or residue 41 or residue 164 or residue 165 or residue 142 or residue 163)")) # DEBUG : Mpro active site only
+
+    # TODO: fix this hardcode for *MPro*!
+    trajectory.superpose(fragment,
+                         atom_indices=fragment.top.select("(name CA) and (residue 145 or residue 41 or residue 164 or residue 165 or residue 142 or residue 163)")) # DEBUG : Mpro active site only
 
     # Extract the snapshot
     snapshot = trajectory[frame]
@@ -361,14 +364,16 @@ def generate_representative_snapshot(
 
         run_id = transformation.transformation.run_id
 
+        gen_analysis, workpair = gen_work
+
         # Extract representative snapshot
         try:
             sliced_snapshots, components = extract_snapshot(
                 project_dir=project_dir,
                 project_data_dir=project_data_dir,
                 run=run_id,
-                clone=gen_work[1].clone, # TODO: Check index
-                gen=gen_work[0].gen, # TODO: Check index
+                clone=workpair.clone,
+                gen=gen_analysis.gen,
                 frame=frame,
                 fragment_id=transformation.transformation.xchem_fragment_id,
                 cache_dir=cache_dir,
