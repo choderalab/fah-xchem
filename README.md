@@ -38,7 +38,7 @@ Tools and infrastructure for automated compound discovery using Folding@home.
 Run transformation and compound free energy analysis, producing `results/analysis.json`:
 
 ``` sh
-fah-xchem run-analysis
+fah-xchem run-analysis \
         --compound-series-file compound-series.json \
         --config-file config.json \
         --fah-projects-dir /path/to/projects/ \

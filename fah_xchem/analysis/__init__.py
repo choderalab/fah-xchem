@@ -321,6 +321,7 @@ def generate_artifacts(
     plots: bool = True,
     report: bool = True,
     website: bool = True,
+    overwrite: bool = False,
 ) -> None:
 
     complex_project_dir = os.path.join(
@@ -348,6 +349,7 @@ def generate_artifacts(
             max_binding_free_energy=config.max_binding_free_energy,
             cache_dir=cache_dir,
             num_procs=num_procs,
+            overwrite=overwrite,
         )
 
     if plots:
@@ -357,6 +359,7 @@ def generate_artifacts(
             timestamp=timestamp,
             output_dir=output_dir,
             num_procs=num_procs,
+            overwrite=overwrite,
         )
 
     if snapshots and report:
