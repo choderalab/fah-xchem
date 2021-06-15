@@ -201,6 +201,12 @@ class FahConfig(Model):
 
 
 class FragalysisConfig(Model):
+    """Configuration for Fragalysis component usage.
+
+    Parameters
+    ----------
+
+    """
     run: bool = Field(False)
     ligands_filename: str = None
     fragalysis_sdf_filename: str = None

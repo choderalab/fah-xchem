@@ -98,10 +98,15 @@ def load_fragment(fragment_id: str) -> md.Trajectory:
         The fragment structure
 
     """
+    # several components here: path, target name, fragment id, annotations (e.g. "0A_bound"), and component (e.g. "protein", "ligand")
+    # separated by hyphens
 
     # TODO: Put this in the covid-moonshot path, or generalize to an arbitrary file
     fragment = md.load(
         f"/home/server/server2/projects/available/covid-moonshot/receptors/monomer/Mpro-{fragment_id}_0A_bound-protein.pdb"
+    )
+    fragment = md.load(
+        f"{structure_path}/{target_name}-{fragment_id}{annotations}-{component}.pdb"
     )
 
     return fragment
