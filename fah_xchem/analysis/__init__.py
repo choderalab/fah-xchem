@@ -36,6 +36,9 @@ from .structures import generate_representative_snapshots
 from .website import generate_website
 
 
+EXP_DDG_IJ_ERR = 0.2  # TODO check this is correct
+
+
 def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisConfig):
 
     paths = list_results(config=server, run=run, project=project)
@@ -144,76 +147,6 @@ def analyze_transformation(
     )
 
 
-def calc_exp_ddg_DEPRECATED(
-    transformation: TransformationAnalysis, compounds: CompoundSeries
-):
-    """
-    Compute experimental free energy difference between two compounds, if available.
-
-    Parameters
-    ----------
-    transformation : TransformationAnalysis
-        The transformation of interest
-    compounds : CompoundSeries
-       Data for the compound series.
-
-    """
-    graph = nx.DiGraph()
-
-    # make a simple two node graph
-    # NOTE there may be a faster way of doing this
-    graph.add_edge(
-        transformation.initial_microstate,
-        transformation.final_microstate,
-    )
-
-    for compound in compounds:
-        for microstate in compound.microstates:
-            node = CompoundMicrostate(
-                compound_id=compound.metadata.compound_id,
-                microstate_id=microstate.microstate_id,
-            )
-            if node in graph:
-                graph.nodes[node]["compound"] = compound
-                graph.nodes[node]["microstate"] = microstate
-
-    for node_1, node_2, edge in graph.edges(data=True):
-        # if both nodes contain exp pIC50 calculate the free energy difference between them
-        # NOTE assume star map (node 1 is our reference)
-        try:
-            node_1_pic50 = graph.nodes[node_1]["compound"].metadata.experimental_data[
-                "pIC50"
-            ]  # ref molecule
-            node_2_pic50 = graph.nodes[node_2]["compound"].metadata.experimental_data[
-                "pIC50"
-            ]  # new molecule
-
-            n_microstates_node_1 = len(graph.nodes[node_1]["compound"].microstates)
-            n_microstates_node_2 = len(graph.nodes[node_2]["compound"].microstates)
-
-            # Get experimental DeltaDeltaG by subtracting from experimental inspiration fragment (ref)
-
-            node_1_DG = (
-                pIC50_to_DG(node_1_pic50)
-                + (0.6 * np.log(n_microstates_node_1)) / KT_KCALMOL
-            )  # TODO check this is correct
-            node_2_DG = (
-                pIC50_to_DG(node_2_pic50)
-                + (0.6 * np.log(n_microstates_node_2)) / KT_KCALMOL
-            )  # TODO check this is correct
-
-            exp_ddg_ij = node_1_DG - node_2_DG
-
-            exp_ddg_ij_err = 0.1  # TODO check this is correct
-
-        except KeyError:
-            logging.info("Failed to get experimental pIC50 value")
-            exp_ddg_ij = None
-            exp_ddg_ij_err = None
-
-    return PointEstimate(point=exp_ddg_ij, stderr=exp_ddg_ij_err)
-
-
 def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeries):
     """
     Compute experimental free energy difference between two compounds, if available.
@@ -250,12 +183,11 @@ def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeri
     ].metadata.experimental_data
 
     if ("pIC50" in initial_experimental_data) and ("pIC50" in final_experimental_data):
-        exp_ddg_ij_err = 0.2  # TODO check this is correct
         initial_dg = PointEstimate(
-            point=pIC50_to_DG(initial_experimental_data["pIC50"]), stderr=exp_ddg_ij_err
+            point=pIC50_to_DG(initial_experimental_data["pIC50"]), stderr=EXP_DDG_IJ_ERR
         )
         final_dg = PointEstimate(
-            point=pIC50_to_DG(final_experimental_data["pIC50"]), stderr=exp_ddg_ij_err
+            point=pIC50_to_DG(final_experimental_data["pIC50"]), stderr=EXP_DDG_IJ_ERR
         )
         error = final_dg - initial_dg
         return error
@@ -272,6 +204,7 @@ def analyze_transformation_or_warn(
     except AnalysisError as exc:
         logging.warning("Failed to analyze RUN%d: %s", transformation.run_id, exc)
         return None
+
 
 def analyze_compound_series(    
     series: CompoundSeries,

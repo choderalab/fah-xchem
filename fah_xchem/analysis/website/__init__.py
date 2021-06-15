@@ -194,7 +194,6 @@ def generate_website(
     template_path = os.path.join(os.path.dirname(__file__), "templates")
     template_loader = jinja2.FileSystemLoader(searchpath=template_path)
     environment = jinja2.Environment(loader=template_loader)
-    environment.filters["np"] = np # numpy
     environment.filters["format_point"] = format_point
     environment.filters["format_stderr"] = format_stderr
     environment.filters["format_compound_id"] = format_compound_id
