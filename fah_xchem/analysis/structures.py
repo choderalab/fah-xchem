@@ -185,8 +185,12 @@ def extract_snapshot(
     fragment = load_fragment(fragment_id)
 
     # Align the trajectory to the fragment (in place)
-    trajectory.image_molecules(inplace=True)
-    trajectory.superpose(fragment, atom_indices=fragment.top.select("name CA"))
+    #trajectory.image_molecules(inplace=True) # No need to image molecules anymore now that perses adds zero-energy bonds between protein and ligand!
+    #trajectory.superpose(fragment, atom_indices=fragment.top.select("name CA"))
+
+    # TODO: fix this hardcode for *MPro*!
+    trajectory.superpose(fragment,
+                         atom_indices=fragment.top.select("(name CA) and (residue 145 or residue 41 or residue 164 or residue 165 or residue 142 or residue 163)")) # DEBUG : Mpro active site only
 
     # Extract the snapshot
     snapshot = trajectory[frame]
@@ -199,7 +203,7 @@ def extract_snapshot(
     components = dict()
     for name in ["protein", "old_ligand", "new_ligand"]:
         components[name] = mdtraj_to_oemol(sliced_snapshot[name])
-
+        
     return sliced_snapshot, components
 
 
@@ -222,8 +226,9 @@ def get_stored_atom_indices(project_dir: str, run: int):
     }
 
     # Get all atom indices from the hybrid system
-    protein_atom_indices = htf.hybrid_topology.select("protein")
-    hybrid_ligand_atom_indices = htf.hybrid_topology.select("resn MOL")
+    # Omit hydrogens
+    protein_atom_indices = htf.hybrid_topology.select("protein and (mass > 1.1)")
+    hybrid_ligand_atom_indices = htf.hybrid_topology.select("resn MOL and (mass > 1.1)")
 
     # Identify atom index subsets for the old and new ligands from the hybrid system
     old_ligand_atom_indices = [
@@ -358,6 +363,8 @@ def generate_representative_snapshot(
     run_id = transformation.transformation.run_id
     os.makedirs(os.path.join(output_dir, f"RUN{run_id}"), exist_ok=True)
 
+    # TODO: Cache results and only update RUNs for which we have received new data
+    
     if (
         max_binding_free_energy is not None
         and transformation.binding_free_energy.point > max_binding_free_energy
@@ -390,14 +397,16 @@ def generate_representative_snapshot(
             frame = 1  # TODO: Magic numbers
 
 
+        gen_analysis, workpair = gen_work
+
         # Extract representative snapshot
         try:
             sliced_snapshots, components = extract_snapshot(
                 project_dir=project_dir,
                 project_data_dir=project_data_dir,
                 run=run_id,
-                clone=gen_work[1].clone,
-                gen=gen_work[0].gen,
+                clone=workpair.clone,
+                gen=gen_analysis.gen,
                 frame=frame,
                 fragment_id=transformation.transformation.xchem_fragment_id,
                 cache_dir=cache_dir,
@@ -425,6 +434,7 @@ def generate_representative_snapshot(
             ) as ofs:
                 oechem.OEWriteMolecule(ofs, components[name])
         except Exception as e:
+            print(f'\nException occurred extracting snapshot from {project_dir} data {project_data_dir} run {run_id} clone {gen_work[1].clone} gen {gen_work[0].gen}')
             print(e)
 
 

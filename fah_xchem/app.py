@@ -91,6 +91,7 @@ def run_analysis(
             transformations=compound_series.transformations[:max_transformations]
         )
 
+    # TODO: Remove this?
     if use_only_reference_compound_data:
         # Strip experimental data frorm all but reference compound
         logging.warning(f'Stripping experimental data from all but reference compound')
@@ -125,7 +126,7 @@ def run_analysis(
 
     os.makedirs(output_dir, exist_ok=True)
     with open(os.path.join(output_dir, "analysis.json"), "w") as output_file:
-        output_file.write(output.json())
+        output_file.write(output.json(indent=3))
 
 
 def generate_artifacts(
