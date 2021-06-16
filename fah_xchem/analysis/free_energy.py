@@ -55,7 +55,7 @@ def _mask_outliers(
 def _filter_work_values(
     works: np.ndarray,
     max_value: float = 1e4,
-    max_n_devs: float = 6,
+    max_n_devs: float = 100,
     min_sample_size: int = 10,
 ) -> np.ndarray:
     """Remove pairs of works when either is determined to be an outlier.
