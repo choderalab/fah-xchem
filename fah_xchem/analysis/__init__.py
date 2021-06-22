@@ -23,7 +23,7 @@ from ..schema import (
     TransformationAnalysis,
     WorkPair,
     FragalysisConfig,
-    RunStatus
+    RunStatus,
 )
 from .constants import KT_KCALMOL
 from .diffnet import combine_free_energies, pIC50_to_DG
@@ -42,7 +42,7 @@ EXP_DDG_IJ_ERR = 0.2  # TODO check this is correct
 def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisConfig):
 
     paths = list_results(config=server, run=run, project=project)
-    
+
     if not paths:
         raise AnalysisError(f"No data found for project {project}, RUN {run}")
 
@@ -75,11 +75,11 @@ def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisCon
     gens = list()
     for gen, works in works_by_gen.items():
         try:
-            gens.append( get_gen_analysis(gen, works) )
+            gens.append(get_gen_analysis(gen, works))
         except InsufficientDataError as e:
             # It's OK if we don't have sufficient data here
             pass
-        
+
     return PhaseAnalysis(
         free_energy=free_energy,
         gens=gens,
@@ -206,7 +206,7 @@ def analyze_transformation_or_warn(
         return None
 
 
-def analyze_compound_series(    
+def analyze_compound_series(
     series: CompoundSeries,
     config: AnalysisConfig,
     server: FahConfig,
@@ -215,22 +215,41 @@ def analyze_compound_series(
     """
     Analyze a compound series to generate JSON.
 
-    """    
+    """
     from rich.progress import track
 
     # TODO: Cache results and only update RUNs for which we have received new data
 
     # Pre-filter based on which transformations have any work data
-    logging.info(f'Pre-filtering {len(series.transformations)} transformations to identify those with work data...')
+    logging.info(
+        f"Pre-filtering {len(series.transformations)} transformations to identify those with work data..."
+    )
     available_transformations = [
-        transformation for transformation in series.transformations
-        if len(list_results(config=server, run=transformation.run_id, project=series.metadata.fah_projects.complex_phase)) > 0
-        and len(list_results(config=server, run=transformation.run_id, project=series.metadata.fah_projects.solvent_phase)) > 0
+        transformation
+        for transformation in series.transformations
+        if len(
+            list_results(
+                config=server,
+                run=transformation.run_id,
+                project=series.metadata.fah_projects.complex_phase,
+            )
+        )
+        > 0
+        and len(
+            list_results(
+                config=server,
+                run=transformation.run_id,
+                project=series.metadata.fah_projects.solvent_phase,
+            )
+        )
+        > 0
     ]
-    #available_transformations = series.transformations[:50]
-    
+    # available_transformations = series.transformations[:50]
+
     # Process compound series in parallel
-    logging.info(f'Processing {len(available_transformations)} / {len(series.transformations)} available transformations in parallel...')
+    logging.info(
+        f"Processing {len(available_transformations)} / {len(series.transformations)} available transformations in parallel..."
+    )
     with multiprocessing.Pool(num_procs) as pool:
         results_iter = pool.imap_unordered(
             partial(
@@ -240,7 +259,7 @@ def analyze_compound_series(
                 config=config,
                 compounds=series.compounds,
             ),
-            available_transformations,            
+            available_transformations,
         )
         transformations = [
             result
@@ -264,6 +283,7 @@ def analyze_compound_series(
             compound_ddgs[compound_id] = [transformation.binding_free_energy.point]
     # Collapse to a single estimate
     from scipy.special import logsumexp
+
     for compound_id, ddgs in compound_ddgs.items():
         compound_ddgs[compound_id] = -logsumexp(-np.array(ddgs)) + np.log(len(ddgs))
     # Regenerate list of transformations
@@ -278,10 +298,12 @@ def analyze_compound_series(
             binding_free_energy=t.binding_free_energy,
             complex_phase=t.complex_phase,
             solvent_phase=t.solvent_phase,
-            exp_ddg=t.exp_ddg,            
-            absolute_error=PointEstimate(point=absolute_error_point, stderr=t.absolute_error.stderr),
+            exp_ddg=t.exp_ddg,
+            absolute_error=PointEstimate(
+                point=absolute_error_point, stderr=t.absolute_error.stderr
+            ),
         )
-        
+
     # Sort transformations by RUN
     # transformations.sort(key=lambda transformation_analysis : transformation_analysis.transformation.run_id)
     # Sort transformations by free energy difference
@@ -334,11 +356,12 @@ def generate_artifacts(
 
     # Pre-filter based on which transformations have any data
     available_transformations = [
-        transformation for transformation in series.transformations
+        transformation
+        for transformation in series.transformations
         if transformation.binding_free_energy is not None
         and transformation.binding_free_energy.point is not None
     ]
-    
+
     if snapshots:
         logging.info("Generating representative snapshots")
         saf = SnapshotArtifactory(

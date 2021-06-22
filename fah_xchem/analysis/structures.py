@@ -365,7 +365,6 @@ class SnapshotArtifactory(BaseModel):
         output_dir: str,
         overwrite: bool = False,
     ) -> None:
-
         r"""
         Generate representative snapshots for old and new ligands.
 
@@ -399,7 +398,6 @@ class SnapshotArtifactory(BaseModel):
         os.makedirs(os.path.join(output_dir, f"RUN{run_id}"), exist_ok=True)
 
         # TODO: Cache results and only update RUNs for which we have received new data
-
         if (
             max_binding_free_energy is not None
             and transformation.binding_free_energy.point > max_binding_free_energy

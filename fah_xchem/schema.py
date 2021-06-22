@@ -25,7 +25,7 @@ class PointEstimate(Model):
 
     def __abs__(self) -> "PointEstimate":
         return PointEstimate(point=abs(self.point), stderr=self.stderr)
-    
+
     def __neg__(self) -> "PointEstimate":
         return PointEstimate(point=-self.point, stderr=self.stderr)
 
@@ -173,9 +173,11 @@ class PhaseAnalysis(Model):
 
 class TransformationAnalysis(Model):
     transformation: Transformation
-    reliable_transformation: bool = Field(None, description="Specify if the transformation is reliable or not") # JSON boolean
+    reliable_transformation: bool = Field(
+        None, description="Specify if the transformation is reliable or not"
+    )  # JSON boolean
     binding_free_energy: PointEstimate
-    exp_ddg: PointEstimate # TODO: Make optional, with None as default?
+    exp_ddg: PointEstimate  # TODO: Make optional, with None as default?
     absolute_error: Optional[PointEstimate] = None
     complex_phase: PhaseAnalysis
     solvent_phase: PhaseAnalysis
