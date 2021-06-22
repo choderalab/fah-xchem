@@ -605,6 +605,8 @@ from openeye import oechem
 
 import os
 from contextlib import contextmanager
+
+
 @contextmanager
 def working_directory(path):
     """
@@ -691,10 +693,19 @@ def consolidate_protein_snapshots_into_pdb(
                 trajectory.save(f"{base_pdb_filename}_{index}.pdb")
 
             from zipfile import ZipFile, ZIP_BZIP2
-            with ZipFile(os.path.join(fragalysis_path, "references.zip"), mode="w", compression=ZIP_BZIP2, compresslevel=9) as zipobj:
+
+            with ZipFile(
+                os.path.join(fragalysis_path, "references.zip"),
+                mode="w",
+                compression=ZIP_BZIP2,
+                compresslevel=9,
+            ) as zipobj:
                 from glob import glob
-                pdb_files = glob('*.pdb')
-                for pdb_file in track(pdb_files, description="Zipping protein snapshots for Fragalysis..."):
+
+                pdb_files = glob("*.pdb")
+                for pdb_file in track(
+                    pdb_files, description="Zipping protein snapshots for Fragalysis..."
+                ):
                     zipobj.write(pdb_file)
 
                 # TODO: Is this necessary?

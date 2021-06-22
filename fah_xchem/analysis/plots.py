@@ -157,14 +157,14 @@ def plot_relative_distribution(
     valid_relative_delta_fs_kcal = valid_relative_delta_fs * KT_KCALMOL
 
     fgrid = sns.displot(
-            valid_relative_delta_fs_kcal,
-            kind="kde",
-            rug=True,
-            color="hotpink",
-            fill=True,
-            rug_kws=dict(alpha=0.5),
-            label=f"$N={len(relative_delta_fs)}$",
-        )
+        valid_relative_delta_fs_kcal,
+        kind="kde",
+        rug=True,
+        color="hotpink",
+        fill=True,
+        rug_kws=dict(alpha=0.5),
+        label=f"$N={len(relative_delta_fs)}$",
+    )
     plt.xlabel(r"Relative free energy to reference fragment / kcal mol$^{-1}$")
     plt.legend()
 
@@ -391,7 +391,7 @@ def plot_cumulative_distribution(
     x_span = X.max() - X.min()
     C = [cm(((X.max() - x) / x_span)) for x in X]
 
-    fig, ax  = plt.subplots()
+    fig, ax = plt.subplots()
     ax.bar(X[:-1], Y, color=C, width=X[1] - X[0], edgecolor="k")
 
     for marker_kcal in markers_kcal:
@@ -558,8 +558,10 @@ def save_plot(
     >>> fig.title("My cool plot")
     >>> save_plot('example/plots', 'test_plot', fig, 'png'):
     """
-    outfiles = [os.path.join(path, os.extsep.join([name, file_format]))
-                for file_format in file_formats]
+    outfiles = [
+        os.path.join(path, os.extsep.join([name, file_format]))
+        for file_format in file_formats
+    ]
 
     if timestamp is not None:
         fig.tight_layout(rect=(0, 0.05, 1, 1))  # leave space for timestamp
@@ -584,8 +586,10 @@ def _plot_to_file_mapping(
     name: str,
     file_formats: Iterable[str] = ("png", "pdf"),
 ) -> List:
-    return [os.path.join(path, os.extsep.join([name, file_format]))
-            for file_format in file_formats]
+    return [
+        os.path.join(path, os.extsep.join([name, file_format]))
+        for file_format in file_formats
+    ]
 
 
 def generate_transformation_plots(
@@ -597,9 +601,7 @@ def generate_transformation_plots(
     run_id = transformation.transformation.run_id
 
     plot_output_dir = os.path.join(output_dir, "transformations", f"RUN{run_id}")
-    save_transformation_plot = partial(
-        save_plot, path=plot_output_dir
-    )
+    save_transformation_plot = partial(save_plot, path=plot_output_dir)
 
     name = "works"
     # check if output files all exist; if so, skip unless we are told not to
@@ -608,7 +610,6 @@ def generate_transformation_plots(
         outfiles = _plot_to_file_mapping(path=plot_output_dir, name=name)
         if all(map(os.path.exists, outfiles)):
             skip = True
-
 
     if not skip:
         fig = plot_work_distributions(
@@ -754,7 +755,7 @@ def generate_plots(
     from rich.progress import track
 
     # TODO: Cache results and only update RUNs for which we have received new data
-    
+
     binding_delta_fs = [
         transformation.binding_free_energy.point
         for transformation in series.transformations
@@ -776,7 +777,7 @@ def generate_plots(
     fig = plot_cumulative_distribution(binding_delta_fs)
     plt.title("Cumulative distribution")
     save_summary_plot(name="cumulative_fe_dist", fig=fig)
-        
+
     with _save_table_pdf(path=output_dir, name="poor_complex_convergence_fe_table"):
         plot_poor_convergence_fe_table(series.transformations)
 
@@ -801,24 +802,48 @@ def generate_plots(
     #
     # Retrospective plots
     #
-    
+
     # NOTE this is handled by Arsenic
     # this needs to be plotted last as the figure isn't cleared by default in Arsenic
     # TODO generate time stamp
 
     # All transformations
-    plot_retrospective(output_dir=output_dir, transformations=series.transformations, filename='retrospective-transformations-all')
+    plot_retrospective(
+        output_dir=output_dir,
+        transformations=series.transformations,
+        filename="retrospective-transformations-all",
+    )
 
     # Reliable subset of transformations
-    plot_retrospective(output_dir=output_dir, transformations=[transformation for transformation in series.transformations if transformation.reliable_transformation], filename='retrospective-transformations-reliable')
+    plot_retrospective(
+        output_dir=output_dir,
+        transformations=[
+            transformation
+            for transformation in series.transformations
+            if transformation.reliable_transformation
+        ],
+        filename="retrospective-transformations-reliable",
+    )
 
     # Transformations not involving racemates
     # TODO: Find a simpler way to filter non-racemates
-    nmicrostates = { compound.metadata.compound_id : len(compound.microstates) for compound in series.compounds }
+    nmicrostates = {
+        compound.metadata.compound_id: len(compound.microstates)
+        for compound in series.compounds
+    }
+
     def is_racemate(microstate):
         return True if (nmicrostates[microstate.compound_id] > 1) else False
+
     plot_retrospective(
         output_dir=output_dir,
-        transformations=[transformation for transformation in series.transformations if (not is_racemate(transformation.transformation.initial_microstate) and not is_racemate(transformation.transformation.final_microstate))],
-        filename='retrospective-transformations-noracemates'
+        transformations=[
+            transformation
+            for transformation in series.transformations
+            if (
+                not is_racemate(transformation.transformation.initial_microstate)
+                and not is_racemate(transformation.transformation.final_microstate)
+            )
+        ],
+        filename="retrospective-transformations-noracemates",
     )

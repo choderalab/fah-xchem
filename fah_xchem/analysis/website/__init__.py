@@ -13,7 +13,12 @@ from rich.progress import track
 from urllib.parse import urljoin
 
 from ..._version import get_versions
-from ...schema import CompoundMicrostate, CompoundSeriesAnalysis, PointEstimate, CompoundAnalysis
+from ...schema import (
+    CompoundMicrostate,
+    CompoundSeriesAnalysis,
+    PointEstimate,
+    CompoundAnalysis,
+)
 from ..constants import KT_KCALMOL, KT_PIC50
 from .molecules import generate_molecule_images, get_image_filename
 
@@ -32,7 +37,8 @@ def format_point(est: PointEstimate) -> str:
         return f"{rounded:.{prec}f}"
     else:
         return f'<span class="negative">−{abs(rounded):.{prec}f}</span>'
-    
+
+
 def format_stderr(est: PointEstimate) -> str:
     """
     Format an uncertainty with appropriate precision (one significant
@@ -49,10 +55,11 @@ def format_pIC50(compound: CompoundAnalysis) -> str:
     Format the compound's experimental pIC50 if present, or TBD if not
     """
     experimental_data = compound.metadata.experimental_data
-    if 'pIC50' in experimental_data:
-        return experimental_data['pIC50']
+    if "pIC50" in experimental_data:
+        return experimental_data["pIC50"]
     else:
-        return 'TBD'
+        return "TBD"
+
 
 def postera_url(compound_or_microstate_id: str) -> Optional[str]:
     """
@@ -71,15 +78,17 @@ def postera_url(compound_or_microstate_id: str) -> Optional[str]:
         else None
     )
 
+
 def experimental_data_url(compound: CompoundAnalysis) -> Optional[str]:
     """
     If `compound_id` contains experimental data, return the URL to Postera compound details
     """
     experimental_data = compound.metadata.experimental_data
-    if 'pIC50' in experimental_data:
+    if "pIC50" in experimental_data:
         return postera_url(compound.metadata.compound_id)
     else:
         return None
+
 
 def format_compound_id(compound_id: str) -> str:
     """
@@ -90,6 +99,7 @@ def format_compound_id(compound_id: str) -> str:
         return compound_id
     else:
         return f'<a href="{url}">{compound_id}</a>'
+
 
 class Progress(NamedTuple):
     completed: int
@@ -126,7 +136,7 @@ def _get_progress(
 
     completed_work_units = response["gens_completed"]
     total_work_units = response["runs"] * response["clones"] * response["gens"]
-    
+
     return Progress(completed=completed_work_units, total=total_work_units)
 
 
@@ -202,7 +212,13 @@ def generate_website(
     environment.filters["experimental_data_url"] = experimental_data_url
     environment.filters["smiles_to_filename"] = get_image_filename
 
-    for subdir in ["compounds", "microstates", "transformations", "reliable_transformations", "retrospective_transformations"]:
+    for subdir in [
+        "compounds",
+        "microstates",
+        "transformations",
+        "reliable_transformations",
+        "retrospective_transformations",
+    ]:
         os.makedirs(os.path.join(path, subdir), exist_ok=True)
 
     def write_html(
@@ -219,7 +235,7 @@ def generate_website(
             timestamp=timestamp,
             fah_xchem_version=get_versions()["version"],
             KT_KCALMOL=KT_KCALMOL,
-            KT_PIC50=KT_PIC50,            
+            KT_PIC50=KT_PIC50,
             microstate_detail={
                 CompoundMicrostate(
                     compound_id=compound.metadata.compound_id,
@@ -239,12 +255,8 @@ def generate_website(
     )
 
     compounds_sorted = sorted(
-        [
-            compound
-            for compound in series.compounds
-            if compound.free_energy
-        ],
-        key = lambda m : m.free_energy.point
+        [compound for compound in series.compounds if compound.free_energy],
+        key=lambda m: m.free_energy.point,
     )
 
     _generate_paginated_index(
@@ -282,9 +294,9 @@ def generate_website(
             for microstate in compound.microstates
             if microstate.free_energy
         ],
-        key = lambda m : m.free_energy.point
-        )
-    
+        key=lambda m: m.free_energy.point,
+    )
+
     _generate_paginated_index(
         write_html=lambda items, **kwargs: write_html(
             microstates=items, total_microstates=len(microstates_sorted), **kwargs
@@ -304,20 +316,24 @@ def generate_website(
     )
 
     _generate_paginated_index(
-    write_html=lambda items, **kwargs: write_html(transformations=items, **kwargs),
-    url_prefix="reliable_transformations",
-    items=series.transformations,
-    items_per_page=items_per_page,
-    description="Generating html for reliable transformations index",
+        write_html=lambda items, **kwargs: write_html(transformations=items, **kwargs),
+        url_prefix="reliable_transformations",
+        items=series.transformations,
+        items_per_page=items_per_page,
+        description="Generating html for reliable transformations index",
     )
 
     _generate_paginated_index(
-    write_html=lambda items, **kwargs: write_html(transformations=items, **kwargs),
-    url_prefix="retrospective_transformations",
-    items=sorted(
-        [transformation for transformation in series.transformations if (transformation.absolute_error is not None)],
-        key = lambda transformation : -transformation.absolute_error.point
-    ),
-    items_per_page=items_per_page,
-    description="Generating html for retrospective transformations index",
+        write_html=lambda items, **kwargs: write_html(transformations=items, **kwargs),
+        url_prefix="retrospective_transformations",
+        items=sorted(
+            [
+                transformation
+                for transformation in series.transformations
+                if (transformation.absolute_error is not None)
+            ],
+            key=lambda transformation: -transformation.absolute_error.point,
+        ),
+        items_per_page=items_per_page,
+        description="Generating html for retrospective transformations index",
     )

@@ -43,11 +43,12 @@ def _mask_outliers(
     """
     mask = np.abs(a) < max_value
     if len(a) >= min_sample_size:
-        import statsmodels.api as sm        
+        import statsmodels.api as sm
+
         # Use a robust estimator of stddev that is robust to outliers
-        mean = np.median( a[mask] )
-        stddev = np.mean( np.abs(a[mask]-mean) )
-        stddev = 5.0 # DEBUG
+        mean = np.median(a[mask])
+        stddev = np.mean(np.abs(a[mask] - mean))
+        stddev = 5.0  # DEBUG
         mask &= np.abs(a - mean) < max_n_devs * stddev
     return mask
 
@@ -132,7 +133,7 @@ def _get_bar_overlap(works: np.ndarray) -> float:
     from pymbar.mbar import MBAR
 
     # TODO : Figure out why this is throwing warnings
-    
+
     n = len(works)
     u_kn = np.block([[works["forward"], np.zeros(n)], [np.zeros(n), works["reverse"]]])
     N_k = np.array([n, n])
@@ -172,7 +173,7 @@ def compute_relative_free_energy(
 
     # TODO: Flag problematic RUN/CLONE/GEN trajectories for further analysis and debugging
     works = _filter_work_values(all_works)
-    
+
     if len(works) < (min_num_work_values or 1):
         raise InsufficientDataError(
             f"Need at least {min_num_work_values} good work values for analysis, "

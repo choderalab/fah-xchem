@@ -24,11 +24,11 @@ from ..schema import TransformationAnalysis
 
 
 def _transformation_to_file_mapping(output_dir, run_id, ligand):
-    fnames = [f"{ligand}_protein.pdb",
-              f"{ligand}_complex.pdb",
-              f"{ligand}_ligand.sdf"]
+    fnames = [f"{ligand}_protein.pdb", f"{ligand}_complex.pdb", f"{ligand}_ligand.sdf"]
 
-    outfiles = [os.path.join(output_dir, f"RUN{run_id}", f"{fname}") for fname in fnames]
+    outfiles = [
+        os.path.join(output_dir, f"RUN{run_id}", f"{fname}") for fname in fnames
+    ]
 
     return outfiles
 
@@ -180,12 +180,16 @@ def extract_snapshot(
     fragment = load_fragment(fragment_id)
 
     # Align the trajectory to the fragment (in place)
-    #trajectory.image_molecules(inplace=True) # No need to image molecules anymore now that perses adds zero-energy bonds between protein and ligand!
-    #trajectory.superpose(fragment, atom_indices=fragment.top.select("name CA"))
+    # trajectory.image_molecules(inplace=True) # No need to image molecules anymore now that perses adds zero-energy bonds between protein and ligand!
+    # trajectory.superpose(fragment, atom_indices=fragment.top.select("name CA"))
 
     # TODO: fix this hardcode for *MPro*!
-    trajectory.superpose(fragment,
-                         atom_indices=fragment.top.select("(name CA) and (residue 145 or residue 41 or residue 164 or residue 165 or residue 142 or residue 163)")) # DEBUG : Mpro active site only
+    trajectory.superpose(
+        fragment,
+        atom_indices=fragment.top.select(
+            "(name CA) and (residue 145 or residue 41 or residue 164 or residue 165 or residue 142 or residue 163)"
+        ),
+    )  # DEBUG : Mpro active site only
 
     # Extract the snapshot
     snapshot = trajectory[frame]
@@ -198,7 +202,7 @@ def extract_snapshot(
     components = dict()
     for name in ["protein", "old_ligand", "new_ligand"]:
         components[name] = mdtraj_to_oemol(sliced_snapshot[name])
-        
+
     return sliced_snapshot, components
 
 
@@ -359,7 +363,7 @@ def generate_representative_snapshot(
     os.makedirs(os.path.join(output_dir, f"RUN{run_id}"), exist_ok=True)
 
     # TODO: Cache results and only update RUNs for which we have received new data
-    
+
     if (
         max_binding_free_energy is not None
         and transformation.binding_free_energy.point > max_binding_free_energy
@@ -391,7 +395,6 @@ def generate_representative_snapshot(
             gen_work = min(gen_works, key=lambda gen_work: gen_work[1].forward)
             frame = 1  # TODO: Magic numbers
 
-
         gen_analysis, workpair = gen_work
 
         # Extract representative snapshot
@@ -406,10 +409,10 @@ def generate_representative_snapshot(
                 fragment_id=transformation.transformation.xchem_fragment_id,
                 cache_dir=cache_dir,
             )
-            
+
             # Write protein PDB
             name = f"{ligand}_protein"
-            
+
             sliced_snapshots["protein"].save(
                 os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb")
             )
@@ -422,14 +425,16 @@ def generate_representative_snapshot(
 
             # Write ligand SDFs
             from openeye import oechem
-            
+
             name = f"{ligand}_ligand"
             with oechem.oemolostream(
-                    os.path.join(output_dir, f"RUN{run_id}", f"{name}.sdf")
+                os.path.join(output_dir, f"RUN{run_id}", f"{name}.sdf")
             ) as ofs:
                 oechem.OEWriteMolecule(ofs, components[name])
         except Exception as e:
-            print(f'\nException occurred extracting snapshot from {project_dir} data {project_data_dir} run {run_id} clone {gen_work[1].clone} gen {gen_work[0].gen}')
+            print(
+                f"\nException occurred extracting snapshot from {project_dir} data {project_data_dir} run {run_id} clone {gen_work[1].clone} gen {gen_work[0].gen}"
+            )
             print(e)
 
 
@@ -454,7 +459,7 @@ def generate_representative_snapshots(
                 output_dir=output_dir,
                 cache_dir=cache_dir,
                 max_binding_free_energy=max_binding_free_energy,
-                overwrite=overwrite
+                overwrite=overwrite,
             ),
             transformations,
         )

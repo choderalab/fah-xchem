@@ -18,10 +18,7 @@ def generate_molecule_images(
         microstate_analysis.microstate.smiles
         for compound in compounds
         for microstate_analysis in compound.microstates
-    ] + [
-        compound_analysis.metadata.smiles
-        for compound_analysis in compounds
-    ]
+    ] + [compound_analysis.metadata.smiles for compound_analysis in compounds]
     # Remove duplicates
     smiless = list(set(smiless))
     # Generate images

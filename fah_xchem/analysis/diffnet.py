@@ -79,7 +79,7 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
     g_err = np.array([p[0].stderr for p in microstate_free_energies])
     s_err = np.array([p[1].stderr for p in microstate_free_energies])
 
-    gs = g - (- s - logsumexp(-s))
+    gs = g - (-s - logsumexp(-s))
 
     # TODO: check the error propagation below. It was written in a hurry!
     # Error propagation for gs
@@ -286,16 +286,16 @@ def combine_free_energies(
 
         # Compute normalized microstate probabilities
         p_is = np.exp(-g_is - logsumexp(-g_is))
-        
+
         # Apportion compound K_a according to microstate probability
         Ka_is = p_is * np.exp(-g_exp_compound)
-        
+
         for (node, _), Ka in zip(valid_nodes, Ka_is):
             if node in supergraph:
                 supergraph.nodes[node]["g_exp"] = -np.log(Ka)
                 # NOTE: naming of uncertainty fixed by Arsenic convention
                 # TODO: remove hard-coded value
-                supergraph.nodes[node]["g_dexp"] = 0.1*KCALMOL_KT
+                supergraph.nodes[node]["g_dexp"] = 0.1 * KCALMOL_KT
             else:
                 logging.warning(
                     "Compound microstate '%s' has experimental data, "
@@ -308,7 +308,7 @@ def combine_free_energies(
     # energies.
 
     for graph in valid_subgraphs:
-        gs, C = stats.mle(graph, factor="g_ij", node_factor="g_exp")        
+        gs, C = stats.mle(graph, factor="g_ij", node_factor="g_exp")
         errs = np.sqrt(np.diag(C))
         for node, g, g_err in zip(graph.nodes, gs, errs):
             graph.nodes[node]["g"] = g
