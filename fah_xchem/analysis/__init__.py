@@ -365,10 +365,11 @@ def generate_artifacts(
     if snapshots:
         logging.info("Generating representative snapshots")
         saf = SnapshotArtifactory(
-                config=config,
-                project_dir=complex_project_dir,
-                project_data_dir=complex_data_dir,
-                cache_dir=cache_dir)
+            config=config,
+            project_dir=complex_project_dir,
+            project_data_dir=complex_data_dir,
+            cache_dir=cache_dir,
+        )
 
         saf.generate_representative_snapshots(
             transformations=available_transformations,
