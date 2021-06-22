@@ -1,3 +1,4 @@
+import pathlib
 import datetime as dt
 from typing import Dict, List, Optional, Union
 
@@ -199,8 +200,34 @@ class CompoundSeriesAnalysis(Model):
 
 
 class AnalysisConfig(Model):
-    min_num_work_values: Optional[int] = None
-    max_binding_free_energy: Optional[float] = None
+    """Configuration for fah-xchem analysis components.
+
+    """
+    min_num_work_values: Optional[int] = Field(
+            None,
+            description=("Minimum number of valid work value pairs required for "
+                         "analysis. Raises InsufficientDataError if not satisfied.")
+            )
+    max_binding_free_energy: Optional[float] = Field(
+            None,
+            description="Don't report compounds with free energies greater than this (in kT)"
+            )
+    structure_path: pathlib.Path = Field(
+            None,
+            description="Path to reference structure directory."
+            )
+    target_name: str = Field(
+            'Mpro',
+            description="Name of target (e.g. 'Mpro')."
+            )
+    annotations: str = Field(
+            "",
+            description="Additional characters in the reference file name (e.g. '_0A_bound')."
+            )
+    component: str = Field(
+            'protein',
+            description="Component of the system the reference corresponds to (e.g. 'protein')"
+            )
 
 
 class FahConfig(Model):
@@ -209,12 +236,6 @@ class FahConfig(Model):
 
 
 class FragalysisConfig(Model):
-    """Configuration for Fragalysis component usage.
-
-    Parameters
-    ----------
-
-    """
     run: bool = Field(False)
     ligands_filename: str = None
     fragalysis_sdf_filename: str = None
