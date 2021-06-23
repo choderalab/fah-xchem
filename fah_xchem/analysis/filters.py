@@ -6,11 +6,7 @@ from ..schema import CompoundMicrostate, CompoundSeriesAnalysis
 
 
 class Racemic:
-
-    def __init__(
-            self, 
-            series: CompoundSeriesAnalysis
-            ):
+    def __init__(self, series: CompoundSeriesAnalysis):
 
         self.series = series
 
@@ -22,7 +18,11 @@ class Racemic:
         }
 
     def compound_microstate(
-            self,
-            compound_microstate: CompoundMicrostate, 
-            ):
-        return True if (len(self.microstates[compound_microstate.compound_id]) > 1) else False
+        self,
+        compound_microstate: CompoundMicrostate,
+    ):
+        return (
+            True
+            if (len(self.microstates[compound_microstate.compound_id]) > 1)
+            else False
+        )

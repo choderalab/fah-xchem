@@ -219,9 +219,8 @@ def generate_artifacts(
         tsa = TimestampedAnalysis.parse_obj(json.load(infile))
 
     server = FahConfig(
-            projects_dir=fah_projects_dir,
-            data_dir=fah_data_dir,
-            api_url=fah_api_url)
+        projects_dir=fah_projects_dir, data_dir=fah_data_dir, api_url=fah_api_url
+    )
 
     return fah_xchem.analysis.generate_artifacts(
         series=tsa.series,

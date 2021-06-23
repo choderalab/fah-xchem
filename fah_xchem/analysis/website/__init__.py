@@ -131,7 +131,7 @@ def _get_progress(project: int, api_url: str) -> Optional[Progress]:
     """
     if api_url is None:
         return None
-        
+
     url = urljoin(api_url, f"projects/{project}")
     try:
         response = requests.get(url=url).json()
@@ -174,22 +174,17 @@ class WebsiteArtifactory(BaseModel):
         )
 
     def _generate_paginated_index(
-        self,
-        write_html,
-        url_prefix,
-        items,
-        items_per_page,
-        description
+        self, write_html, url_prefix, items, items_per_page, description
     ):
         pages = list(self._paginate(items, items_per_page))
-    
+
         def get_page_name(start_index, end_index):
             return (
                 f"{url_prefix}/index.html"
                 if start_index == 1
                 else f"{url_prefix}/index-{start_index}-{end_index}.html"
             )
-    
+
         for (prev_page, ((start_index, end_index), page_items), next_page) in track(
             zip(
                 [None] + pages,
@@ -211,9 +206,9 @@ class WebsiteArtifactory(BaseModel):
 
     def _write_html(
         self,
-        template_file: pathlib.Path, 
-        output_file: Optional[pathlib.Path] = None, 
-        **kwargs: Any
+        template_file: pathlib.Path,
+        output_file: Optional[pathlib.Path] = None,
+        **kwargs: Any,
     ):
         """From template, generate actual page with result outputs.
 
@@ -221,19 +216,21 @@ class WebsiteArtifactory(BaseModel):
         ----------
         template_file : pathlib.Path
             Name of template file relative to `self.environment`.
-        output_file : Optional[pathlib.Path] = None, 
+        output_file : Optional[pathlib.Path] = None,
             Path to deposit generated page to.
         **kwargs : Any
             Passed to `jinja2.Environment.
-            
+
 
         """
-    
+
         if output_file is None:
             output_file = template_file
-    
+
         self.environment.get_template(template_file).stream(
-            base_url=self.base_url if self.base_url.endswith("/") else f"{self.base_url}/",
+            base_url=self.base_url
+            if self.base_url.endswith("/")
+            else f"{self.base_url}/",
             series=self.series,
             sprint_number=get_sprint_number(self.series.metadata.description),
             timestamp=self.timestamp,
@@ -270,7 +267,7 @@ class WebsiteArtifactory(BaseModel):
         items_per_page: int = 100,
         num_top_compounds: int = 100,
     ) -> None:
-    
+
         generate_molecule_images(
             compounds=self.series.compounds,
             path=os.path.join(self.path, "molecule_images"),
@@ -281,15 +278,13 @@ class WebsiteArtifactory(BaseModel):
         self.generate_microstates(items_per_page)
         self.generate_transformations(items_per_page)
         self.generate_retrospective_transformations(items_per_page)
-    
-    
+
     def generate_summary(self, num_top_compounds):
         self.write_html(
             "index.html",
             progress=_get_progress(
-                self.series.metadata.fah_projects.complex_phase,
-                self.fah_ws_api_url
-                )
+                self.series.metadata.fah_projects.complex_phase, self.fah_ws_api_url
+            )
             or Progress(0, 1),
             num_top_compounds=num_top_compounds,
         )
@@ -320,7 +315,7 @@ class WebsiteArtifactory(BaseModel):
                     == compound.metadata.compound_id
                 ],
             )
-    
+
         self._generate_paginated_index(
             write_html=lambda items, **kwargs: self._write_html(
                 compounds=items, num_top_compounds=num_top_compounds, **kwargs
@@ -344,7 +339,7 @@ class WebsiteArtifactory(BaseModel):
             ],
             key=lambda m: m.free_energy.point,
         )
-    
+
         self._generate_paginated_index(
             write_html=lambda items, **kwargs: self._write_html(
                 microstates=items, total_microstates=len(microstates_sorted), **kwargs
@@ -354,31 +349,35 @@ class WebsiteArtifactory(BaseModel):
             items_per_page=items_per_page,
             description="Generating html for microstates index",
         )
-    
+
     def generate_transformations(self, items_per_page):
         subdir = "transformations"
         os.makedirs(os.path.join(self.path, subdir), exist_ok=True)
 
         self._generate_paginated_index(
-            write_html=lambda items, **kwargs: self._write_html(transformations=items, **kwargs),
+            write_html=lambda items, **kwargs: self._write_html(
+                transformations=items, **kwargs
+            ),
             url_prefix="transformations",
             items=self.series.transformations,
             items_per_page=items_per_page,
             description="Generating html for transformations index",
         )
-    
+
     def generate_reliable_transformations(self, items_per_page):
         subdir = "reliable_transformations"
         os.makedirs(os.path.join(self.path, subdir), exist_ok=True)
 
         self._generate_paginated_index(
-            write_html=lambda items, **kwargs: self._write_html(transformations=items, **kwargs),
+            write_html=lambda items, **kwargs: self._write_html(
+                transformations=items, **kwargs
+            ),
             url_prefix="reliable_transformations",
             items=self.series.transformations,
             items_per_page=items_per_page,
             description="Generating html for reliable transformations index",
         )
-    
+
     def generate_retrospective_transformations(self, items_per_page):
 
         subdir = "retrospective_transformations"
@@ -386,16 +385,22 @@ class WebsiteArtifactory(BaseModel):
 
         racemic_filter = Racemic(self.series)
         self._generate_paginated_index(
-            write_html=lambda items, **kwargs: self._write_html(transformations=items, **kwargs),
+            write_html=lambda items, **kwargs: self._write_html(
+                transformations=items, **kwargs
+            ),
             url_prefix="retrospective_transformations",
             items=sorted(
                 [
-                transformation
-                for transformation in self.series.transformations
-                if (
-                    not racemic_filter.compound_microstate(transformation.transformation.initial_microstate)
-                    and not racemic_filter.compound_microstate(transformation.transformation.final_microstate)
-                )
+                    transformation
+                    for transformation in self.series.transformations
+                    if (
+                        not racemic_filter.compound_microstate(
+                            transformation.transformation.initial_microstate
+                        )
+                        and not racemic_filter.compound_microstate(
+                            transformation.transformation.final_microstate
+                        )
+                    )
                 ],
                 key=lambda transformation: -transformation.absolute_error.point,
             ),

@@ -816,8 +816,12 @@ def generate_plots(
             transformation
             for transformation in series.transformations
             if (
-                not racemic_filter.compound_microstate(transformation.transformation.initial_microstate)
-                and not racemic_filter.compound_microstate(transformation.transformation.final_microstate)
+                not racemic_filter.compound_microstate(
+                    transformation.transformation.initial_microstate
+                )
+                and not racemic_filter.compound_microstate(
+                    transformation.transformation.final_microstate
+                )
             )
         ],
         filename="retrospective-transformations-noracemates",

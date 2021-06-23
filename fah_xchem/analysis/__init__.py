@@ -398,10 +398,11 @@ def generate_artifacts(
     if website:
         logging.info("Generating website")
         waf = WebsiteArtifactory(
-                base_url=base_url,
-                path=output_dir,
-                series=series,
-                timestamp=timestamp,
-                fah_ws_api_url=server.api_url)
+            base_url=base_url,
+            path=output_dir,
+            series=series,
+            timestamp=timestamp,
+            fah_ws_api_url=server.api_url,
+        )
 
         waf.generate_website()
