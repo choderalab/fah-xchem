@@ -151,12 +151,33 @@ def get_sprint_number(description: str) -> Optional[int]:
 
 
 class WebsiteArtifactory(BaseModel):
+    """Website generator.
+
+    Parameters
+    ----------
+    base_url : str
+        Base URL to use for links in the static site. E.g. if using S3, something like
+        `https://fah-ws3.s3.amazonaws.com/covid-moonshot/sprints/sprint-4/2020-09-06-ugi-tBu-x3110-3v3m-2020-04-Jacobs/`
+    output_dir : path
+        Directory to deposit generated artifacts.
+    series : CompoundSeriesAnalysis
+        Full analysis results object for compound series.
+    timestamp : datetime.datetime
+        Timestamp applied to generated artifacts.
+    fah_ws_api_url : str
+        Full URL to Folding@Home work server API; used to generate status bar.
+
+    """
 
     base_url: str
     path: pathlib.Path
     series: CompoundSeriesAnalysis
     timestamp: dt.datetime = None
     fah_ws_api_url: str = None
+    environment: Optional[jinja2.Environment] = None
+
+    class Config:
+        arbitrary_types_allowed: bool = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

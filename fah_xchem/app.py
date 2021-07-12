@@ -14,14 +14,10 @@ from .schema import (
     FahConfig,
     CompoundSeries,
     CompoundSeriesAnalysis,
-    Model,
+    TimestampedAnalysis,
     FragalysisConfig,
 )
 
-
-class TimestampedAnalysis(Model):
-    as_of: dt.datetime
-    series: CompoundSeriesAnalysis
 
 
 def _get_config(
