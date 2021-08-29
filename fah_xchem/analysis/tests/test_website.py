@@ -30,6 +30,8 @@ def website_artifactory(tmpdir):
     return waf
 
 
+# TODO: add use of structure artifactory to add actual structure image files
+
 class TestWebsiteArtifactory:
 
     page_titles = (
@@ -197,6 +199,7 @@ class TestWebsiteArtifactory:
         # our test dataset should give two pages
         assert len(index_pages) == 2
 
+        compounds = []
         for index_page in index_pages:
             page_name = os.path.basename(index_page)
 
@@ -246,9 +249,26 @@ class TestWebsiteArtifactory:
                     # 1 more column than header
                     assert len(item.find_all('td')) == 6
 
+            compounds.extend(items[1:])
 
-            # FIXME: second page top compounds get a broken link
+        ### grab top compounds
+        top_compounds = compounds[:num_top_compounds] 
 
+        ### check that we have links for top n rows to detail pages
+        for row in top_compounds:
+            compound = row.find_all('td', {"class": None})[0]
+            assert compound.a.attrs['href'] == os.path.join("compounds", "{}.html".format(compound.a.text.strip()))
+            ## TODO: some compounds get postera links, others don't; need to have tests for when and why
+
+
+        ### check that we *don't* have links for every other compound
+        non_top_compounds= compounds[num_top_compounds:] 
+        for row in non_top_compounds:
+            compound = row.find_all('td', {"class": None})[0]
+            for link in compound.find_all('a'):
+                ...
+                #assert not link.attrs['href'] == os.path.join("compounds", "{}.html".format(compound.text.strip()))
+                # FIXME: second page top compounds get a broken link; fix in generation code
 
     def test_top_compounds_detail(self, website_artifactory):
         waf = website_artifactory
@@ -264,7 +284,51 @@ class TestWebsiteArtifactory:
         # introspect generated page
         with open(index_page, 'r') as f:
             soup = BeautifulSoup(f)
-        
+
+        # grab up top compound links
+        body = soup.body
+        compounds_head = body.find_all("h3", text="Compounds")[0]
+
+        # all table rows, includes header
+        items = compounds_head.find_next_sibling('table', ['table', 'table-striped']).find_all('tr')
+        compounds = items[1:]
+
+        ### grab top compounds
+        top_compounds = compounds[:num_top_compounds] 
+
+        for row in top_compounds:
+            compound = row.find_all('td', {"class": None})[0]
+            detail_page = os.path.join(waf.path, "compounds", "{}.html".format(compound.a.text.strip()))
+
+            # introspect detail page
+            with open(detail_page, 'r') as f:
+                soupd = BeautifulSoup(f)
+
+            # heading / postera link
+            ## not all molecules are from postera, but those that are have a link
+            if soupd.h3.find_all('a'):
+                assert soupd.h3.a.text == soupd.h3.a.attrs['href'].split("/")[-1]
+                assert soupd.h3.a.text == soupd.h3.find_all('a')[1].attrs['href'].split("/")[-1]
+                assert soupd.h3.find_all('a')[1].i.attrs['class'] == "fa fa-rocket ml-2".split()
+
+            # molecule image
+            # TODO add filename checking using `.molecules.get_image_filename`
+            molecule = soupd.h3.find_next_sibling('a')
+            if soupd.h3.find_all('a'):
+                assert molecule.img.attrs['title'] == soupd.h3.a.text
+            else:
+                assert molecule.img.attrs['title'] == soupd.h3.text
+
+
+            # Data table
+
+            # Transformations table / ordered by ΔΔG
+
+                # Each row corresponds to a RUN
+
+            
+
+
 
     def test_generate_microstates(self):
         """Test Microstates page content generation.
