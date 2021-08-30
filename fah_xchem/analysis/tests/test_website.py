@@ -176,6 +176,78 @@ class TestWebsiteArtifactory:
             assert item.a['href'] == f"{filename}.{ftype}"
             assert item.a.contents[0] == f"{filename}.{ftype}"
 
+    def _test_paginated_table(self, waf, tabname, items_per_page, n_pages, n_header_cols, n_cols):
+
+        tab_folder = tabname.lower().replace(' ', '_')
+
+        # grab up all generated index pages
+        def sort_key(x):
+            basename = os.path.basename(x)
+
+            if '-' in basename:
+                return int(basename.split('-')[1])
+            else:
+                return 1
+
+        index_pages = sorted(glob(os.path.join(waf.path, tab_folder, "index*.html")),
+                             key=sort_key)
+
+        # our test dataset should give two pages
+        assert len(index_pages) == n_pages
+
+        items = []
+        for index_page in index_pages:
+            page_name = os.path.basename(index_page)
+
+            # introspect generated page
+            with open(index_page, 'r') as f:
+                soup = BeautifulSoup(f)
+
+            # check key elements of page
+            body = soup.body
+            compounds_head = body.find_all("h3", text=tabname)[0]
+
+            # check pagination and links
+            pagination = compounds_head.find_next_sibling('div', "my-3")
+            if page_name == "index.html":
+                assert pagination.contents[0].strip().startswith(f"Showing 1 through {items_per_page}")
+                assert len(pagination.find_all('a')) == 1
+                assert pagination.find_all('a')[0]['href'].startswith(f"{tab_folder}/index-{items_per_page+1}")
+            else:
+                _, start, stop = page_name.split('.')[0].split('-')
+                assert pagination.contents[0].strip().startswith(f"Showing {start} through {stop}")
+
+                # if we're looking at the last index page
+                if index_page == index_pages[-1]:
+                    assert len(pagination.find_all('a')) == 1
+                    assert pagination.find_all('a')[0]
+                else:
+                    assert len(pagination.find_all('a')) == 2
+
+            # check count of rows against count of compounds with free energy data
+            ## TODO: we won't have a row for a compound without data; perhaps we should make them though?
+            
+            # check count of items in table isn't beyond `items_per_page`
+            contents = pagination.contents[0].strip().split()
+            start, stop = int(contents[1]), int(contents[3])
+
+            # all table rows, includes header
+            items = compounds_head.find_next_sibling('table', ['table', 'table-striped']).find_all('tr')
+            assert len(items) - 1 == (stop - start) + 1
+
+            # check content expectations for each item in table
+            for item in items:
+                if item.th:
+                    # this is the header row
+                    assert len(item.find_all('th')) == n_header_cols
+                else:
+                    # compound rows have a thumbnail column that has no label
+                    # 1 more column than header
+                    assert len(item.find_all('td')) == n_cols
+
+            items.extend(items[1:])
+
+        return items
 
     def test_generate_compounds(self, website_artifactory):
         """Test Compounds page content generation.
@@ -187,15 +259,22 @@ class TestWebsiteArtifactory:
         waf = website_artifactory
         items_per_page = 7
         num_top_compounds = 5
+        tabname = "compounds"
 
         waf.generate_compounds(items_per_page=items_per_page,
                                num_top_compounds=num_top_compounds)
         
         # grab up all generated index pages
-        index_pages = sorted(glob(os.path.join(waf.path, "compounds", "index*.html")))
+        def sort_key(x):
+            basename = os.path.basename(x)
 
-        # put `index.html` at the front; sorting puts it at the back
-        index_pages.insert(0, index_pages.pop(-1))
+            if '-' in basename:
+                return int(basename.split('-')[1])
+            else:
+                return 1
+
+        index_pages = sorted(glob(os.path.join(waf.path, tabname, "index*.html")),
+                             key=sort_key)
 
         # our test dataset should give two pages
         assert len(index_pages) == 2
@@ -217,7 +296,7 @@ class TestWebsiteArtifactory:
             if page_name == "index.html":
                 assert pagination.contents[0].strip().startswith(f"Showing 1 through {items_per_page}")
                 assert len(pagination.find_all('a')) == 1
-                assert pagination.find_all('a')[0]['href'].startswith(f"compounds/index-{items_per_page+1}")
+                assert pagination.find_all('a')[0]['href'].startswith(f"{tabname}/index-{items_per_page+1}")
             else:
                 _, start, stop = page_name.split('.')[0].split('-')
                 assert pagination.contents[0].strip().startswith(f"Showing {start} through {stop}")
@@ -422,11 +501,21 @@ class TestWebsiteArtifactory:
                 assert (soupd.h3.text.strip() in tds[1].text) or (soupd.h3.text.strip() in tds[5].text)
 
 
-    def test_generate_microstates(self):
+    def test_generate_microstates(self, website_artifactory):
         """Test Microstates page content generation.
 
         """
-        ...
+        waf = website_artifactory
+        items_per_page = 7
+        tabname = "Microstates"
+
+        waf.generate_microstates(items_per_page=items_per_page)
+
+        microstates = self._test_paginated_table(waf, tabname, items_per_page, n_pages=3, n_header_cols=4, n_cols=5)
+
+        # examine each microstate
+
+
 
     def test_generate_transformations(self):
         """Test Transformations page content generation.
