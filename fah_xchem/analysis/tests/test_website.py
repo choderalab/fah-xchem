@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 
 from fah_xchem.schema import TimestampedAnalysis
 from fah_xchem.analysis.website import WebsiteArtifactory
+from fah_xchem.analysis.website.molecules import get_image_filename
 from fah_xchem.data import get_compound_series_analysis_results
 
 
@@ -319,15 +320,106 @@ class TestWebsiteArtifactory:
             else:
                 assert molecule.img.attrs['title'] == soupd.h3.text
 
-
             # Data table
+            data_heading = soupd.find_all('h4')[0]
+            assert data_heading.text == "Data"
+            data_table = data_heading.find_next_sibling('table')
+            data_table_rows = data_table.find_all('tr')
+
+            ## compound id
+            title, value = data_table_rows[0].find_all('td')
+            assert title.text == 'Compound ID'
+            assert value.text == soupd.h3.text
+
+            ## ΔG
+            title, value = data_table_rows[1].find_all('td')
+            assert "".join([str(i) for i in title.contents]) == "ΔG / kcal M<sup>-1</sup>"
+            assert value.attrs['class'] == ["binding"]
+
+            ## IC50
+            title, value = data_table_rows[2].find_all('td')
+            assert title.text == "IC50 / µM"
+
+
+            ## pIC50
+            title, value = data_table_rows[3].find_all('td')
+            assert title.text == "pIC50"
 
             # Transformations table / ordered by ΔΔG
+            transform_heading = data_table.find_next_sibling('h4')
+            assert transform_heading.text == "Transformations"
+            transform_table = transform_heading.find_next_sibling('table')
 
-                # Each row corresponds to a RUN
+            ## column headers
+            transform_columns = transform_table.tr.find_all('th')
+            assert transform_columns[0].text == "RUN"
+            assert transform_columns[1].text == "Initial microstate"
+            assert transform_columns[2].text == "Final microstate"
+            assert "".join([str(i) for i in transform_columns[3].contents]) == "ΔΔG / kcal M<sup>-1</sup>"
+            assert transform_columns[4].text == "Work distributions"
+            assert transform_columns[5].text == "Convergence"
 
-            
+            # Each row corresponds to a RUN
+            transform_rows = transform_table.find_all('tr')[1:]
+            for row in transform_rows[1:]:
+                tds = row.find_all('td')
 
+                assert len(tds) == 12
+                
+                ## run name
+                assert tds[0].text.startswith('RUN')
+
+                ## initial microstate
+                if tds[1].find_all('a'):
+                    # microstates have a trailing index, e.g. `_1`
+                    assert tds[1].a.text.startswith(tds[1].a.attrs['href'].split("/")[-1])
+                    assert tds[1].a.text.startswith(tds[1].find_all('a')[1].attrs['href'].split("/")[-1])
+                    assert tds[1].find_all('a')[1].i.attrs['class'] == "fa fa-rocket ml-2".split()
+
+                ### molecule image
+                assert tds[2].attrs['class'] == ['thumbnail']
+                assert get_image_filename(tds[2].a.img.attrs['title']) == tds[2].a.attrs['href'].split('/')[1].split('.')[0]
+
+                ### ligand sdf
+                assert tds[3].a.attrs['href'].split('/')[1] == tds[0].text
+                assert tds[3].a.button.text == 'sdf'
+
+                ### protein pdb
+                assert tds[4].a.attrs['href'].split('/')[1] == tds[0].text
+                assert tds[4].a.button.text == 'pdb'
+
+                ## final microstate
+                if tds[5].find_all('a'):
+                    # microstates have a trailing index, e.g. `_1`
+                    assert tds[5].a.text.startswith(tds[5].a.attrs['href'].split("/")[-1])
+                    assert tds[5].a.text.startswith(tds[5].find_all('a')[1].attrs['href'].split("/")[-1])
+                    assert tds[5].find_all('a')[1].i.attrs['class'] == "fa fa-rocket ml-2".split()
+
+                ### molecule image
+                assert tds[6].attrs['class'] == ['thumbnail']
+                assert get_image_filename(tds[6].a.img.attrs['title']) == tds[6].a.attrs['href'].split('/')[1].split('.')[0]
+
+                ### ligand sdf
+                assert tds[7].a.attrs['href'].split('/')[1] == tds[0].text
+                assert tds[7].a.button.text == 'sdf'
+
+                ### protein pdb
+                assert tds[8].a.attrs['href'].split('/')[1] == tds[0].text
+                assert tds[8].a.button.text == 'pdb'
+
+                ## ΔΔG
+                assert tds[9].attrs['class'] == ["binding"]
+
+                ## Work distributions
+                assert tds[10].attrs['class'] == ['thumbnail']
+                assert tds[10].a.attrs['href'].split('.pdf')[0] == tds[10].a.img.attrs['src'].split('.png')[0]
+
+                ## Convergence
+                assert tds[11].attrs['class'] == ['thumbnail']
+                assert tds[11].a.attrs['href'].split('.pdf')[0] == tds[11].a.img.attrs['src'].split('.png')[0]
+
+                # assert that at least one of initial / final microstate has this molecule
+                assert (soupd.h3.text.strip() in tds[1].text) or (soupd.h3.text.strip() in tds[5].text)
 
 
     def test_generate_microstates(self):
