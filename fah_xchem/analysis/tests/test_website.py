@@ -195,7 +195,7 @@ class TestWebsiteArtifactory:
         # our test dataset should give two pages
         assert len(index_pages) == n_pages
 
-        items = []
+        all_items = []
         for index_page in index_pages:
             page_name = os.path.basename(index_page)
 
@@ -205,10 +205,12 @@ class TestWebsiteArtifactory:
 
             # check key elements of page
             body = soup.body
-            compounds_head = body.find_all("h3", text=tabname)[0]
+            h3s = body.find_all("h3")
+            elements_head = [h3 for h3 in h3s if tabname in h3.text][0]
+
 
             # check pagination and links
-            pagination = compounds_head.find_next_sibling('div', "my-3")
+            pagination = elements_head.find_next_sibling('div', "my-3")
             if page_name == "index.html":
                 assert pagination.contents[0].strip().startswith(f"Showing 1 through {items_per_page}")
                 assert len(pagination.find_all('a')) == 1
@@ -224,15 +226,12 @@ class TestWebsiteArtifactory:
                 else:
                     assert len(pagination.find_all('a')) == 2
 
-            # check count of rows against count of compounds with free energy data
-            ## TODO: we won't have a row for a compound without data; perhaps we should make them though?
-            
             # check count of items in table isn't beyond `items_per_page`
             contents = pagination.contents[0].strip().split()
             start, stop = int(contents[1]), int(contents[3])
 
             # all table rows, includes header
-            items = compounds_head.find_next_sibling('table', ['table', 'table-striped']).find_all('tr')
+            items = elements_head.find_next_sibling('table', ['table', 'table-striped']).find_all('tr')
             assert len(items) - 1 == (stop - start) + 1
 
             # check content expectations for each item in table
@@ -241,13 +240,13 @@ class TestWebsiteArtifactory:
                     # this is the header row
                     assert len(item.find_all('th')) == n_header_cols
                 else:
-                    # compound rows have a thumbnail column that has no label
+                    # e.g. compound rows have a thumbnail column that has no label
                     # 1 more column than header
                     assert len(item.find_all('td')) == n_cols
 
-            items.extend(items[1:])
+            all_items.extend(items[1:])
 
-        return items
+        return all_items
 
     def test_generate_compounds(self, website_artifactory):
         """Test Compounds page content generation.
@@ -259,78 +258,16 @@ class TestWebsiteArtifactory:
         waf = website_artifactory
         items_per_page = 7
         num_top_compounds = 5
-        tabname = "compounds"
+        tabname = "Compounds"
 
         waf.generate_compounds(items_per_page=items_per_page,
                                num_top_compounds=num_top_compounds)
         
-        # grab up all generated index pages
-        def sort_key(x):
-            basename = os.path.basename(x)
+        compounds = self._test_paginated_table(waf, tabname, items_per_page, n_pages=2, n_header_cols=5, n_cols=6)
 
-            if '-' in basename:
-                return int(basename.split('-')[1])
-            else:
-                return 1
-
-        index_pages = sorted(glob(os.path.join(waf.path, tabname, "index*.html")),
-                             key=sort_key)
-
-        # our test dataset should give two pages
-        assert len(index_pages) == 2
-
-        compounds = []
-        for index_page in index_pages:
-            page_name = os.path.basename(index_page)
-
-            # introspect generated page
-            with open(index_page, 'r') as f:
-                soup = BeautifulSoup(f)
-
-            # check key elements of page
-            body = soup.body
-            compounds_head = body.find_all("h3", text="Compounds")[0]
-
-            # check pagination and links
-            pagination = compounds_head.find_next_sibling('div', "my-3")
-            if page_name == "index.html":
-                assert pagination.contents[0].strip().startswith(f"Showing 1 through {items_per_page}")
-                assert len(pagination.find_all('a')) == 1
-                assert pagination.find_all('a')[0]['href'].startswith(f"{tabname}/index-{items_per_page+1}")
-            else:
-                _, start, stop = page_name.split('.')[0].split('-')
-                assert pagination.contents[0].strip().startswith(f"Showing {start} through {stop}")
-
-                # if we're looking at the last index page
-                if index_page == index_pages[-1]:
-                    assert len(pagination.find_all('a')) == 1
-                    assert pagination.find_all('a')[0]
-                else:
-                    assert len(pagination.find_all('a')) == 2
-
-            # check count of rows against count of compounds with free energy data
-            ## TODO: we won't have a row for a compound without data; perhaps we should make them though?
+        # check count of rows against count of compounds with free energy data
+        ## TODO: we won't have a row for a compound without data; perhaps we should make them though?
             
-            # check count of items in table isn't beyond `items_per_page`
-            contents = pagination.contents[0].strip().split()
-            start, stop = int(contents[1]), int(contents[3])
-
-            # all table rows, includes header
-            items = compounds_head.find_next_sibling('table', ['table', 'table-striped']).find_all('tr')
-            assert len(items) - 1 == (stop - start) + 1
-
-            # check content expectations for each item in table
-            for item in items:
-                if item.th:
-                    # this is the header row
-                    assert len(item.find_all('th')) == 5
-                else:
-                    # compound rows have a thumbnail column that has no label
-                    # 1 more column than header
-                    assert len(item.find_all('td')) == 6
-
-            compounds.extend(items[1:])
-
         ### grab top compounds
         top_compounds = compounds[:num_top_compounds] 
 
@@ -340,7 +277,6 @@ class TestWebsiteArtifactory:
             assert compound.a.attrs['href'] == os.path.join("compounds", "{}.html".format(compound.a.text.strip()))
             ## TODO: some compounds get postera links, others don't; need to have tests for when and why
 
-
         ### check that we *don't* have links for every other compound
         non_top_compounds= compounds[num_top_compounds:] 
         for row in non_top_compounds:
@@ -349,6 +285,62 @@ class TestWebsiteArtifactory:
                 ...
                 #assert not link.attrs['href'] == os.path.join("compounds", "{}.html".format(compound.text.strip()))
                 # FIXME: second page top compounds get a broken link; fix in generation code
+
+    def _test_transformation(self, tds):
+
+            assert len(tds) == 12
+
+            ## run name
+            assert tds[0].text.startswith('RUN')
+
+            ## initial microstate
+            if tds[1].find_all('a'):
+                # microstates have a trailing index, e.g. `_1`
+                assert tds[1].a.text.startswith(tds[1].a.attrs['href'].split("/")[-1])
+                assert tds[1].a.text.startswith(tds[1].find_all('a')[1].attrs['href'].split("/")[-1])
+                assert tds[1].find_all('a')[1].i.attrs['class'] == "fa fa-rocket ml-2".split()
+
+            ### molecule image
+            assert tds[2].attrs['class'] == ['thumbnail']
+            assert get_image_filename(tds[2].a.img.attrs['title']) == tds[2].a.attrs['href'].split('/')[1].split('.')[0]
+
+            ### ligand sdf
+            assert tds[3].a.attrs['href'].split('/')[1] == tds[0].text
+            assert tds[3].a.button.text == 'sdf'
+
+            ### protein pdb
+            assert tds[4].a.attrs['href'].split('/')[1] == tds[0].text
+            assert tds[4].a.button.text == 'pdb'
+
+            ## final microstate
+            if tds[5].find_all('a'):
+                # microstates have a trailing index, e.g. `_1`
+                assert tds[5].a.text.startswith(tds[5].a.attrs['href'].split("/")[-1])
+                assert tds[5].a.text.startswith(tds[5].find_all('a')[1].attrs['href'].split("/")[-1])
+                assert tds[5].find_all('a')[1].i.attrs['class'] == "fa fa-rocket ml-2".split()
+
+            ### molecule image
+            assert tds[6].attrs['class'] == ['thumbnail']
+            assert get_image_filename(tds[6].a.img.attrs['title']) == tds[6].a.attrs['href'].split('/')[1].split('.')[0]
+
+            ### ligand sdf
+            assert tds[7].a.attrs['href'].split('/')[1] == tds[0].text
+            assert tds[7].a.button.text == 'sdf'
+
+            ### protein pdb
+            assert tds[8].a.attrs['href'].split('/')[1] == tds[0].text
+            assert tds[8].a.button.text == 'pdb'
+
+            ## ΔΔG
+            assert tds[9].attrs['class'] == ["binding"]
+
+            ## Work distributions
+            assert tds[10].attrs['class'] == ['thumbnail']
+            assert tds[10].a.attrs['href'].split('.pdf')[0] == tds[10].a.img.attrs['src'].split('.png')[0]
+
+            ## Convergence
+            assert tds[11].attrs['class'] == ['thumbnail']
+            assert tds[11].a.attrs['href'].split('.pdf')[0] == tds[11].a.img.attrs['src'].split('.png')[0]
 
     def test_top_compounds_detail(self, website_artifactory):
         waf = website_artifactory
@@ -442,60 +434,7 @@ class TestWebsiteArtifactory:
             transform_rows = transform_table.find_all('tr')[1:]
             for row in transform_rows[1:]:
                 tds = row.find_all('td')
-
-                assert len(tds) == 12
-                
-                ## run name
-                assert tds[0].text.startswith('RUN')
-
-                ## initial microstate
-                if tds[1].find_all('a'):
-                    # microstates have a trailing index, e.g. `_1`
-                    assert tds[1].a.text.startswith(tds[1].a.attrs['href'].split("/")[-1])
-                    assert tds[1].a.text.startswith(tds[1].find_all('a')[1].attrs['href'].split("/")[-1])
-                    assert tds[1].find_all('a')[1].i.attrs['class'] == "fa fa-rocket ml-2".split()
-
-                ### molecule image
-                assert tds[2].attrs['class'] == ['thumbnail']
-                assert get_image_filename(tds[2].a.img.attrs['title']) == tds[2].a.attrs['href'].split('/')[1].split('.')[0]
-
-                ### ligand sdf
-                assert tds[3].a.attrs['href'].split('/')[1] == tds[0].text
-                assert tds[3].a.button.text == 'sdf'
-
-                ### protein pdb
-                assert tds[4].a.attrs['href'].split('/')[1] == tds[0].text
-                assert tds[4].a.button.text == 'pdb'
-
-                ## final microstate
-                if tds[5].find_all('a'):
-                    # microstates have a trailing index, e.g. `_1`
-                    assert tds[5].a.text.startswith(tds[5].a.attrs['href'].split("/")[-1])
-                    assert tds[5].a.text.startswith(tds[5].find_all('a')[1].attrs['href'].split("/")[-1])
-                    assert tds[5].find_all('a')[1].i.attrs['class'] == "fa fa-rocket ml-2".split()
-
-                ### molecule image
-                assert tds[6].attrs['class'] == ['thumbnail']
-                assert get_image_filename(tds[6].a.img.attrs['title']) == tds[6].a.attrs['href'].split('/')[1].split('.')[0]
-
-                ### ligand sdf
-                assert tds[7].a.attrs['href'].split('/')[1] == tds[0].text
-                assert tds[7].a.button.text == 'sdf'
-
-                ### protein pdb
-                assert tds[8].a.attrs['href'].split('/')[1] == tds[0].text
-                assert tds[8].a.button.text == 'pdb'
-
-                ## ΔΔG
-                assert tds[9].attrs['class'] == ["binding"]
-
-                ## Work distributions
-                assert tds[10].attrs['class'] == ['thumbnail']
-                assert tds[10].a.attrs['href'].split('.pdf')[0] == tds[10].a.img.attrs['src'].split('.png')[0]
-
-                ## Convergence
-                assert tds[11].attrs['class'] == ['thumbnail']
-                assert tds[11].a.attrs['href'].split('.pdf')[0] == tds[11].a.img.attrs['src'].split('.png')[0]
+                self._test_transformation(tds)
 
                 # assert that at least one of initial / final microstate has this molecule
                 assert (soupd.h3.text.strip() in tds[1].text) or (soupd.h3.text.strip() in tds[5].text)
@@ -511,26 +450,91 @@ class TestWebsiteArtifactory:
 
         waf.generate_microstates(items_per_page=items_per_page)
 
-        microstates = self._test_paginated_table(waf, tabname, items_per_page, n_pages=3, n_header_cols=4, n_cols=5)
+        microstates  = self._test_paginated_table(waf, tabname, items_per_page, n_pages=3, n_header_cols=4, n_cols=5)
+
+        # TODO: test column header names
 
         # examine each microstate
+        for i, row in enumerate(microstates):
+            tds = row.find_all('td')
+
+            # rank
+            assert tds[0].attrs['class'] == ['rank']
+            assert tds[0].text == str(i+1)
+
+            # microstate name, possible postera link as rocket
+            if tds[1].find_all('a'):
+                assert tds[1].text.strip().startswith(tds[1].a.attrs['href'].split('/')[-1])
+
+            # molecule image
+            assert tds[2].attrs['class'] == ['thumbnail']
+            assert get_image_filename(tds[3].text.strip()) == tds[2].a.attrs['href'].split('/')[1].split('.')[0]
+            
+            # smiles
+            assert tds[3].attrs['class'] == ['smiles']
+
+            # ΔG
+            assert tds[4].attrs['class'] == ["binding"]
 
 
-
-    def test_generate_transformations(self):
+    def test_generate_transformations(self, website_artifactory):
         """Test Transformations page content generation.
 
         """
-        ...
+        waf = website_artifactory
+        items_per_page = 7
+        tabname = "Transformations"
 
-    def test_generate_reliable_transformations(self):
+        waf.generate_transformations(items_per_page=items_per_page)
+
+        transformations = self._test_paginated_table(waf, tabname, items_per_page, n_pages=3, n_header_cols=6, n_cols=12)
+
+        # TODO: test column header names
+
+        # examine each transformation
+        for row in transformations:
+            tds = row.find_all('td')
+            self._test_transformation(tds)
+
+    def test_generate_reliable_transformations(self, website_artifactory):
         """Test Reliable Transformations page content generation.
 
         """
-        ...
+        waf = website_artifactory
+        items_per_page = 7
+        tabname = "Reliable Transformations"
 
-    def test_generate_retrospective_transformations(self):
+        waf.generate_reliable_transformations(items_per_page=items_per_page)
+
+        # TODO: re-paginate reliable transforms?
+        # pagination is confusing right now
+        transformations = self._test_paginated_table(waf, tabname, items_per_page, n_pages=3, n_header_cols=6, n_cols=12)
+
+        # TODO: test column header names
+
+        # examine each transformation
+        for row in transformations:
+            tds = row.find_all('td')
+            self._test_transformation(tds)
+
+    def test_generate_retrospective_transformations(self, website_artifactory):
         """Test Retrspective Transformations page content generation.
 
         """
-        ...
+        waf = website_artifactory
+        items_per_page = 7
+        tabname = "Retrospective Transformations"
+
+        waf.generate_retrospective_transformations(items_per_page=items_per_page)
+
+        # TODO: re-paginate reliable transforms?
+        # pagination is confusing right now
+        # TODO: this dataset doesn't yeidl any retrospective transformations; will need to fix this
+        transformations = self._test_paginated_table(waf, tabname, items_per_page, n_pages=3, n_header_cols=6, n_cols=12)
+
+        # TODO: test column header names
+
+        # examine each transformation
+        for row in transformations:
+            tds = row.find_all('td')
+            self._test_transformation(tds)
