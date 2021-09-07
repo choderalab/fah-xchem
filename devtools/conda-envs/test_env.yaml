@@ -4,25 +4,34 @@ channels:
   - defaults
   - omnia
 dependencies:
-    # Base depends
+  # Base depends
   - python
   - pip
 
-    # Testing
+  # Testing
   - pytest
   - pytest-cov
   - codecov
 
   - numpy
+  - pandas
+  - seaborn
+
   - pydantic
   - joblib
   - rich
-  - seaborn
+
   - openmm
   - openmmtools
+  - mdtraj
   - pymbar
+
   - simplejson
+  - networkx
   - beautifulsoup4
+
+  # CLI
+  - fire
 
     # Pip-only installs
   #- pip:
