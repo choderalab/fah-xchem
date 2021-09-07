@@ -298,6 +298,7 @@ class WebsiteArtifactory(BaseModel):
         self.generate_compounds(items_per_page, num_top_compounds)
         self.generate_microstates(items_per_page)
         self.generate_transformations(items_per_page)
+        self.generate_reliable_transformations(items_per_page)
         self.generate_retrospective_transformations(items_per_page)
 
     def generate_summary(self, num_top_compounds):
@@ -405,7 +406,10 @@ class WebsiteArtifactory(BaseModel):
                 transformations=items, **kwargs
             ),
             url_prefix="reliable_transformations",
-            items=self.series.transformations,
+            items=[transformation
+                   for transformation in self.series.transformations
+                   if transformation.reliable_transformation
+                ],
             items_per_page=items_per_page,
             description="Generating html for reliable transformations index",
         )
