@@ -140,7 +140,7 @@ def _get_progress(project: int, api_url: str) -> Optional[Progress]:
         return None
 
     completed_work_units = response["gens_completed"]
-    total_work_units = response["runs"] * response["clones"] * response["gens"]
+    total_work_units = response["total_jobs"]
 
     return Progress(completed=completed_work_units, total=total_work_units)
 
