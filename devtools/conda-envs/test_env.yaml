@@ -22,6 +22,7 @@ dependencies:
   - openmmtools
   - pymbar
   - simplejson
+  - beautifulsoup4
 
     # Pip-only installs
   #- pip:
