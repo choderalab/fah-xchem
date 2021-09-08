@@ -33,7 +33,7 @@ from .free_energy import compute_relative_free_energy, InsufficientDataError
 from .plots import generate_plots
 from .report import generate_report, gens_are_consistent
 from .structures import generate_representative_snapshots
-from .website import generate_website
+from .website import WebsiteArtifactory
 
 
 EXP_DDG_IJ_ERR = 0.2  # TODO check this is correct
@@ -337,6 +337,7 @@ def generate_artifacts(
     output_dir: str,
     base_url: str,
     config: AnalysisConfig,
+    server: FahConfig,
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = None,
     snapshots: bool = True,
@@ -396,9 +397,12 @@ def generate_artifacts(
 
     if website:
         logging.info("Generating website")
-        generate_website(
-            series=series,
-            path=output_dir,
-            timestamp=timestamp,
+        waf = WebsiteArtifactory(
             base_url=base_url,
+            path=output_dir,
+            series=series,
+            timestamp=timestamp,
+            fah_ws_api_url=server.api_url,
         )
+
+        waf.generate_website()

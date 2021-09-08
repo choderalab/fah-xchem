@@ -55,7 +55,8 @@ setup(
         "matplotlib>=3.3",
         "seaborn>=0.11",
         "rich>=6.0",
-        "networkx"
+        "networkx",
+        "beautifulsoup4"
     ],
     # platforms=['Linux',
     #            'Mac OS-X',

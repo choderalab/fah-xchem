@@ -26,6 +26,12 @@ dependencies:
   - networkx
   - beautifulsoup4
   - pip
+
+  # testing
+  - pytest
+  - pytest-cov
+  - codecov
+
   - pip:
       - git+https://github.com/openforcefield/Arsenic.git@0.1.0
       - git+https://github.com/xchem/pandda_gemmi.git

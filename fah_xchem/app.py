@@ -14,14 +14,10 @@ from .schema import (
     FahConfig,
     CompoundSeries,
     CompoundSeriesAnalysis,
-    Model,
+    TimestampedAnalysis,
     FragalysisConfig,
 )
 
-
-class TimestampedAnalysis(Model):
-    as_of: dt.datetime
-    series: CompoundSeriesAnalysis
 
 
 def _get_config(
@@ -142,6 +138,7 @@ def generate_artifacts(
     compound_series_analysis_file: str,
     fah_projects_dir: str,
     fah_data_dir: str,
+    fah_api_url: str,
     output_dir: str = "results",
     base_url: str = "/",
     config_file: Optional[str] = None,
@@ -174,6 +171,8 @@ def generate_artifacts(
         Path to directory containing Folding@home project definitions
     fah_data_dir : str
         Path to directory containing Folding@home project result data
+    fah_api_url : str
+        URL for work server API
     output_dir : str, optional
         Write output here
     base_url : str, optional
@@ -215,6 +214,10 @@ def generate_artifacts(
     with open(compound_series_analysis_file, "r") as infile:
         tsa = TimestampedAnalysis.parse_obj(json.load(infile))
 
+    server = FahConfig(
+        projects_dir=fah_projects_dir, data_dir=fah_data_dir, api_url=fah_api_url
+    )
+
     return fah_xchem.analysis.generate_artifacts(
         series=tsa.series,
         timestamp=tsa.as_of,
@@ -223,6 +226,7 @@ def generate_artifacts(
         output_dir=output_dir,
         base_url=base_url,
         config=config,
+        server=server,
         cache_dir=cache_dir,
         num_procs=num_procs,
         snapshots=snapshots,

@@ -4,7 +4,7 @@
 {% block content %}
 <h3>Reliable Transformations <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Reliable transformations</b>" data-content="This page contains transformations that are deemed reliable based on consistency between GENs."></i></th></h3>
 <div class="my-3">
-Showing {{ start_index }} through {{ end_index }} of {{ series.transformations | length }}
+Showing {{ start_index }} through {{ end_index }} of {{ transformations | length }}
 <span style="white-space: nowrap;">
 {% if prev_page %}<a href={{ prev_page }}><i class="fa fa-backward px-1"></i></a>{% endif %}
 {% if next_page %}<a href={{ next_page }}><i class="fa fa-forward px-1"></i></a>{% endif %}
@@ -20,7 +20,6 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.transformations |
     <th>Convergence <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Convergence</b>" data-content="<b>Top plot</b>: Green points represent relative binding free energy (RBFE) estimates from individual iterations (GENs) with a 95% confidence interval (pale green shaded region). Confidence in the RBFE estimate is higher if RBFEs between iterations are in good agreement, ideally falling within the 95% confidence interval. <br /><br /> <b>Lower plot</b>: Binding free energy estimates of solvent (blue) and complex (red) phases."></i></th>
   </tr>
   {% for transformation in transformations %}
-  {% if transformation.reliable_transformation %}
   <tr>
     <td >RUN{{ transformation.transformation.run_id }}</td>
     <td>{{ transformation.transformation.initial_microstate.microstate_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.initial_microstate.microstate_id) }}</td>
@@ -72,7 +71,6 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.transformations |
       </a>
     </td>
   </tr>
-  {% endif %}
   {% endfor %}
 </table>
 {% endblock %}
