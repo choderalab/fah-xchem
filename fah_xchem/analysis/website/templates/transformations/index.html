@@ -4,7 +4,7 @@
 {% block content %}
 <h3>Transformations</h3>
 <div class="my-3">
-Showing {{ start_index }} through {{ end_index }} of {{ series.transformations | length }}
+Showing {{ start_index }} through {{ end_index }} of {{ transformations | length }}
 <span style="white-space: nowrap;">
 {% if prev_page %}<a href={{ prev_page }}><i class="fa fa-backward px-1"></i></a>{% endif %}
 {% if next_page %}<a href={{ next_page }}><i class="fa fa-forward px-1"></i></a>{% endif %}

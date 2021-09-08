@@ -196,9 +196,18 @@ class CompoundAnalysis(Model):
 
 
 class CompoundSeriesAnalysis(Model):
+    """Full analysis results object for compound series.
+
+    """
     metadata: CompoundSeriesMetadata
+    # TODO: perhaps make this a dict with `metadata.compound_id` as key?
     compounds: List[CompoundAnalysis]
     transformations: List[TransformationAnalysis]
+
+
+class TimestampedAnalysis(Model):
+    as_of: dt.datetime
+    series: CompoundSeriesAnalysis
 
 
 class AnalysisConfig(Model):
@@ -230,8 +239,9 @@ class AnalysisConfig(Model):
 
 
 class FahConfig(Model):
-    projects_dir: str = "projects"
-    data_dir: str = "data"
+    projects_dir: str = None
+    data_dir: str = None
+    api_url: str = None
 
 
 class FragalysisConfig(Model):

@@ -20,6 +20,7 @@ from ..schema import (
     TransformationAnalysis,
 )
 from .constants import KT_KCALMOL
+from .filters import Racemic
 from arsenic import plotting
 
 
@@ -807,33 +808,7 @@ def generate_plots(
     # this needs to be plotted last as the figure isn't cleared by default in Arsenic
     # TODO generate time stamp
 
-    # All transformations
-    plot_retrospective(
-        output_dir=output_dir,
-        transformations=series.transformations,
-        filename="retrospective-transformations-all",
-    )
-
-    # Reliable subset of transformations
-    plot_retrospective(
-        output_dir=output_dir,
-        transformations=[
-            transformation
-            for transformation in series.transformations
-            if transformation.reliable_transformation
-        ],
-        filename="retrospective-transformations-reliable",
-    )
-
-    # Transformations not involving racemates
-    # TODO: Find a simpler way to filter non-racemates
-    nmicrostates = {
-        compound.metadata.compound_id: len(compound.microstates)
-        for compound in series.compounds
-    }
-
-    def is_racemate(microstate):
-        return True if (nmicrostates[microstate.compound_id] > 1) else False
+    racemic_filter = Racemic(series)
 
     plot_retrospective(
         output_dir=output_dir,
@@ -841,8 +816,12 @@ def generate_plots(
             transformation
             for transformation in series.transformations
             if (
-                not is_racemate(transformation.transformation.initial_microstate)
-                and not is_racemate(transformation.transformation.final_microstate)
+                not racemic_filter.compound_microstate(
+                    transformation.transformation.initial_microstate
+                )
+                and not racemic_filter.compound_microstate(
+                    transformation.transformation.final_microstate
+                )
             )
         ],
         filename="retrospective-transformations-noracemates",
