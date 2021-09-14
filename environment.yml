@@ -2,14 +2,15 @@ name: fah-xchem
 channels:
   - conda-forge
   - defaults
-  - omnia
   - openeye
 dependencies:
+  - beautifulsoup4
   - fire
   - jinja2
   - joblib
   - matplotlib
   - mdtraj
+  - networkx
   - numpy >= 1.19
   - openeye-toolkits
   - openmm
@@ -19,12 +20,11 @@ dependencies:
   - plotly
   - pydantic
   - pymbar
-  - python >= 3.6
+  - python >= 3.7
   - rich
+  - requests
   - seaborn >= 0.11
   - simplejson
-  - networkx
-  - beautifulsoup4
   - pip
   - pip:
       - git+https://github.com/openforcefield/Arsenic.git@0.1.0
