@@ -56,7 +56,7 @@ class SnapshotArtifactory(BaseModel):
 
     @staticmethod
     def load_trajectory(
-        self, project_dir: str, project_data_dir: str, run: int, clone: int, gen: int
+        project_dir: str, project_data_dir: str, run: int, clone: int, gen: int
     ) -> md.Trajectory:
         """
         Load the trajectory from the specified PRCG.
@@ -108,7 +108,6 @@ class SnapshotArtifactory(BaseModel):
 
     @staticmethod
     def load_fragment(
-        self,
         structure_path: pathlib.Path,
         target_name: str,
         fragment_id: str,
