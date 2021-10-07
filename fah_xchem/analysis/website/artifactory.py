@@ -299,7 +299,7 @@ class WebsiteArtifactory(BaseModel):
         self.generate_microstates(items_per_page)
         self.generate_transformations(items_per_page)
         self.generate_reliable_transformations(items_per_page)
-        self.generate_retrospective_transformations(items_per_page)
+        self.generate_retrospective_microstate_transformations(items_per_page)
 
     def generate_summary(self, num_top_compounds):
         self._write_html(
@@ -414,9 +414,9 @@ class WebsiteArtifactory(BaseModel):
             description="Generating html for reliable transformations index",
         )
 
-    def generate_retrospective_transformations(self, items_per_page):
+    def generate_retrospective_microstate_transformations(self, items_per_page):
 
-        subdir = "retrospective_transformations"
+        subdir = "retrospective_microstate_transformations"
         os.makedirs(os.path.join(self.path, subdir), exist_ok=True)
 
         racemic_filter = Racemic(self.series)
@@ -424,7 +424,7 @@ class WebsiteArtifactory(BaseModel):
             write_html=lambda items, **kwargs: self._write_html(
                 transformations=items, **kwargs
             ),
-            url_prefix="retrospective_transformations",
+            url_prefix="retrospective_microstate_transformations",
             items=sorted(
                 [
                     transformation
@@ -441,5 +441,5 @@ class WebsiteArtifactory(BaseModel):
                 key=lambda transformation: -transformation.absolute_error.point,
             ),
             items_per_page=items_per_page,
-            description="Generating html for retrospective transformations index",
+            description="Generating html for retrospective microstate transformations index",
         )
