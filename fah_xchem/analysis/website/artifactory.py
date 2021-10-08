@@ -436,6 +436,7 @@ class WebsiteArtifactory(BaseModel):
                         and not racemic_filter.compound_microstate(
                             transformation.transformation.final_microstate
                         )
+                        and transformation.absolute_error is not None
                     )
                 ],
                 key=lambda transformation: -transformation.absolute_error.point,
