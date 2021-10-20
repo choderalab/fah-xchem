@@ -32,7 +32,7 @@ from .extract_work import extract_work_pair
 from .free_energy import compute_relative_free_energy, InsufficientDataError
 from .plots import generate_plots
 from .report import generate_report, gens_are_consistent
-from .structures import generate_representative_snapshots
+from .structures import SnapshotArtifactory
 from .website import WebsiteArtifactory
 
 
@@ -365,13 +365,16 @@ def generate_artifacts(
 
     if snapshots:
         logging.info("Generating representative snapshots")
-        generate_representative_snapshots(
-            transformations=available_transformations,
+        saf = SnapshotArtifactory(
+            config=config,
             project_dir=complex_project_dir,
             project_data_dir=complex_data_dir,
-            output_dir=os.path.join(output_dir, "transformations"),
-            max_binding_free_energy=config.max_binding_free_energy,
             cache_dir=cache_dir,
+        )
+
+        saf.generate_representative_snapshots(
+            transformations=available_transformations,
+            output_dir=os.path.join(output_dir, "transformations"),
             num_procs=num_procs,
             overwrite=overwrite,
         )

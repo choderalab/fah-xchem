@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% import "postera.html" as postera %}
-{% set active_page = "retrospective_transformations" %}
+{% set active_page = "retrospective_microstate_transformations" %}
 {% block content %}
 <h3>Retrospective Transformations <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Retrospective transformations</b>" data-content="This page contains a retrospective analysis of the accuracy of individual transformations (without DiffNet MLE estimates) compared with experimental data."></i></th></h3>
+<!-- TODO: Add comparison of experimental and correct compound absolute free energies -->
+<!-- Only show retrospective transformations between stereochemically pure compounds -->
 <a href="retrospective-transformations-noracemates.png">
   <img src="retrospective-transformations-noracemates.png" alt="retrospective transformations plot - no racemates">
 </a>
