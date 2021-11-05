@@ -25,6 +25,11 @@ def _get_config(
     return config
 
 
+class Fragalysis:
+
+    def pull():
+        ...
+
 class Prepare:
     """Simulation preparation actions, pre-FAH compute.
 
@@ -37,10 +42,36 @@ class Prepare:
             output_directory,
             dry_run
             ):
-        """
+        """Prepare receptors starting from 
     
         """
-        ...
+        from openeye import oechem
+
+        oechem.OEThrow.SetLevel(oechem.OEErrorLevel_Quiet)
+
+
+        input_paths = get_structures(args)
+        output_paths = [args.output_directory.absolute().joinpath(subdir) for subdir in ['monomer', 'dimer']]
+
+        products = list(itertools.product(input_paths, output_paths))
+        configs = [PreparationConfig(input=x, output=y, create_dimer=y.stem == 'dimer') for x, y in
+                   products]
+
+        for config in configs:
+            if config.output.exists():
+                pass
+            else:
+                config.output.mkdir(parents=True, exist_ok=True)
+
+        configs = define_prep_configs(args)
+        create_output_directories(configs)
+        for config in configs:
+            if args.dry_run:
+                print(config)
+            else:
+                prepare_receptor(config)
+
+
 
     def openmm():
         pass

@@ -3,6 +3,7 @@ import datetime as dt
 from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
+from openeye import oechem
 
 
 class Model(BaseModel):
@@ -10,6 +11,29 @@ class Model(BaseModel):
         allow_mutation = False
         extra = "forbid"
 
+## prepare
+
+
+class OutputPaths(Model):
+    receptor_gzipped: pathlib.Path
+    receptor_thiolate_gzipped: pathlib.Path
+    design_unit_gzipped: pathlib.Path
+    design_unit_thiolate_gzipped: pathlib.Path
+    protein_pdb: pathlib.Path
+    protein_thiolate_pdb: pathlib.Path
+    ligand_pdb: pathlib.Path
+    ligand_sdf: pathlib.Path
+    ligand_mol2: pathlib.Path
+
+
+class DockingSystem(Model):
+    protein: oechem.OEGraphMol
+    ligand: oechem.OEGraphMol
+    receptor: oechem.OEGraphMol
+    design_unit: oechem.OEDesignUnit
+
+
+## analyze and generate
 
 class PointEstimate(Model):
     point: Union[None, float]

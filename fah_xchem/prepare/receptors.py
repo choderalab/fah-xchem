@@ -5,6 +5,7 @@ This should be run from the covid-moonshot/scripts directory
 
 """
 import os
+import pathlib
 from typing import Optional, List, Tuple, NamedTuple, Union
 import re
 from pathlib import Path
@@ -20,42 +21,114 @@ from openeye import oespruce
 from openeye import oedocking
 import numpy as np
 from openeye import oechem
+from pydantic import BaseModel
 
-from prepare.constants import (BIOLOGICAL_SYMMETRY_HEADER, SEQRES_DIMER, SEQRES_MONOMER, FRAGALYSIS_URL,
+from .prepare.constants import (BIOLOGICAL_SYMMETRY_HEADER, SEQRES_DIMER, SEQRES_MONOMER, FRAGALYSIS_URL,
                                MINIMUM_FRAGMENT_SIZE, CHAIN_PDB_INDEX)
+from ..schema import OutputPaths, DockingSystem
 
 
-class DockingSystem(NamedTuple):
-    protein: oechem.OEGraphMol
-    ligand: oechem.OEGraphMol
-    receptor: oechem.OEGraphMol
-    design_unit: oechem.OEDesignUnit
+class ReceptorArtifactory(BaseModel):
+    """Receptor F@H-input creator."""
 
-
-class PreparationConfig(NamedTuple):
-    input: Path
-    output: Path
+    input: pathlib.Path
+    output: pathlib.Path
     create_dimer: bool
     retain_water: Optional[bool] = False
 
-    def __str__(self):
-        msg = f"\n Input path: {str(self.input.absolute())}" \
-              f"\n Output path: {str(self.output.absolute())}" \
-              f"\n Create dimer: {str(self.create_dimer)}" \
-              f"\n Retain water: {str(self.retain_water)}"
-        return msg
+    def prepare_receptor(self) -> None:
+    
+        output_filenames = self._create_output_filenames()
+    
+        errfs = self._create_logger(output_filenames)
+    
+        if not self._options_consistent():
+            oechem.OEThrow.Verbose(f"Options are inconsistent. Ignoring this configuration: \n{self.config}")
+            errfs.close()
+            return
+    
+        oechem.OEThrow.Verbose('cleaning pdb...')
+        pdb_lines = clean_pdb(self.config)
+        oechem.OEThrow.Verbose('creating molecular graph...')
+        complex = lines_to_mol_graph(pdb_lines)
+    
+        # Some prophylatic measures by JDC - may be redundant in new OE versions
+        oechem.OEThrow.Verbose('stripping hydrogens...')
+        complex = strip_hydrogens(complex)
+        oechem.OEThrow.Verbose('rebuilding c terminal...')
+        complex = rebuild_c_terminal(complex)
+    
+        # Log warnings
+    
+    
+        # Setup options
+        oechem.OEThrow.Verbose('setting options...')
+        options = set_options()
+        oechem.OEThrow.Verbose('creating metadata...')
+        metadata = oespruce.OEStructureMetadata()
+    
+        oechem.OEThrow.Verbose('making base design unit...')
+        design_unit = make_design_units(complex, metadata, options)[0]
+        oechem.OEThrow.Verbose('making base docking system...')
+        docking_sytem = make_docking_system(design_unit)
+    
+        # Neutral dyad
+        oechem.OEThrow.Verbose('making neutral dyad...')
+        oechem.OEThrow.Verbose('\t updating design unit...')
+        design_unit = create_dyad('His41(0) Cys145(0)', docking_sytem, design_unit, options)
+        oechem.OEThrow.Verbose('\t updating docking system...')
+        docking_sytem = make_docking_system(design_unit)
+        oechem.OEThrow.Verbose('\t writing docking system...')
+        write_docking_system(docking_sytem, output_filenames, is_thiolate=False)
+    
+        # Charge separated dyad
+        oechem.OEThrow.Verbose('making catalytic dyad...')
+        oechem.OEThrow.Verbose('\t updating design unit...')
+        design_unit = create_dyad('His41(+) Cys145(-1)', docking_sytem, design_unit, options)
+        oechem.OEThrow.Verbose('\t updating docking system...')
+        docking_system = make_docking_system(design_unit)
+        oechem.OEThrow.Verbose('\t writing docking system...')
+        write_docking_system(docking_system, output_filenames, is_thiolate=True)
+        errfs.close()
 
 
-class OutputPaths(NamedTuple):
-    receptor_gzipped: Path
-    receptor_thiolate_gzipped: Path
-    design_unit_gzipped: Path
-    design_unit_thiolate_gzipped: Path
-    protein_pdb: Path
-    protein_thiolate_pdb: Path
-    ligand_pdb: Path
-    ligand_sdf: Path
-    ligand_mol2: Path
+    def _create_output_filenames(self) -> OutputPaths:
+        output = self.output
+        prefix = output.joinpath(self.input.stem)
+        stem = self.input.stem
+
+        outputs = OutputPaths(
+            # TODO: Can we simplify these paths by auto-generating them from a common prefix?
+            receptor_gzipped=output.joinpath(f'{stem}-receptor.oeb.gz'),
+            receptor_thiolate_gzipped=output.joinpath(f'{stem}-receptor-thiolate.oeb.gz'),
+            design_unit_gzipped=output.joinpath(f'{stem}-designunit.oeb.gz'),
+            design_unit_thiolate_gzipped=output.joinpath(f'{stem}-designunit-thiolate.oeb.gz'),
+            protein_pdb=output.joinpath(f'{stem}-protein.pdb'),
+            protein_thiolate_pdb=output.joinpath(f'{stem}-protein-thiolate.pdb'),
+            ligand_pdb=output.joinpath(f'{stem}-ligand.pdb'),
+            ligand_sdf=output.joinpath(f'{stem}-ligand.sdf'),
+            ligand_mol2=output.joinpath(f'{stem}-ligand.mol2')
+        )
+        return outputs
+
+
+    def _create_logger(self, outputs: OutputPaths) -> oechem.oeofstream:
+        fname = outputs.protein_pdb.parent.joinpath(f"{outputs.protein_pdb.stem}.log")
+        errfs = oechem.oeofstream(str(fname)) # create a stream that writes internally to a stream
+        oechem.OEThrow.SetOutputStream(errfs)
+        oechem.OEThrow.Clear()
+        oechem.OEThrow.SetLevel(oechem.OEErrorLevel_Verbose) # capture verbose error output
+        return errfs
+
+    def _options_consistent(self) -> bool:
+        flag = True
+        if au_is_dimeric(self.input) and (not self.create_dimer):
+            oechem.OEThrow.Verbose("Can't create monomer from dimer in AU")
+            flag = False
+        if (not au_is_dimeric(self.input)) and (crystal_series(self.input) in ['N', 'P']) and self.create_dimer:
+            oechem.OEThrow.Verbose("Can't create dimer from monomer of N or P series")
+            flag = False
+        return flag
 
 
 def download_url(url, save_path, chunk_size=128):
@@ -180,24 +253,6 @@ def rebuild_c_terminal(complex: oechem.OEGraphMol) -> oechem.OEGraphMol:
                 if oechem.OEGetPDBAtomIndex(nbor) == oechem.OEPDBAtomName_O:
                     complex.DeleteAtom(nbor)
     return complex
-
-
-def create_output_filenames(config: PreparationConfig) -> OutputPaths:
-    prefix = config.output.joinpath(config.input.stem)
-    stem = config.input.stem
-    outputs = OutputPaths(
-        # TODO: Can we simplify these paths by auto-generating them from a common prefix?
-        receptor_gzipped=config.output.joinpath(f'{stem}-receptor.oeb.gz'),
-        receptor_thiolate_gzipped=config.output.joinpath(f'{stem}-receptor-thiolate.oeb.gz'),
-        design_unit_gzipped=config.output.joinpath(f'{stem}-designunit.oeb.gz'),
-        design_unit_thiolate_gzipped=config.output.joinpath(f'{stem}-designunit-thiolate.oeb.gz'),
-        protein_pdb=config.output.joinpath(f'{stem}-protein.pdb'),
-        protein_thiolate_pdb=config.output.joinpath(f'{stem}-protein-thiolate.pdb'),
-        ligand_pdb=config.output.joinpath(f'{stem}-ligand.pdb'),
-        ligand_sdf=config.output.joinpath(f'{stem}-ligand.sdf'),
-        ligand_mol2=config.output.joinpath(f'{stem}-ligand.mol2')
-    )
-    return outputs
 
 
 def set_options() -> oespruce.OEMakeDesignUnitOptions:
@@ -392,82 +447,10 @@ def create_dyad(state: str, docking_system: DockingSystem, design_unit: oechem.O
     return design_unit
 
 
-def options_consistent(config: PreparationConfig) -> bool:
-    flag = True
-    if au_is_dimeric(config.input) and (not config.create_dimer):
-        oechem.OEThrow.Verbose("Can't create monomer from dimer in AU")
-        flag = False
-    if (not au_is_dimeric(config.input)) and (crystal_series(config.input) in ['N', 'P']) and config.create_dimer:
-        oechem.OEThrow.Verbose("Can't create dimer from monomer of N or P series")
-        flag = False
-    return flag
 
-
-def create_logger(outputs: OutputPaths) -> oechem.oeofstream:
-    fname = outputs.protein_pdb.parent.joinpath(f"{outputs.protein_pdb.stem}.log")
-    errfs = oechem.oeofstream(str(fname)) # create a stream that writes internally to a stream
-    oechem.OEThrow.SetOutputStream(errfs)
-    oechem.OEThrow.Clear()
-    oechem.OEThrow.SetLevel(oechem.OEErrorLevel_Verbose) # capture verbose error output
-    return errfs
 
 
 # def align_complex()
-
-def prepare_receptor(config: PreparationConfig) -> None:
-
-    output_filenames = create_output_filenames(config)
-
-    errfs = create_logger(output_filenames)
-
-    if not options_consistent(config):
-        oechem.OEThrow.Verbose(f"Options are inconsistent. Ignoring this configuration: \n{config}")
-        errfs.close()
-        return
-
-    oechem.OEThrow.Verbose('cleaning pdb...')
-    pdb_lines = clean_pdb(config)
-    oechem.OEThrow.Verbose('creating molecular graph...')
-    complex = lines_to_mol_graph(pdb_lines)
-
-    # Some prophylatic measures by JDC - may be redundant in new OE versions
-    oechem.OEThrow.Verbose('stripping hydrogens...')
-    complex = strip_hydrogens(complex)
-    oechem.OEThrow.Verbose('rebuilding c terminal...')
-    complex = rebuild_c_terminal(complex)
-
-    # Log warnings
-
-
-    # Setup options
-    oechem.OEThrow.Verbose('setting options...')
-    options = set_options()
-    oechem.OEThrow.Verbose('creating metadata...')
-    metadata = oespruce.OEStructureMetadata()
-
-    oechem.OEThrow.Verbose('making base design unit...')
-    design_unit = make_design_units(complex, metadata, options)[0]
-    oechem.OEThrow.Verbose('making base docking system...')
-    docking_sytem = make_docking_system(design_unit)
-
-    # Neutral dyad
-    oechem.OEThrow.Verbose('making neutral dyad...')
-    oechem.OEThrow.Verbose('\t updating design unit...')
-    design_unit = create_dyad('His41(0) Cys145(0)', docking_sytem, design_unit, options)
-    oechem.OEThrow.Verbose('\t updating docking system...')
-    docking_sytem = make_docking_system(design_unit)
-    oechem.OEThrow.Verbose('\t writing docking system...')
-    write_docking_system(docking_sytem, output_filenames, is_thiolate=False)
-
-    # Charge separated dyad
-    oechem.OEThrow.Verbose('making catalytic dyad...')
-    oechem.OEThrow.Verbose('\t updating design unit...')
-    design_unit = create_dyad('His41(+) Cys145(-1)', docking_sytem, design_unit, options)
-    oechem.OEThrow.Verbose('\t updating docking system...')
-    docking_system = make_docking_system(design_unit)
-    oechem.OEThrow.Verbose('\t writing docking system...')
-    write_docking_system(docking_system, output_filenames, is_thiolate=True)
-    errfs.close()
 
 
 def download_fragalysis_latest(structures_path: Path) -> None:
@@ -535,3 +518,5 @@ def main(args, parser) -> None:
             print(config)
         else:
             prepare_receptor(config)
+
+
