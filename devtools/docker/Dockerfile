@@ -2,8 +2,11 @@ FROM continuumio/miniconda3
 
 SHELL ["/bin/bash", "-c"]
 
-RUN conda env create -n fah-xchem -f environment.yml \
+COPY . fah-xchem
+
+RUN conda env create -n fah-xchem -f fah-xchem/environment.yml \
  && source activate fah-xchem \
+ && cd fah-xchem \
  && pip install .
 
 RUN groupadd -g 999 fah-xchem \
