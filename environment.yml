@@ -5,7 +5,7 @@ channels:
   - openeye
 dependencies:
   - beautifulsoup4
-  - fire
+  - click
   - jinja2
   - joblib
   - matplotlib
