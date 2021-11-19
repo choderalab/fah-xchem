@@ -16,12 +16,11 @@ from argparse import ArgumentParser
 import requests
 from zipfile import ZipFile
 
-from rich.progress import track
 from openeye import oespruce
 from openeye import oedocking
 import numpy as np
 from openeye import oechem
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .prepare.constants import (BIOLOGICAL_SYMMETRY_HEADER, SEQRES_DIMER, SEQRES_MONOMER, FRAGALYSIS_URL,
                                MINIMUM_FRAGMENT_SIZE, CHAIN_PDB_INDEX)
@@ -29,12 +28,13 @@ from ..schema import OutputPaths, DockingSystem
 
 
 class ReceptorArtifactory(BaseModel):
-    """Receptor F@H-input creator."""
+    """Receptor F@H-input creator.
 
-    input: pathlib.Path
-    output: pathlib.Path
-    create_dimer: bool
-    retain_water: Optional[bool] = False
+    """
+    input: pathlib.Path = Field(..., description="")
+    output: pathlib.Path = Field(..., description="")
+    create_dimer: bool = Field(..., description="")
+    retain_water: Optional[bool] = Field(False, description="")
 
     def prepare_receptor(self) -> None:
     
@@ -129,22 +129,6 @@ class ReceptorArtifactory(BaseModel):
             oechem.OEThrow.Verbose("Can't create dimer from monomer of N or P series")
             flag = False
         return flag
-
-
-def download_url(url, save_path, chunk_size=128):
-    """
-    Download file from the specified URL to the specified file path, creating base dirs if needed.
-    """
-    # Create directory
-    base_path, filename = os.path.split(save_path)
-    os.makedirs(base_path, exist_ok=True)
-
-    r = requests.get(url, stream=True)
-    with open(save_path, 'wb') as fd:
-        nchunks = int(int(r.headers['Content-Length'])/chunk_size)
-        for chunk in track(r.iter_content(chunk_size=chunk_size), 'Downloading ZIP archive of Mpro structures...',
-                           total=nchunks):
-            fd.write(chunk)
 
 
 def read_pdb_file(pdb_file):
@@ -445,78 +429,3 @@ def create_dyad(state: str, docking_system: DockingSystem, design_unit: oechem.O
     oechem.OEUpdateDesignUnit(design_unit, protein, oechem.OEDesignUnitComponents_Protein)
     oespruce.OEProtonateDesignUnit(design_unit, protonate_opts)
     return design_unit
-
-
-
-
-
-# def align_complex()
-
-
-def download_fragalysis_latest(structures_path: Path) -> None:
-    zip_path = structures_path.joinpath('Mpro.zip')
-    download_url(FRAGALYSIS_URL, zip_path)
-    with ZipFile(zip_path, 'r') as zip_obj:
-        zip_obj.extractall(structures_path)
-    zip_path.unlink()
-
-
-def get_structures(args: argparse.Namespace) -> List[Path]:
-    structures_directory = args.structures_directory.absolute()
-    if not structures_directory.exists() or not any(structures_directory.iterdir()):
-        print(f"Downloading and extracting MPro files to {args.structures_directory.absolute()}")
-        download_fragalysis_latest(args.structures_directory.absolute())
-
-
-    source_pdb_files = list(structures_directory.glob(args.structures_filter))
-    if len(source_pdb_files) == 0:
-        raise RuntimeError(f'Glob path {structures_directory.joinpath(args.structures_filter)} '
-                           f'has matched 0 files.')
-    return source_pdb_files
-
-
-def define_prep_configs(args: argparse.Namespace) -> List[PreparationConfig]:
-    input_paths = get_structures(args)
-    output_paths = [args.output_directory.absolute().joinpath(subdir) for subdir in ['monomer', 'dimer']]
-
-    products = list(itertools.product(input_paths, output_paths))
-    configs = [PreparationConfig(input=x, output=y, create_dimer=y.stem == 'dimer') for x, y in
-               products]
-
-    return configs
-
-
-def create_output_directories(configs: List[PreparationConfig]) -> None:
-    for config in configs:
-        if config.output.exists():
-            pass
-        else:
-            config.output.mkdir(parents=True, exist_ok=True)
-
-
-def configure_parser(sub_subparser: ArgumentParser):
-    p = sub_subparser.add_parser('receptors')
-    p.add_argument('-i', '--structures-directory', type=Path,
-                   help="Path to MPro directory, doesn't need to exist. Default: './MPro'",
-                   default='./MPro')
-    p.add_argument('-f', '--structures-filter', type=str,
-                   help="Glob filter to find PDB files in structures_directory.",
-                   default="aligned/Mpro-*_0?/Mpro-*_0?_bound.pdb")
-    p.add_argument('-o', '--output-directory', type=Path, help='Path to directory in which to write prepared files',
-                   default='./receptors')
-    p.add_argument('-n', '--dry-run', help='Dry run: file locations will be printed to stdout.', action='store_true')
-    p.set_defaults(func=main)
-
-
-def main(args, parser) -> None:
-    oechem.OEThrow.SetLevel(oechem.OEErrorLevel_Quiet)
-
-    configs = define_prep_configs(args)
-    create_output_directories(configs)
-    for config in configs:
-        if args.dry_run:
-            print(config)
-        else:
-            prepare_receptor(config)
-
-
