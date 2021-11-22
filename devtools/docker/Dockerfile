@@ -7,7 +7,8 @@ COPY . fah-xchem
 RUN conda env create -n fah-xchem -f fah-xchem/environment.yml \
  && source activate fah-xchem \
  && cd fah-xchem \
- && pip install .
+ && pip install . \
+ && conda clean --all
 
 RUN groupadd -g 999 fah-xchem \
  && useradd -m -r -u 999 -g fah-xchem fah-xchem
