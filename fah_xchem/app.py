@@ -19,7 +19,6 @@ from .schema import (
 )
 
 
-
 def _get_config(
     cls,
     config_file: Optional[str],

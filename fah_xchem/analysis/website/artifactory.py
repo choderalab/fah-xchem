@@ -406,10 +406,11 @@ class WebsiteArtifactory(BaseModel):
                 transformations=items, **kwargs
             ),
             url_prefix="reliable_transformations",
-            items=[transformation
-                   for transformation in self.series.transformations
-                   if transformation.reliable_transformation
-                ],
+            items=[
+                transformation
+                for transformation in self.series.transformations
+                if transformation.reliable_transformation
+            ],
             items_per_page=items_per_page,
             description="Generating html for reliable transformations index",
         )

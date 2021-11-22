@@ -218,11 +218,13 @@ class SnapshotArtifactory(BaseModel):
         )
 
         # Load the fragment
-        fragment = self.load_fragment(structure_path=self.config.structure_path,
-                                      target_name=self.config.target_name,
-                                      fragment_id=fragment_id,
-                                      annotations=self.config.annotations,
-                                      component=self.config.component)
+        fragment = self.load_fragment(
+            structure_path=self.config.structure_path,
+            target_name=self.config.target_name,
+            fragment_id=fragment_id,
+            annotations=self.config.annotations,
+            component=self.config.component,
+        )
 
         # Align the trajectory to the fragment (in place)
         # trajectory.image_molecules(inplace=True) # No need to image molecules anymore now that perses adds zero-energy bonds between protein and ligand!
