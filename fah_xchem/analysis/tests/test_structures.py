@@ -3,8 +3,8 @@ import pytest
 from fah_xchem.analysis.structures import SnapshotArtifactory
 
 
-#@pytest.fixture
-#def snapshotartifactory(tmpdir):
+# @pytest.fixture
+# def snapshotartifactory(tmpdir):
 #    with tmpdir.as_cwd():
 #
 #        waf = SnapshotArtifactory(
@@ -14,9 +14,8 @@ from fah_xchem.analysis.structures import SnapshotArtifactory
 #                cache_dir=cache_dir,
 #            )
 #
-#class TestSnapshotArtifactory:
+# class TestSnapshotArtifactory:
 #    pass
 #
 #    def test_lol(self):
 #        pass
-
