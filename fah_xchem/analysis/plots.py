@@ -21,7 +21,7 @@ from ..schema import (
 )
 from .constants import KT_KCALMOL
 from .filters import Racemic
-from arsenic import plotting
+from openff.arsenic import plotting
 
 
 def plot_retrospective(
