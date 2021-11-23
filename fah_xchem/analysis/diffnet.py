@@ -186,7 +186,7 @@ def combine_free_energies(
         Result of DiffNet MLE analysis
     """
 
-    from arsenic import stats
+    from openff.arsenic import stats
 
     # Type assertions (useful for type checking with mypy)
     node: CompoundMicrostate
