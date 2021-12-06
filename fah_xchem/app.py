@@ -28,25 +28,44 @@ def _get_config(
 
 @click.group()
 def cli():
-    ...
+    pass
 
 
 @cli.group()
 def fragalysis():
-    ...
+    pass
 
 
 @fragalysis.command()
-@click.argument('structures-url', type=Path, help="Fragalysis URL for structures")
-@click.argument('output-directory', type=Path, help="Directory to deposit output files")
-def download_structures(structures_url, output_directory):
-    from .prepare.fragalysis import FragalysisHarness
+@click.argument('structures-url', type=str)
+@click.argument('output-directory', type=Path)
+def get_target_structures(structures_url, output_directory):
+    """Get target structures from Fragalysis STRUCTURES-URL and place in OUTPUT-DIRECTORY.
 
-    fgh = FragalysisHarness(structures_url=structures_url)
+    """
+    from .prepare.fragalysis import FragalysisData
+
+    fgh = FragalysisData(structures_url=structures_url)
 
     if not output_directory.exists() or not any(output_directory.iterdir()):
         logging.info(f"Downloading and extracting structure files files to {output_directory.absolute()}")
-        fgh.download_target_structures(output_directory.absolute())
+        fgh.get_target_structures(output_directory.absolute())
+
+
+@fragalysis.command()
+@click.argument('activity-url', type=Path)
+@click.argument('output-directory', type=Path)
+def get_activity_data(activity_url, output_directory):
+    """Get activity data from Fragalysis ACTIVITY-URL and place in OUTPUT-DIRECTORY.
+
+    """
+    from .prepare.fragalysis import FragalysisHarness
+
+    fgh = FragalysisHarness(activity_url=activity_url)
+
+    if not output_directory.exists() or not any(output_directory.iterdir()):
+        logging.info(f"Downloading and extracting structure files files to {output_directory.absolute()}")
+        fgh.get_activity_data(output_directory.absolute())
 
 
 @cli.group()
@@ -54,41 +73,35 @@ def prepare():
     """Simulation preparation actions, pre-FAH compute.
 
     """
-    ...
+    pass
 
 
 @prepare.command()
-@click.argument('input-directory', type=Path, help="Path to receptors directory")
-@click.argument('output-directory', type=Path, help="Directory to deposit output files")
-@click.option('-f', '--structures-filter', type=str, help="Glob filter to find PDB files in STRUCTURES_DIRECTORY")
+@click.argument('input-structures', type=Path, nargs=-1)
+@click.argument('output-directory', type=Path)
 @click.option('-d', '--dry-run', is_flag=True, help="Dry run; output file paths will be printed STDOUT")
 def receptors(
-        input_directory,
+        input_structures,
         output_directory,
-        structures_filter,
         dry_run
         ):
-    """Prepare receptors for MD starting from Fragalysis receptor structures.
+    """Prepare receptors for MD starting from Fragalysis receptor structures in INPUT-DIRECTORY.
+
+    Receptors are processed using the OpenEye toolkit to ensure consistency from raw PDB structures.
+
 
     """
     import itertools
 
     from openeye import oechem
-    from .prepare.receptors import get_structures, ReceptorArtifactory
+    from .prepare.receptors import ReceptorArtifactory
 
     oechem.OEThrow.SetLevel(oechem.OEErrorLevel_Quiet)
 
-
-    input_directory = input_directory.absolute()
-
-    source_pdb_files = list(input_directory.glob(structures_filter))
-    if len(source_pdb_files) == 0:
-        raise RuntimeError(f'Glob path {input_directory.joinpath(structures_filter)} '
-                           f'has matched 0 files.')
-
+    # TODO: generalize beyond monomer, dimer hardcoding here
     output_paths = [output_directory.absolute().joinpath(subdir) for subdir in ['monomer', 'dimer']]
 
-    products = list(itertools.product(source_pdb_files, output_paths))
+    products = list(itertools.product(input_structures, output_paths))
     factories = [ReceptorArtifactory(input=x, output=y, create_dimer=y.stem == 'dimer') for x, y in
                products]
 
@@ -98,6 +111,7 @@ def receptors(
         else:
             factory.output.mkdir(parents=True, exist_ok=True)
 
+    # TODO: easily parallelizable
     for factory in factories:
         if dry_run:
             print(factory)
@@ -105,8 +119,82 @@ def receptors(
             factory.prepare_receptor()
 
 
+@click.argument('receptors-directory', type=Path)
+@click.argument('project-directory', type=Path)
+@click.option('-m', '--metadata', type=Path, help="Metadata CSV file from Fragalysis")
+@click.option('-p', '--project', type=str, required=True, help="Folding@Home project code")
+@click.option('-r', '--run', type=str, required=True, help="RUN index to prepare (zero-indexed selection of first column of METADATA)")
 @prepare.command()
-def openmm():
+def fah_project_runs(
+        receptors_directory,
+        project_directory,
+        metadata,
+        project,
+        run,
+        ):
+    """Prepare the specified RUN for FAH by preparing all X-ray structure variants of a specific fragment.
+
+    RECEPTORS-DIRECTORY corresponds to the output of `prepare receptors`.
+    Prepared FAH RUNs are placed in PROJECT-DIRECTORY.
+
+    """
+    import sys
+    import csv
+    from collections import OrderedDict
+    import tempfile
+    import traceback
+    import yaml
+
+    import oechem
+
+    from .prepare.dynamics import FAHProject
+    # Read DiamondMX/XChem structure medatadata
+
+    # TODO: replace with pandas
+    metadata = OrderedDict()
+    with open(metadata, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            run = row['RUN']
+            metadata[run] = row
+
+    # Extract relevant metadata
+    run = f'RUN{run}'
+    if run not in metadata:
+        raise Exception(f'{run} not found in metadata.csv')
+    print(f'Preparing {run}')
+    metadata = metadata[run]
+
+    # Extract crystal_name
+    crystal_name = metadata['crystal_name']
+
+    fp = FAHProject(project=project,
+                    project_dir=project_directory)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache = os.path.join(tmpdir, 'cache.json')
+
+        
+        fp.generate_run(run, 
+
+        # TODO remove project hardcodes
+        # prepare_variant('13430', args.run, crystal_name, 'monomer', 'His41(0) Cys145(0)', None)
+        prepare_variant('13431', run, crystal_name, 'monomer', 'His41(+) Cys145(-)', None)
+        if oemol is not None:
+            # prepare_variant('13432', args.run, crystal_name, 'monomer', 'His41(0) Cys145(0)', oemol)
+            prepare_variant('13433', run, crystal_name, 'monomer', 'His41(+) Cys145(-)', oemol)
+        # prepare_variant('13434', args.run, crystal_name, 'dimer',   'His41(0) Cys145(0)', None)
+        prepare_variant('13435', run, crystal_name, 'dimer', 'His41(+) Cys145(-)', None)
+        if oemol is not None:
+            # prepare_variant('13436', args.run, crystal_name, 'dimer',   'His41(0) Cys145(0)', oemol)
+            prepare_variant('13437', run, crystal_name, 'dimer', 'His41(+) Cys145(-)', oemol)
+
+@prepare.command()
+def poses():
+    ...
+
+@prepare.command()
+def transformations():
     ...
 
 
@@ -119,8 +207,8 @@ def analyze():
 
 
 @analyze.command()
-@click.argument('compound-series-file', type=Path, help="File containing compound series as JSON-encoded CompoundSeries")
-@click.argument('output-directory', type=Path, help="Directory to deposit output files")
+@click.argument('compound-series-file', type=Path)
+@click.argument('output-directory', type=Path)
 @click.option('--config-file', type=Path, help="File containing analysis configuration as JSON-encoded AnalysisConfig")
 @click.option('--fah-projects-dir', required=True, type=Path, help="Path to Folding@home project definitions directory")
 @click.option('--fah-data-dir', required=True, type=Path, help="Path to Folding@home data directory")
@@ -138,8 +226,9 @@ def compound_series(
     loglevel,
 ) -> None:
     """
-    Run free energy analysis and write JSON-serialized results consisting of
-    input augmented with analysis results.
+    Run free energy analysis on COMPOUND-SERIES-FILE with `CompoundSeries` data
+    and write JSON-serialized results consisting of input augmented with
+    analysis results.
 
     """
     import fah_xchem
@@ -190,9 +279,10 @@ def generate():
     """Artifact generation actions, using analysis outputs as input.
 
     """
+    pass
 
-@click.argument('compound-series-analysis-file', type=Path, help="File containing analysis results as JSON-encoded CompoundSeriesAnalysis")
-@click.argument('output-directory', type=Path, help="Directory to deposit output files")
+@click.argument('compound-series-analysis-file', type=Path)
+@click.argument('output-directory', type=Path)
 @click.option('--config-file', type=Path, help="File containing analysis configuration as JSON-encoded AnalysisConfig")
 @click.option('--fragalysis-config-file', type=Path, help="File containing information for Fragalysis upload as JSON-encoded FragalysisConfig")
 @click.option('--fah-projects-dir', required=True, type=Path, help="Path to Folding@home project definitions directory")
@@ -234,8 +324,8 @@ def artifacts(
     overwrite: bool = False,
 ) -> None:
     """
-    Given results of free energy analysis as JSON, generate analysis
-    artifacts in `output_directory`
+    Given results of free energy analysis in COMPOUND-SERIES-ANALYSIS-FILE with
+    `CompoundSeriesAnalysis` data, generate analysis artifacts.
 
     By default the following are generated:
 

@@ -22,7 +22,7 @@ import numpy as np
 from openeye import oechem
 from pydantic import BaseModel, Field
 
-from .prepare.constants import (BIOLOGICAL_SYMMETRY_HEADER, SEQRES_DIMER, SEQRES_MONOMER, FRAGALYSIS_URL,
+from .constants import (BIOLOGICAL_SYMMETRY_HEADER, SEQRES_DIMER, SEQRES_MONOMER, FRAGALYSIS_URL,
                                MINIMUM_FRAGMENT_SIZE, CHAIN_PDB_INDEX)
 from ..schema import OutputPaths, DockingSystem
 
@@ -33,22 +33,25 @@ class ReceptorArtifactory(BaseModel):
     """
     input: pathlib.Path = Field(..., description="")
     output: pathlib.Path = Field(..., description="")
+
+    # TODO: perhaps generalize to multimeric generator?
     create_dimer: bool = Field(..., description="")
     retain_water: Optional[bool] = Field(False, description="")
 
     def prepare_receptor(self) -> None:
     
+        # TODO: add detailed logging
         output_filenames = self._create_output_filenames()
     
         errfs = self._create_logger(output_filenames)
     
         if not self._options_consistent():
-            oechem.OEThrow.Verbose(f"Options are inconsistent. Ignoring this configuration: \n{self.config}")
+            oechem.OEThrow.Verbose(f"Options are inconsistent. Ignoring this configuration: \n{self}")
             errfs.close()
             return
     
         oechem.OEThrow.Verbose('cleaning pdb...')
-        pdb_lines = clean_pdb(self.config)
+        pdb_lines = self._clean_pdb()
         oechem.OEThrow.Verbose('creating molecular graph...')
         complex = lines_to_mol_graph(pdb_lines)
     
@@ -73,6 +76,7 @@ class ReceptorArtifactory(BaseModel):
         docking_sytem = make_docking_system(design_unit)
     
         # Neutral dyad
+        # TODO remove MPro hardcode for dyad
         oechem.OEThrow.Verbose('making neutral dyad...')
         oechem.OEThrow.Verbose('\t updating design unit...')
         design_unit = create_dyad('His41(0) Cys145(0)', docking_sytem, design_unit, options)
@@ -82,6 +86,7 @@ class ReceptorArtifactory(BaseModel):
         write_docking_system(docking_sytem, output_filenames, is_thiolate=False)
     
         # Charge separated dyad
+        # TODO remove MPro hardcode for dyad
         oechem.OEThrow.Verbose('making catalytic dyad...')
         oechem.OEThrow.Verbose('\t updating design unit...')
         design_unit = create_dyad('His41(+) Cys145(-1)', docking_sytem, design_unit, options)
@@ -111,7 +116,6 @@ class ReceptorArtifactory(BaseModel):
         )
         return outputs
 
-
     def _create_logger(self, outputs: OutputPaths) -> oechem.oeofstream:
         fname = outputs.protein_pdb.parent.joinpath(f"{outputs.protein_pdb.stem}.log")
         errfs = oechem.oeofstream(str(fname)) # create a stream that writes internally to a stream
@@ -130,7 +134,37 @@ class ReceptorArtifactory(BaseModel):
             flag = False
         return flag
 
+    def _clean_pdb(self) -> List[str]:
+        with self.input.open() as f:
+            pdbfile_lines = f.readlines()
+    
+        if (crystal_series(self.input) == 'x') and (not is_in_lines(pdbfile_lines, 'REMARK 350')):
+            pdbfile_lines = self.add_prefix(pdbfile_lines, BIOLOGICAL_SYMMETRY_HEADER)
+    
+        if not self.create_dimer:
+            pdbfile_lines = remove_from_lines(pdbfile_lines, 'REMARK 350')
+    
+        if not self.retain_water:
+            pdbfile_lines = remove_from_lines(pdbfile_lines, 'HOH')
+    
+        pdbfile_lines = remove_from_lines(pdbfile_lines, 'LINK')
+        pdbfile_lines = remove_from_lines(pdbfile_lines, 'UNK')
+    
+        if not is_in_lines(pdbfile_lines, 'SEQRES'):
+            if au_is_dimeric(self.input):
+                pdbfile_lines = self.add_prefix(pdbfile_lines, SEQRES_DIMER)
+            else:
+                pdbfile_lines = self.add_prefix(pdbfile_lines, SEQRES_MONOMER)
+    
+        return pdbfile_lines
 
+    @staticmethod
+    def add_prefix(lines: List[str], prefix: str) -> List[str]:
+        return [line + '\n' for line in prefix.split('\n')] + lines
+
+
+# TODO: integrate rest of functions below into ReceptorArtifactory if they aren't used anywhere else
+# alternatively give leading underscore
 def read_pdb_file(pdb_file):
 
     ifs = oechem.oemolistream()
@@ -166,9 +200,6 @@ def is_in_lines(lines: List[str], string: str) -> bool:
     return np.any([string in line for line in lines])
 
 
-def add_prefix(lines: List[str], prefix: str) -> List[str]:
-    return [line + '\n' for line in prefix.split('\n')] + lines
-
 
 def lines_to_mol_graph(lines: List[str]) -> oechem.OEGraphMol:
 
@@ -190,41 +221,12 @@ def au_is_dimeric(pdb_path: Path) -> bool:
     return ('a' in labels) and ('b' in labels)
 
 
-def clean_pdb(config: PreparationConfig) -> List[str]:
-    with config.input.open() as f:
-        pdbfile_lines = f.readlines()
-
-    if (crystal_series(config.input) == 'x') and (not is_in_lines(pdbfile_lines, 'REMARK 350')):
-        pdbfile_lines = add_prefix(pdbfile_lines, BIOLOGICAL_SYMMETRY_HEADER)
-
-    if not config.create_dimer:
-        pdbfile_lines = remove_from_lines(pdbfile_lines, 'REMARK 350')
-
-    if not config.retain_water:
-        pdbfile_lines = remove_from_lines(pdbfile_lines, 'HOH')
-
-    pdbfile_lines = remove_from_lines(pdbfile_lines, 'LINK')
-    pdbfile_lines = remove_from_lines(pdbfile_lines, 'UNK')
-
-    if not is_in_lines(pdbfile_lines, 'SEQRES'):
-        if au_is_dimeric(config.input):
-            pdbfile_lines = add_prefix(pdbfile_lines, SEQRES_DIMER)
-        else:
-            pdbfile_lines = add_prefix(pdbfile_lines, SEQRES_MONOMER)
-
-
-    return pdbfile_lines
-
 
 def strip_hydrogens(complex: oechem.OEGraphMol) -> oechem.OEGraphMol:
     for atom in complex.GetAtoms():
         if atom.GetAtomicNum() > 1:
             oechem.OESuppressHydrogens(atom)
     return complex
-
-
-def already_prepared(outputs: OutputPaths) -> bool:
-    return np.all([x.exists() for x in outputs])
 
 
 def rebuild_c_terminal(complex: oechem.OEGraphMol) -> oechem.OEGraphMol:
@@ -373,6 +375,7 @@ def bypass_atoms(match_strings: List[str], options: oechem.OEPlaceHydrogensOptio
 def create_dyad(state: str, docking_system: DockingSystem, design_unit: oechem.OEDesignUnit,
                     options: oespruce.OEMakeDesignUnitOptions) -> oechem.OEDesignUnit:
 
+    # TODO: Mpro hardcodes here
     protonate_opts = options.GetPrepOptions().GetProtonateOptions()
     place_h_opts = protonate_opts.GetPlaceHydrogensOptions()
     protein = docking_system.protein

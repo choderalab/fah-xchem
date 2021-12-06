@@ -13,7 +13,6 @@ class Model(BaseModel):
 
 ## prepare
 
-
 class OutputPaths(Model):
     receptor_gzipped: pathlib.Path
     receptor_thiolate_gzipped: pathlib.Path
@@ -27,11 +26,13 @@ class OutputPaths(Model):
 
 
 class DockingSystem(Model):
+    class Config:
+        arbitrary_types_allowed = True
+
     protein: oechem.OEGraphMol
     ligand: oechem.OEGraphMol
     receptor: oechem.OEGraphMol
     design_unit: oechem.OEDesignUnit
-
 
 ## analyze and generate
 
