@@ -26,61 +26,96 @@ def _get_config(
     return config
 
 
+def _parse_config(args, config):
+
+    if config:
+        config_values = {key.replace('-', '_'): value for key, value in json.load(config).items()}
+    else:
+        config_values = {}
+
+    for arg, value in args.items():
+        if value and arg != 'config':
+            config_values.update({arg: value})
+
+    return config_values
+
+
 @click.group()
 def cli():
-    pass
-
+    ...
 
 @cli.group()
 def fragalysis():
-    pass
+    ...
 
 
 @fragalysis.command()
-@click.argument('structures-url', type=str)
-@click.argument('output-directory', type=Path)
-def get_target_structures(structures_url, output_directory):
-    """Get target structures from Fragalysis STRUCTURES-URL and place in OUTPUT-DIRECTORY.
+@click.option('--structures-url', type=str)
+@click.option('--data-dir', required=True, type=Path)
+@click.option('--config', type=click.File('r'), help="Input via JSON; command-line arguments take precedence over JSON fields if both provided")
+def retrieve_target_structures(structures_url, data_dir, config):
+    """Get target structures from Fragalysis STRUCTURES-URL and place in DATA-DIR.
 
     """
-    from .prepare.fragalysis import FragalysisData
+    from .external.fragalysis import FragalysisData
+    import json
 
-    fgh = FragalysisData(structures_url=structures_url)
+    if config:
+        config_values = {key.replace('-', '_'): value for key, value in json.load(config).items()}
+    else:
+        config_values = {}
 
-    if not output_directory.exists() or not any(output_directory.iterdir()):
-        logging.info(f"Downloading and extracting structure files files to {output_directory.absolute()}")
-        fgh.get_target_structures(output_directory.absolute())
+    if structures_url:
+        config_values.update(structures_url=structures_url)
+    if data_dir:
+        config_values.update(data_dir=data_dir)
 
+    fgh = FragalysisData(**config_values)
 
-@fragalysis.command()
-@click.argument('activity-url', type=Path)
-@click.argument('output-directory', type=Path)
-def get_activity_data(activity_url, output_directory):
-    """Get activity data from Fragalysis ACTIVITY-URL and place in OUTPUT-DIRECTORY.
-
-    """
-    from .prepare.fragalysis import FragalysisHarness
-
-    fgh = FragalysisHarness(activity_url=activity_url)
-
-    if not output_directory.exists() or not any(output_directory.iterdir()):
-        logging.info(f"Downloading and extracting structure files files to {output_directory.absolute()}")
-        fgh.get_activity_data(output_directory.absolute())
+    if not data_dir.exists() or not any(data_dir.iterdir()):
+        logging.info(f"Downloading and extracting structure files files to {data_dir.absolute()}")
+        fgh.retrieve_target_structures()
 
 
 @cli.group()
-def prepare():
-    """Simulation preparation actions, pre-FAH compute.
+def cdd():
+    ...
+
+@cdd.command()
+@click.option('--base-url', default="https://app.collaborativedrug.com/api/v1/vaults", type=str)
+@click.option('--vault-token', envvar='CDD_VAULT_TOKEN', type=str)
+@click.option('--vault-num', envvar='CDD_VAULT_NUM', default='5549', type=str)
+@click.option('--fluorescence-ic50-protocol-id', default='49439', type=str)
+@click.option('--data-dir', required=True, type=Path)
+@click.option('--config', type=click.File('r'), help="Input via JSON; command-line arguments take precedence over JSON fields if both provided")
+def retrieve_fluorescence_activity_data(base_url, vault_token, vault_num, fluorescence_ic50_protocol_id, data_dir, config):
+    """Get fluorescence activity data from Fragalysis ACTIVITY-URL and place in DATA-DIR.
+
+    VAULT-TOKEN and VAULT-NUM can be set with the environment variables CDD_VAULT_TOKEN and CDD_VAULT_NUM, respectively.
 
     """
-    pass
+    from .external.cdd import CDDData
+    import json
+
+    args = locals()
+    config_values = _parse_config(args, config)
+
+    cddd = CDDData(**config_values)
+
+    if not data_dir.exists() or not any(data_dir.iterdir()):
+        logging.info(f"Downloading fluorescence activity data to {data_dir.absolute()}")
+        cddd.retrieve_fluorescence_IC50_data()
 
 
-@prepare.command()
+@cli.group()
+def receptors():
+    ...
+
+@receptors.command('generate')
 @click.argument('input-structures', type=Path, nargs=-1)
 @click.argument('output-directory', type=Path)
 @click.option('-d', '--dry-run', is_flag=True, help="Dry run; output file paths will be printed STDOUT")
-def receptors(
+def receptors_generate(
         input_structures,
         output_directory,
         dry_run
@@ -119,13 +154,14 @@ def receptors(
             factory.prepare_receptor()
 
 
-@click.argument('receptors-directory', type=Path)
-@click.argument('project-directory', type=Path)
-@click.option('-m', '--metadata', type=Path, help="Metadata CSV file from Fragalysis")
-@click.option('-p', '--project', type=str, required=True, help="Folding@Home project code")
-@click.option('-r', '--run', type=str, required=True, help="RUN index to prepare (zero-indexed selection of first column of METADATA)")
-@prepare.command()
-def fah_project_runs(
+# not used at this time; pulled almost exactly from fah_prep
+#@click.argument('receptors-directory', type=Path)
+#@click.argument('project-directory', type=Path)
+#@click.option('-m', '--metadata', type=Path, help="Metadata CSV file from Fragalysis")
+#@click.option('-p', '--project', type=str, required=True, help="Folding@Home project code")
+#@click.option('-r', '--run', type=str, required=True, help="RUN index to prepare (zero-indexed selection of first column of METADATA)")
+#@prepare.command()
+def fah_project_run(
         receptors_directory,
         project_directory,
         metadata,
@@ -174,8 +210,7 @@ def fah_project_runs(
     with tempfile.TemporaryDirectory() as tmpdir:
         cache = os.path.join(tmpdir, 'cache.json')
 
-        
-        fp.generate_run(run, 
+        fp.generate_run(run, )
 
         # TODO remove project hardcodes
         # prepare_variant('13430', args.run, crystal_name, 'monomer', 'His41(0) Cys145(0)', None)
@@ -189,24 +224,35 @@ def fah_project_runs(
             # prepare_variant('13436', args.run, crystal_name, 'dimer',   'His41(0) Cys145(0)', oemol)
             prepare_variant('13437', run, crystal_name, 'dimer', 'His41(+) Cys145(-)', oemol)
 
-@prepare.command()
+
+@cli.command()
 def poses():
     ...
 
-@prepare.command()
+@cli.command()
 def transformations():
     ...
 
 
 @cli.group()
-def analyze():
-    """Analysis actions, using FAH data as input.
-    
+def compound_series():
+    """Modification actions for a compound series.
+
     """
     ...
 
 
-@analyze.command()
+@compound_series.command('generate')
+def compound_series_generate():
+    ...
+
+
+@compound_series.command('update')
+def compound_series_update():
+    ...
+
+
+@compound_series.command('analyze')
 @click.argument('compound-series-file', type=Path)
 @click.argument('output-directory', type=Path)
 @click.option('--config-file', type=Path, help="File containing analysis configuration as JSON-encoded AnalysisConfig")
@@ -215,7 +261,7 @@ def analyze():
 @click.option('-n', '--nprocs', type=int, default=8, help="Number of parallel processes to run")
 @click.option('--max-transformations', type=int, help="If not `None`, limit to this number of transformations")
 @click.option('-l', '--loglevel', type=str, default='WARN', help="Logging level to use for execution")
-def compound_series(
+def compound_series_analyze(
     compound_series_file,
     output_directory,
     config_file,
@@ -275,12 +321,13 @@ def compound_series(
 
 
 @cli.group()
-def generate():
+def artifacts():
     """Artifact generation actions, using analysis outputs as input.
 
     """
-    pass
+    ...
 
+@artifacts.command('generate')
 @click.argument('compound-series-analysis-file', type=Path)
 @click.argument('output-directory', type=Path)
 @click.option('--config-file', type=Path, help="File containing analysis configuration as JSON-encoded AnalysisConfig")
@@ -304,8 +351,7 @@ def generate():
                     "Otherwise, skip writing output files for a given transformation when already present."
                     "Assumes that for a given `run_id` the output files do not ever change;"
                     "does *no* checking that files wouldn't be different if inputs for a given `run_id` have changed."))
-@generate.command()
-def artifacts(
+def artifacts_generate(
     compound_series_analysis_file: str,
     output_directory,
     config_file,

@@ -27,18 +27,18 @@ from .constants import (BIOLOGICAL_SYMMETRY_HEADER, SEQRES_DIMER, SEQRES_MONOMER
 from ..schema import OutputPaths, DockingSystem
 
 
-class ReceptorArtifactory(BaseModel):
-    """Receptor F@H-input creator.
+class Receptors(BaseModel):
+    """Generate receptors from Fragalysis fragment structures.
 
     """
-    input: pathlib.Path = Field(..., description="")
-    output: pathlib.Path = Field(..., description="")
+    fragalysis_fragments: pathlib.Path = Field(..., description="")
+    data_dir: pathlib.Path = Field(..., description="")
 
     # TODO: perhaps generalize to multimeric generator?
     create_dimer: bool = Field(..., description="")
     retain_water: Optional[bool] = Field(False, description="")
 
-    def prepare_receptor(self) -> None:
+    def generate_receptors(self) -> None:
     
         # TODO: add detailed logging
         output_filenames = self._create_output_filenames()
@@ -96,9 +96,26 @@ class ReceptorArtifactory(BaseModel):
         write_docking_system(docking_system, output_filenames, is_thiolate=True)
         errfs.close()
 
+    @property
+    def receptors(self):
+        ...
+
+    @property
+    def metadata(self):
+        # TODO: need this object to copy metadata from fragalysis inputs, expose easy way to get files for target, ligand, by run id
+        # makes sense to duplicate here since the mapping is only helpful if it actually corresponds to files managed by this object
+        ...
+
+    def get_target(self, run_id):
+        ...
+
+
+    def get_ligand(self, run_id):
+        ...
+
 
     def _create_output_filenames(self) -> OutputPaths:
-        output = self.output
+        output = self.data_path
         prefix = output.joinpath(self.input.stem)
         stem = self.input.stem
 
