@@ -106,7 +106,16 @@ class CompoundMetadata(Model):
         dict(), description='Optional experimental data fields, such as "pIC50"'
     )
 
+class ExperimentalCompoundData(Model):
+    """Experimental data for compounds."""
+    compounds: List[CompoundMetadata]
+    
+# JDC: Simple container for loading compounds with experimental data
+class ExperimentalCompoundData(Model):
+    """Experimental data for compounds."""
+    compounds: List[CompoundMetadata]    
 
+    
 class Compound(Model):
     metadata: CompoundMetadata = Field(
         None,

@@ -21,6 +21,7 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 import joblib
 import mdtraj as md
+import numpy as np
 
 from ..schema import TransformationAnalysis, AnalysisConfig
 
@@ -86,6 +87,27 @@ class SnapshotArtifactory(BaseModel):
             project_dir, "RUNS", f"RUN{run}", "hybrid_complex.pdb"
         )
 
+        # Regenerate hybrid_complex.pdb if it does not exist
+        if not os.path.exists(pdbfile_path):
+            # NOTE: This is very slow, but could potentially be accelerated by loading the atom mappings and old/new PDB files and "zipping" them together by directly operating on the MDTraj data model
+            # It only has to be done once for each RUN, however
+            htf_path = os.path.join(
+                project_dir, "RUNS", f"RUN{run}", "htf.npz"
+            )
+            if not os.path.exists(htf_path):
+                logging.warning(f'{pdbfile_path} does not exist. {htf_path} not found, so unable to regenerate')
+                raise ValueError(f"Failed to load PDB file: {e}")                
+                
+            logging.warning(f'Regenerating {pdbfile_path} from {htf_path}')
+            # TODO: This is very fragile because it requres *exactly* the same versions of tools that generated the pickle to be installed
+            # Replace this when able
+            import openmm # openmm 7.6 or later, needed for perses htf import
+            from openeye import oechem # needed for perses htf import
+            htf = np.load(htf_path, allow_pickle=True)['arr_0'].tolist()
+            traj = md.Trajectory(htf.hybrid_positions, htf.hybrid_topology)
+            traj.remove_solvent(exclude=['CL', 'NA'], inplace=True)
+            traj.save(pdbfile_path)
+        
         # TODO: Reuse path logic from fah_xchem.lib
         trajectory_path = os.path.join(
             project_data_dir,
@@ -144,7 +166,7 @@ class SnapshotArtifactory(BaseModel):
         #    f"/home/server/server2/projects/available/covid-moonshot/receptors/monomer/Mpro-{fragment_id}_0A_bound-protein.pdb"
         # )
         fragment = md.load(
-            f"{structure_path}/{target_name}-{fragment_id}{annotations}-{component}.pdb"
+            f"{structure_path}/{target_name}-{fragment_id}{annotations}_bound-{component}.pdb"
         )
 
         return fragment
@@ -439,6 +461,7 @@ class SnapshotArtifactory(BaseModel):
             gen_analysis, workpair = gen_work
 
             # Extract representative snapshot
+            import traceback
             try:
                 sliced_snapshots, components = self.extract_snapshot(
                     project_dir=self.project_dir,
@@ -476,6 +499,7 @@ class SnapshotArtifactory(BaseModel):
                     f"\nException occurred extracting snapshot from {self.project_dir} data {self.project_data_dir} run {run_id} clone {gen_work[1].clone} gen {gen_work[0].gen}"
                 )
                 print(e)
+                traceback.print_exc()
 
     def generate_representative_snapshots(
         self,

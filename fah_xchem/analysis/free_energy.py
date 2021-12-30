@@ -48,7 +48,7 @@ def _mask_outliers(
         # Use a robust estimator of stddev that is robust to outliers
         mean = np.median(a[mask])
         stddev = np.mean(np.abs(a[mask] - mean))
-        stddev = 5.0  # DEBUG
+        #stddev = 5.0  # DEBUG
         mask &= np.abs(a - mean) < max_n_devs * stddev
     return mask
 
@@ -139,7 +139,8 @@ def _get_bar_overlap(works: np.ndarray) -> float:
     N_k = np.array([n, n])
 
     mbar = MBAR(u_kn, N_k)
-    return float(mbar.computeOverlap()["scalar"])
+    overlap_scalar, eigenval, O = mbar.computeOverlap()
+    return float(overlap_scalar)
 
 
 def compute_relative_free_energy(

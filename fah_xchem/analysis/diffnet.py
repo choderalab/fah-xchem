@@ -221,6 +221,22 @@ def combine_free_energies(
             len(connected_subgraphs),
         )
 
+    if len(valid_subgraphs) > 0:
+        experimental_data_available = True            
+    else:
+        # No experimental data is available, so analyze the largest connected subgraph only
+        # since we don't know how to connect different subgraphs with absolute free energies
+        experimental_data_available = False
+        logging.warning(
+            "No connected subgraphs with experimental data found; selecting largest connected subgraph to analyze"
+            )
+        largest_connected_subgraph_index = np.argmax([graph.number_of_nodes() for graph in connected_subgraphs])
+        largest_connected_subgraph = connected_subgraphs[largest_connected_subgraph_index]
+        valid_subgraphs = [largest_connected_subgraph]
+        # Select a compound to set experimental pIC50 arbitrarily to zero
+        compound = [ compound for (node, compound) in largest_connected_subgraph.nodes(data="compound") ][0]
+        compound.metadata.experimental_data['pIC50'] = 0.0
+        
     # Inital MLE pass: compute microstate free energies without using
     # experimental reference values
     for idx, graph in enumerate(valid_subgraphs):

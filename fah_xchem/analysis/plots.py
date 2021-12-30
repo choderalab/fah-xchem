@@ -33,6 +33,7 @@ def plot_retrospective(
     graph = nx.DiGraph()
 
     # TODO this loop can be sped up
+    number_of_edges_with_experimental_data = 0
     for analysis in transformations:
         transformation = analysis.transformation
 
@@ -48,10 +49,12 @@ def plot_retrospective(
             calc_DDG=analysis.binding_free_energy.point * KT_KCALMOL,
             calc_dDDG=analysis.binding_free_energy.stderr * KT_KCALMOL,
         )
+    number_of_edges_with_experimental_data += 1
 
     filename_png = filename + ".png"
 
-    plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename_png))
+    if (number_of_edges_with_experimental_data > 1):
+        plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename_png))
 
 
 def plot_work_distributions(
@@ -521,12 +524,14 @@ def _save_table_pdf(path: str, name: str):
     os.makedirs(path, exist_ok=True)
     file_name = os.path.join(path, os.extsep.join([name, "pdf"]))
 
+    import traceback
     with PdfPages(file_name) as pdf_plt:
         yield
         try:
             pdf_plt.savefig(bbox_inches="tight")
         except ValueError:
             logging.warning("Failed to save pdf table")
+            traceback.print_exc()
 
 
 def save_plot(

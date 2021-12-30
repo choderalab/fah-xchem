@@ -13,6 +13,7 @@ from .schema import (
     AnalysisConfig,
     FahConfig,
     CompoundSeries,
+    ExperimentalCompoundData,
     CompoundSeriesAnalysis,
     TimestampedAnalysis,
     FragalysisConfig,
@@ -47,6 +48,7 @@ def run_analysis(
     num_procs: Optional[int] = 8,
     max_transformations: Optional[int] = None,
     use_only_reference_compound_data: Optional[bool] = False,
+    experimental_data_file: Optional[str] = None,
     log: str = "WARN",
 ) -> None:
     """
@@ -71,6 +73,8 @@ def run_analysis(
         Number of parallel processes to run
     max_transformations : int, optional
         If not None, limit to this number of transformations
+    experimental_data_file : str, optional, default=None
+        If not None, load experimental compound data and update compound experimental_data dictionaries
     """
 
     logging.basicConfig(level=getattr(logging, log.upper()))
@@ -79,6 +83,26 @@ def run_analysis(
         CompoundSeries, compound_series_file, "compound series"
     )
 
+    if experimental_data_file is not None:
+        import os
+        if not os.path.exists(experimental_data_file):
+            raise ValueError(f'Experimental data file {experimental_data_file} does not exist.')
+        # Replace experimental_data in compound_series
+        with open(experimental_data_file, "r") as infile:
+            import json
+            experimental_compound_data = ExperimentalCompoundData.parse_obj(json.loads(infile.read()))
+
+        experimental_data = { compound.compound_id : compound.experimental_data for compound in experimental_compound_data.compounds }
+        number_of_compounds_updated = 0            
+        for compound in compound_series.compounds:
+            metadata = compound.metadata
+            if metadata.compound_id in experimental_data:
+                number_of_compounds_updated += 1
+                metadata.experimental_data.update(experimental_data[metadata.compound_id])
+        logging.info(
+            f"Updated experimental data for {number_of_compounds_updated} compounds"
+        )
+    
     if max_transformations is not None:
         logging.warning(
             f"Limiting maximum number of transformations to {max_transformations}"
@@ -87,8 +111,8 @@ def run_analysis(
             metadata=compound_series.metadata,
             compounds=compound_series.compounds,
             transformations=compound_series.transformations[:max_transformations],
-        )
-
+        )        
+        
     # TODO: Remove this?
     if use_only_reference_compound_data:
         # Strip experimental data frorm all but reference compound
