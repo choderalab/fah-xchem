@@ -28,6 +28,7 @@ Showing {{ start_index }} through {{ end_index }} of {{ transformations | length
         <img src="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles }}">
       </a>
     </td>
+    <!-- TODO: Restore these links once we fix the ligand SDF download.
     <td>
       <a href="transformations/RUN{{ transformation.transformation.run_id }}/old_ligand.sdf">
         <button class="btn btn-outline-primary">sdf</button>
@@ -38,12 +39,20 @@ Showing {{ start_index }} through {{ end_index }} of {{ transformations | length
         <button class="btn btn-outline-primary">pdb</button>
       </a>
     </td>
+    -->
+    <!-- NOTE: We are temporarily providing a PDB for the whole complex since the SDF download is broken. -->
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/old_complex.pdb">
+        <button class="btn btn-primary">pdb</button>
+      </a>
+    </td>
     <td>{{ transformation.transformation.final_microstate.microstate_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.final_microstate.microstate_id) }}</td>
     <td class="thumbnail">
       <a href="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg">
         <img src="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.final_microstate][1].smiles }}">
       </a>
     </td>
+    <!-- TODO: Restore these links once we fix the ligand SDF download.
     <td>
       <a href="transformations/RUN{{ transformation.transformation.run_id }}/new_ligand.sdf">
         <button class="btn btn-outline-primary">sdf</button>
@@ -52,6 +61,13 @@ Showing {{ start_index }} through {{ end_index }} of {{ transformations | length
     <td>
       <a href="transformations/RUN{{ transformation.transformation.run_id }}/new_protein.pdb">
         <button class="btn btn-outline-primary">pdb</button>
+      </a>
+    </td>
+    -->
+    <!-- NOTE: We are temporarily providing a PDB for the whole complex since the SDF download is broken. -->    
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/new_complex.pdb">
+        <button class="btn btn-primary">pdb</button>
       </a>
     </td>
     <td class="binding">

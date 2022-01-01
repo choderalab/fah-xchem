@@ -378,7 +378,7 @@ def generate_artifacts(
             num_procs=num_procs,
             overwrite=overwrite,
         )
-
+        
     if plots:
         logging.info("Generating analysis plots")
         generate_plots(
