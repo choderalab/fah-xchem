@@ -18,24 +18,35 @@ Showing {{ start_index }} through {{ end_index }} of {{ transformations | length
 <table class="table table-striped table-hover">
   <tr>
     <th>RUN <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>RUN</b>" data-content="The RUN index within the Folding@home project generating this data. <br /><br /> Each RUN consists of a number of independent samples (CLONEs) that are run for multiple iterations (GENs) of nonequilibrium cycles."></i></th>
-    <th colspan=4>Initial microstate <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Initial microstate</b>" data-content="The unique identifier of the initial microstate for the relative free energy transformation."></i></th>
-    <th colspan=4>Final microstate <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Final microstate</b>" data-content="The unique identifier of the final microstate for the relative free energy transformation."></i></th>
+    <th>Atom map<i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Atom Map</b>" data-content="Atom mapping for alchemical transformation."></i></th>
+    <th colspan=3>Initial microstate <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Initial microstate</b>" data-content="The unique identifier of the initial microstate for the relative free energy transformation."></i></th>
+    <th colspan=3>Final microstate <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Final microstate</b>" data-content="The unique identifier of the final microstate for the relative free energy transformation."></i></th>
     <th>ΔΔG / kcal M<sup>-1</sup> <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Relative binding free energy</b>" data-content="The computed transformation free energy (without DiffNet MLE corrections) of transforming the initial microstate into the final microstate. <br /><br /> Negative ΔΔG values indicate the final microstate binds more favorably than the initial microstate, while positive ΔΔG values indicate the final microstate binds less favorably. <br /><br /> <b>Note</b>: the ΔΔG values reported here will not be identical to differences in ΔG reported for microstates because DiffNet is used to account for thermodynamic self-consistency in reported microstate absolute ΔG values."></i></th>
     <th>ΔΔG<sub>exp</sub> / kcal M<sup>-1</sup> <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Relative binding free energy</b>" data-content="The experimental relative free energy difference between initial and final compounds, which may be racemates. <br /><br /> Negative ΔΔG values indicate the final microstate binds more favorably than the initial microstate, while positive ΔΔG values indicate the final microstate binds less favorably."></i></th>
     <th>|ΔΔG-ΔΔG<sub>exp</sub>| / kcal M<sup>-1</sup> <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Relative binding free energy error</b>" data-content="Unsigned error between microstate transformormation free energy and compound free energy difference, which may not accurately reflect free energy differences for racemates."></i></th>
     <th>Work distribution <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Work distribution</b>" data-content="The computed work distributions for both the forward (initial -> final) and reverse (final -> initial) transformations. <br /><br /> Multi-modal distributions indicate that that there may be slow conformational degrees of freedom that may hinder convergence, while non-overlapping forward and backward work distributions indicate the transformation is too large to be computed reliably."></i></th>
+    <th>Bootstrapping <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Bootstrapping</b>" data-content="Estimate of uncertainty in free energy estimates for each phase from bootstrapping over CLONEs"></i></th>
     <th>Convergence <i type="button" class="fa fa-info-circle" data-html="true" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-title="<b>Convergence</b>" data-content="<b>Top plot</b>: Green points represent relative binding free energy (RBFE) estimates from individual iterations (GENs) with a 95% confidence interval (pale green shaded region). Confidence in the RBFE estimate is higher if RBFEs between iterations are in good agreement, ideally falling within the 95% confidence interval. <br /><br /> <b>Lower plot</b>: Binding free energy estimates of solvent (blue) and complex (red) phases."></i></th>
   </tr>
   {% for transformation in (transformations | selectattr("absolute_error", "ne", None)) %}
   {% if transformation.absolute_error.point is not none %}
   <tr>
+    <!-- Run index -->
     <td >RUN{{ transformation.transformation.run_id }}</td>
+    <!-- Atom mapping -->
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/atom_map.png">
+        <button class="btn btn-info">map</button>
+      </a>
+    </td>
+    <!-- Initial microstate -->
     <td>{{ transformation.transformation.initial_microstate.microstate_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.initial_microstate.compound_id) }}</td>
     <td class="thumbnail">
       <a href="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg">
         <img src="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles }}">
       </a>
     </td>
+    <!-- TODO: Restore these links once we fix the ligand SDF download.
     <td>
       <a href="transformations/RUN{{ transformation.transformation.run_id }}/old_ligand.sdf">
         <button class="btn btn-outline-primary">sdf</button>
@@ -46,12 +57,21 @@ Showing {{ start_index }} through {{ end_index }} of {{ transformations | length
         <button class="btn btn-outline-primary">pdb</button>
       </a>
     </td>
-    <td>{{ transformation.transformation.final_microstate.microstate_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.final_microstate.compound_id) }}</td>
+    -->
+    <!-- NOTE: We are temporarily providing a PDB for the whole complex since the SDF download is broken. -->
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/old_complex.pdb">
+        <button class="btn btn-primary">pdb</button>
+      </a>
+    </td>
+    <!-- Final microstate -->
+    <td>{{ transformation.transformation.final_microstate.microstate_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.final_microstate.microstate_id) }}</td>
     <td class="thumbnail">
       <a href="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg">
         <img src="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.final_microstate][1].smiles }}">
       </a>
     </td>
+    <!-- TODO: Restore these links once we fix the ligand SDF download.
     <td>
       <a href="transformations/RUN{{ transformation.transformation.run_id }}/new_ligand.sdf">
         <button class="btn btn-outline-primary">sdf</button>
@@ -62,32 +82,50 @@ Showing {{ start_index }} through {{ end_index }} of {{ transformations | length
         <button class="btn btn-outline-primary">pdb</button>
       </a>
     </td>
+    -->
+    <!-- NOTE: We are temporarily providing a PDB for the whole complex since the SDF download is broken. -->    
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/new_complex.pdb">
+        <button class="btn btn-primary">pdb</button>
+      </a>
+    </td>
+    <!-- computed free energy -->
     <td class="binding">
       <span class="estimate">
         <span class="point">{{ (transformation.binding_free_energy * KT_KCALMOL) | format_point }}</span>
         <span class="stderr"> ± {{ (transformation.binding_free_energy * KT_KCALMOL) | format_stderr }}</span>
       </span>
     </td>
+    <!-- experimental free energy -->
     <td class="binding">
       <span class="estimate">
         <span class="point">{{ (transformation.exp_ddg * KT_KCALMOL) | format_point }}</span>
         <span class="stderr"> ± {{ (transformation.exp_ddg * KT_KCALMOL) | format_stderr }}</span>
       </span>
     </td>
+    <!-- error -->
     <td class="binding">
       <span class="estimate">
         <span class="point">{{ (transformation.absolute_error * KT_KCALMOL) | format_point }}</span>
         <span class="stderr"> ± {{ (transformation.absolute_error * KT_KCALMOL) | format_stderr }}</span>
       </span>
     </td>
+    <!-- Work distribution -->
     <td class="thumbnail">
       <a href="transformations/RUN{{ transformation.transformation.run_id }}/works.pdf">
         <img src="transformations/RUN{{ transformation.transformation.run_id }}/works.png" alt="work distributions">
       </a>
     </td>
+    <!-- Convergence with bootstrap samples -->
+    <td class="thumbnail">
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/bootstrapped-CLONEs.pdf">
+        <img src="transformations/RUN{{ transformation.transformation.run_id }}/bootstrapped-CLONEs.png" alt="bootstrapping">
+      </a>
+    </td>
+    <!-- Convergence with iteration count -->
     <td class="thumbnail">
       <a href="transformations/RUN{{ transformation.transformation.run_id }}/convergence.pdf">
-        <img src="transformations/RUN{{ transformation.transformation.run_id }}/convergence.png" alt="convergence plot">
+        <img src="transformations/RUN{{ transformation.transformation.run_id }}/convergence.png" alt="convergence">
       </a>
     </td>
   </tr>
