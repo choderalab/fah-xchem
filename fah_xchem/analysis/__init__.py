@@ -363,16 +363,6 @@ def generate_artifacts(
         and transformation.binding_free_energy.point is not None
     ]
 
-    # Copy atom maps
-    # TODO: Integrate this into its appropriate artifactory?
-    for transformation in series.transformations:
-        run_id = transformation.transformation.run_id
-        atom_map_src_filename = os.path.join(complex_project_dir, "RUNS", f"RUN{run_id}", "atom_map.png")
-        atom_map_dest_filename = os.path.join(output_dir, "transformations", f"RUN{run_id}", "atom_map.png")
-        if not os.path.exists(atom_map_dest_filename):
-            import shutil
-            shutil.copyfile(atom_map_src_filename, atom_map_dest_filename)
-    
     if snapshots:
         logging.info("Generating representative snapshots")
         saf = SnapshotArtifactory(
@@ -399,6 +389,16 @@ def generate_artifacts(
             overwrite=overwrite,
         )
 
+    # Copy atom maps
+    # TODO: Integrate this into its appropriate artifactory?
+    for transformation in series.transformations:
+        run_id = transformation.transformation.run_id
+        atom_map_src_filename = os.path.join(complex_project_dir, "RUNS", f"RUN{run_id}", "atom_map.png")
+        atom_map_dest_filename = os.path.join(output_dir, "transformations", f"RUN{run_id}", "atom_map.png")
+        if not os.path.exists(atom_map_dest_filename):
+            import shutil
+            shutil.copyfile(atom_map_src_filename, atom_map_dest_filename)
+    
     if snapshots and report:
         logging.info("Generating pdf report")
         generate_report(

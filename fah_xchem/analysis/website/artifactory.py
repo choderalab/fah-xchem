@@ -63,7 +63,26 @@ def format_pIC50(compound: CompoundAnalysis) -> str:
     else:
         return "TBD"
 
+def format_IC50(compound: CompoundAnalysis) -> str:
+    """
+    Format the compound's experimental IC50 (in micromolar) if present, or TBD if not
+    """
+    experimental_data = compound.metadata.experimental_data
+    if "pIC50" in experimental_data:
+        return 10**(-experimental_data["pIC50"]) / 1.0e-6 # in micromolars
+    else:
+        return "TBD"
 
+def format_experimental_DeltaG(compound: CompoundAnalysis) -> str:
+    """
+    Format the compound's experimental DeltaG (in kcal/mol) if present, or TBD if not
+    """
+    experimental_data = compound.metadata.experimental_data
+    if "pIC50" in experimental_data:
+        return np.log(10**(-experimental_data["pIC50"])) * 0.6 # kcal/mol at room temperature
+    else:
+        return "TBD"
+    
 def postera_url(compound_or_microstate_id: str) -> Optional[str]:
     """
     If `compound_id` matches regex, link to Postera compound details
@@ -277,6 +296,8 @@ class WebsiteArtifactory(BaseModel):
         environment.filters["format_stderr"] = format_stderr
         environment.filters["format_compound_id"] = format_compound_id
         environment.filters["format_pIC50"] = format_pIC50
+        environment.filters["format_IC50"] = format_IC50
+        environment.filters["format_experimental_DeltaG"] = format_experimental_DeltaG
         environment.filters["postera_url"] = postera_url
         environment.filters["experimental_data_url"] = experimental_data_url
         environment.filters["smiles_to_filename"] = get_image_filename
