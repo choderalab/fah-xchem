@@ -56,32 +56,72 @@ def format_stderr(est: PointEstimate) -> str:
 def format_pIC50(compound: CompoundAnalysis) -> str:
     """
     Format the compound's experimental pIC50 if present, or TBD if not
+
+    TODO: Handle 95% CIs
     """
     experimental_data = compound.metadata.experimental_data
-    if "pIC50" in experimental_data:
-        return experimental_data["pIC50"]
-    else:
+    if "g_exp" not in experimental_data:
         return "TBD"
+    else:
+        est = PointEstimate(
+            point= - KT_PIC50*experimental_data['g_exp'],
+            stderr=KT_PIC50*experimental_data['g_dexp'],
+            )
+
+        return f"""
+      <span class="estimate">
+        <span class="point">{format_point(est)}</span>
+        <span class="stderr"> ± {format_stderr(est)}</span>
+      </span>
+    """
 
 def format_IC50(compound: CompoundAnalysis) -> str:
     """
-    Format the compound's experimental IC50 (in micromolar) if present, or TBD if not
+    Format the compound's experimental pIC50 if present, or TBD if not
+
+    TODO: Handle 95% CIs
     """
     experimental_data = compound.metadata.experimental_data
-    if "pIC50" in experimental_data:
-        return 10**(-experimental_data["pIC50"]) / 1.0e-6 # in micromolars
-    else:
+    if ("g_exp" not in experimental_data) or ("g_dexp" not in experimental_data):
         return "TBD"
+    else:
+        est = PointEstimate(
+            point=np.exp(experimental_data['g_exp']) / 1e-6,
+            stderr=np.exp(experimental_data['g_exp']) * experimental_data['g_dexp'] / 1e-6,
+            )
+        try:
+            text = f"""
+      <span class="estimate">
+        <span class="point">{{ {format_point(est)}</span>
+        <span class="stderr"> ± {format_stderr(est)}</span>
+      </span>
+    """
+            return text
+        except Exception as e:
+            return ""
+    
 
 def format_experimental_DeltaG(compound: CompoundAnalysis) -> str:
     """
-    Format the compound's experimental DeltaG (in kcal/mol) if present, or TBD if not
+    Format the compound's experimental DeltaG if present, or TBD if not
+
+    TODO: Handle 95% CIs
     """
     experimental_data = compound.metadata.experimental_data
-    if "pIC50" in experimental_data:
-        return np.log(10**(-experimental_data["pIC50"])) * 0.6 # kcal/mol at room temperature
-    else:
+    if "g_exp" not in experimental_data:
         return "TBD"
+    else:
+        est = PointEstimate(
+            point=KT_KCALMOL * experimental_data['g_exp'],
+            stderr=KT_KCALMOL * experimental_data['g_dexp'],
+            )
+
+        return f"""
+      <span class="estimate">
+        <span class="point">{format_point(est)}</span>
+        <span class="stderr"> ± {format_stderr(est)}</span>
+      </span>
+    """
     
 def postera_url(compound_or_microstate_id: str) -> Optional[str]:
     """

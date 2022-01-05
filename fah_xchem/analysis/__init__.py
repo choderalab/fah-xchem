@@ -36,9 +36,6 @@ from .structures import SnapshotArtifactory
 from .website import WebsiteArtifactory
 
 
-EXP_DDG_IJ_ERR = 0.2  # TODO check this is correct
-
-
 def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisConfig):
 
     paths = list_results(config=server, run=run, project=project)
@@ -165,16 +162,17 @@ def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeri
     Returns
     -------
     ddg : PointEstimate
-        Point estimate of free energy difference for this transformation,
+        Point estimate of the difference in experimental free energies for this transformation,
         or PointEstimate(None, None) if not available.
 
     """
+    # Transformations are between microstates, so build an index of microstate_id -> compound to fish out experimental data
     compounds_by_microstate = {
         microstate.microstate_id: compound
         for compound in compounds
         for microstate in compound.microstates
     }
-
+    # Extract experimental data for initial and final compounds
     initial_experimental_data = compounds_by_microstate[
         transformation.initial_microstate.microstate_id
     ].metadata.experimental_data
@@ -182,15 +180,14 @@ def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeri
         transformation.final_microstate.microstate_id
     ].metadata.experimental_data
 
-    if ("pIC50" in initial_experimental_data) and ("pIC50" in final_experimental_data):
-        initial_dg = PointEstimate(
-            point=pIC50_to_DG(initial_experimental_data["pIC50"]), stderr=EXP_DDG_IJ_ERR
-        )
-        final_dg = PointEstimate(
-            point=pIC50_to_DG(final_experimental_data["pIC50"]), stderr=EXP_DDG_IJ_ERR
-        )
-        error = final_dg - initial_dg
-        return error
+    # TODO: Overhaul this to use 95% CIs, or convert 95% CIs into stderr?
+    from .diffnet import experimental_data_to_point_estimate
+    if ('g_exp' in initial_experimental_data) and ('g_exp' in final_experimental_data):
+        # Retrieve point estimates for initial and final compounds
+        initial_dg = experimental_data_to_point_estimate(initial_experimental_data)
+        final_dg = experimental_data_to_point_estimate(final_experimental_data)
+        ddg = final_dg - initial_dg
+        return ddg
     else:
         return PointEstimate(point=None, stderr=None)
 
@@ -394,6 +391,9 @@ def generate_artifacts(
     for transformation in series.transformations:
         run_id = transformation.transformation.run_id
         atom_map_src_filename = os.path.join(complex_project_dir, "RUNS", f"RUN{run_id}", "atom_map.png")
+        atom_map_dest_path = os.path.join(output_dir, "transformations", f"RUN{run_id}")                
+        if not os.path.exists(atom_map_dest_path):
+            os.makedirs(atom_map_dest_path, exist_ok=True)
         atom_map_dest_filename = os.path.join(output_dir, "transformations", f"RUN{run_id}", "atom_map.png")
         if not os.path.exists(atom_map_dest_filename):
             import shutil

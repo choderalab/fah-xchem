@@ -20,7 +20,9 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.compounds | lengt
   </tr>
   {% for compound in compounds %}
   <tr>
+    <!-- Rank -->
     <td class="rank">{{ start_index + loop.index - 1 }}</td>
+    <!-- Compound metadata -->
     <td >
       {% if loop.index <= num_top_compounds %}
       <a href="compounds/{{ compound.metadata.compound_id }}.html">{{ compound.metadata.compound_id }}</a>
@@ -36,6 +38,7 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.compounds | lengt
       </a>
     </td>
     <td class="smiles">{{  compound.metadata.smiles }}</td>
+    <!-- Computed binding free energy in kcal/mol -->
     <td class="binding">
       {% if compound.free_energy %}
       <span class="estimate">
@@ -46,6 +49,7 @@ Showing {{ start_index }} through {{ end_index }} of {{ series.compounds | lengt
       no data
       {% endif %}
     </td>
+    <!-- Computed pIC50 -->
     <td class="binding">
       {% if compound.free_energy %}
       <span class="estimate">

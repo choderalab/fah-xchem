@@ -29,18 +29,21 @@ def plot_retrospective(
     output_dir: str,
     filename: str = "retrospective",
 ):
-
+    logging.info('Generating retrospective plot...')
     graph = nx.DiGraph()
 
     # TODO this loop can be sped up
     number_of_edges_with_experimental_data = 0
     for analysis in transformations:
         transformation = analysis.transformation
+        print(f'{transformation.initial_microstate.compound_id} -> {transformation.final_microstate.compound_id} : calc {analysis.binding_free_energy} : exp {analysis.exp_ddg}')
 
         # Only interested if the compounds have an experimental DDG
-        if analysis.binding_free_energy is None or analysis.exp_ddg.point is None:
+        if (analysis.binding_free_energy is None) or (analysis.exp_ddg.point is None):
             continue
 
+        logging.info(f'{analysis.transformation.initial_microstate.microstate_id} -> {analysis.transformation.final_microstate.microstate_id} : {analysis.exp_ddg}') # DEBUG
+        
         graph.add_edge(
             transformation.initial_microstate,
             transformation.final_microstate,
@@ -49,13 +52,14 @@ def plot_retrospective(
             calc_DDG=analysis.binding_free_energy.point * KT_KCALMOL,
             calc_dDDG=analysis.binding_free_energy.stderr * KT_KCALMOL,
         )
-    number_of_edges_with_experimental_data += 1
+        number_of_edges_with_experimental_data += 1
 
-    filename_png = filename + ".png"
+    print(f'Number of edges with experimental data: {number_of_edges_with_experimental_data}')
 
     if (number_of_edges_with_experimental_data > 1):
+        filename_png = filename + ".png"
+        print(f'Plotting DDGs with {number_of_edges_with_experimental_data} experimental measurements to {filename_png}')
         plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename_png))
-
 
 def plot_work_distributions(
     complex_forward_works: List[float],
@@ -774,8 +778,9 @@ def generate_plots(
     )
 
     # Summary plots
-
     # we always regenerate these, since they concern all data
+    logging.info('Regenerating summary plots')
+
     fig = plot_relative_distribution(binding_delta_fs)
     plt.title("Relative free energy")
     save_summary_plot(name="relative_fe_dist", fig=fig)
@@ -788,6 +793,7 @@ def generate_plots(
         plot_poor_convergence_fe_table(series.transformations)
 
     # Transformation-level plots
+    logging.info('Generating transformation plots via multiprocessing')
 
     generate_transformation_plots_partial = partial(
         generate_transformation_plots,
@@ -808,13 +814,14 @@ def generate_plots(
     #
     # Retrospective plots
     #
-
+    logging.info('Generating retrospective plots...')
+    
     # NOTE this is handled by Arsenic
     # this needs to be plotted last as the figure isn't cleared by default in Arsenic
     # TODO generate time stamp
 
     racemic_filter = Racemic(series)
-
+    
     plot_retrospective(
         output_dir=output_dir,
         transformations=[

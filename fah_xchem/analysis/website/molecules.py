@@ -62,7 +62,7 @@ def render_molecule(
     output_path = os.path.join(path, os.extsep.join([output_name, file_format]))
 
     if not force_regenerate and os.path.exists(output_path):
-        logging.info("Skipping already-rendered molecule: %s", smiles)
+        logging.debug("Skipping already-rendered molecule: %s", smiles)
         return
 
     # Generate OpenEye OEMol object from SMILES

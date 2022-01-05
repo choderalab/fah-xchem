@@ -18,6 +18,25 @@ from ..schema import (
 )
 from .exceptions import AnalysisError, ConfigurationError, InsufficientDataError
 
+def experimental_data_to_point_estimate(experimental_data: dict) -> PointEstimate:
+    """
+    Convert experimental data dict to a point estimate of absolute binding free energy
+
+    Parameters
+    ----------
+    experimental_data : dict
+        Experimental data record which should contain 'g' and 'g_dexp'
+
+    Returns
+    -------
+    point : PointEstimate 
+        The experimental free energy point estimate
+    
+    """
+    return PointEstimate(
+        point=experimental_data['g_exp'],
+        stderr=experimental_data['g_dexp']
+    )
 
 def pIC50_to_DG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> float:
     """
@@ -34,9 +53,33 @@ def pIC50_to_DG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> floa
     -------
     PointEstimate
         Dimensionless free energy (in kT)
-    """
+ 
+   """
     ic50 = 10 ** -pIC50
 
+    if ic50 > 200e-6:
+        logging.warning("Expecting IC50 in M units. Please check.")
+
+    Ki = ic50 / (1 + s_conc / Km)
+    return np.log(Ki)
+
+
+def IC50_to_DG(IC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> float:
+    """
+    Converts IC50 (in M units) to DG
+    Parameters
+    ----------
+    IC50 : float
+        IC50
+    s_conc : float, default=375E-9
+        Substrate concentration in M
+    Km : float, default=40E-6
+        Substrate concentration for half-maximal enzyme activity
+    Returns
+    -------
+    PointEstimate
+        Dimensionless free energy (in kT)
+    """
     if ic50 > 200e-6:
         logging.warning("Expecting IC50 in M units. Please check.")
 
@@ -209,7 +252,7 @@ def combine_free_energies(
         graph
         for graph in connected_subgraphs
         if any(
-            "pIC50" in graph.nodes[node]["compound"].metadata.experimental_data
+            "g_exp" in graph.nodes[node]["compound"].metadata.experimental_data
             for node in graph
         )
     ]
@@ -228,14 +271,16 @@ def combine_free_energies(
         # since we don't know how to connect different subgraphs with absolute free energies
         experimental_data_available = False
         logging.warning(
-            "No connected subgraphs with experimental data found; selecting largest connected subgraph to analyze"
+            "* * * No connected subgraphs with experimental data found; selecting largest connected subgraph to analyze"
             )
         largest_connected_subgraph_index = np.argmax([graph.number_of_nodes() for graph in connected_subgraphs])
         largest_connected_subgraph = connected_subgraphs[largest_connected_subgraph_index]
         valid_subgraphs = [largest_connected_subgraph]
-        # Select a compound to set experimental pIC50 arbitrarily to zero
+        # Select a compound to set experimental g_exp arbitrarily to zero
         compound = [ compound for (node, compound) in largest_connected_subgraph.nodes(data="compound") ][0]
-        compound.metadata.experimental_data['pIC50'] = 0.0
+        logging.warning('* * * Setting g_exp = 0 for one compound arbitrarily')
+        compound.metadata.experimental_data['g_exp'] = 0.0
+        compound.metadata.experimental_data['g_dexp'] = 0.01 # arbitrary
         
     # Inital MLE pass: compute microstate free energies without using
     # experimental reference values
@@ -259,13 +304,13 @@ def combine_free_energies(
     #                   )
     #
     for compound in compounds:
-        pIC50 = compound.metadata.experimental_data.get("pIC50")
-
         # Skip compounds with no experimental data
-        if pIC50 is None:
+        if ('g_exp' not in compound.metadata.experimental_data):
             continue
 
-        g_exp_compound = pIC50_to_DG(pIC50)
+        # Retrieve experimental dimensionless free energy and uncertainty
+        g_exp_compound = compound.metadata.experimental_data['g_exp']
+        g_dexp_compound = compound.metadata.experimental_data['g_dexp']        
 
         nodes = [
             CompoundMicrostate(
@@ -310,8 +355,8 @@ def combine_free_energies(
             if node in supergraph:
                 supergraph.nodes[node]["g_exp"] = -np.log(Ka)
                 # NOTE: naming of uncertainty fixed by Arsenic convention
-                # TODO: remove hard-coded value
-                supergraph.nodes[node]["g_dexp"] = 0.1 * KCALMOL_KT
+                # TODO: Determine better experimental error scheme here
+                supergraph.nodes[node]["g_dexp"] = g_dexp_compound
             else:
                 logging.warning(
                     "Compound microstate '%s' has experimental data, "
