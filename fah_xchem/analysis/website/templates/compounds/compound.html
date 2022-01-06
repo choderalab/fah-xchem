@@ -77,13 +77,23 @@ No transformations found.
   </tr>
   {% for transformation in transformations %}
   <tr>
+    <!-- Run index -->
     <td >RUN{{ transformation.transformation.run_id }}</td>
+    
+    <!-- Atom mapping -->
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/atom_map.png">
+        <button class="btn btn-info">map</button>
+      </a>
+    </td>
+    <!-- Initial microstate -->    
     <td>{{ transformation.transformation.initial_microstate.microstate_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.initial_microstate.microstate_id) }}</td>
     <td class="thumbnail">
       <a href="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg">
         <img src="molecule_images/{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.initial_microstate][1].smiles }}">
       </a>
     </td>
+    <!-- TODO: Restore these links once we fix the ligand SDF download.
     <td>
       <a href="transformations/RUN{{ transformation.transformation.run_id }}/old_ligand.sdf">
         <button class="btn btn-outline-primary">sdf</button>
@@ -94,12 +104,21 @@ No transformations found.
         <button class="btn btn-outline-primary">pdb</button>
       </a>
     </td>
+    -->
+    <!-- NOTE: We are temporarily providing a PDB for the whole complex since the SDF download is broken. -->
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/old_complex.pdb">
+        <button class="btn btn-primary">pdb</button>
+      </a>
+    </td>
+    <!-- Final microstate -->
     <td>{{ transformation.transformation.final_microstate.microstate_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.final_microstate.microstate_id) }}</td>
     <td class="thumbnail">
       <a href="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg">
         <img src="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg" alt="molecule" title="{{ microstate_detail[transformation.transformation.final_microstate][1].smiles }}">
       </a>
     </td>
+    <!-- TODO: Restore these links once we fix the ligand SDF download.    
     <td>
       <a href="transformations/RUN{{ transformation.transformation.run_id }}/new_ligand.sdf">
         <button class="btn btn-outline-primary">sdf</button>
@@ -110,20 +129,36 @@ No transformations found.
         <button class="btn btn-outline-primary">pdb</button>
       </a>
     </td>
+    -->
+    <!-- NOTE: We are temporarily providing a PDB for the whole complex since the SDF download is broken. -->    
+    <td>
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/new_complex.pdb">
+        <button class="btn btn-primary">pdb</button>
+      </a>
+    </td>
+    <!-- Binding free energy estimate -->    
     <td class="binding">
       <span class="estimate">
         <span class="point">{{ (transformation.binding_free_energy * KT_KCALMOL) | format_point }}</span>
         <span class="stderr"> ± {{ (transformation.binding_free_energy * KT_KCALMOL) | format_stderr }}</span>
       </span>
     </td>
+    <!-- Work distribution -->
     <td class="thumbnail">
       <a href="transformations/RUN{{ transformation.transformation.run_id }}/works.pdf">
         <img src="transformations/RUN{{ transformation.transformation.run_id }}/works.png" alt="work distributions">
       </a>
     </td>
+    <!-- Convergence with bootstrap samples -->
+    <td class="thumbnail">
+      <a href="transformations/RUN{{ transformation.transformation.run_id }}/bootstrapped-CLONEs.pdf">
+        <img src="transformations/RUN{{ transformation.transformation.run_id }}/bootstrapped-CLONEs.png" alt="bootstrapping">
+      </a>
+    </td>
+    <!-- Convergence with iteration count -->
     <td class="thumbnail">
       <a href="transformations/RUN{{ transformation.transformation.run_id }}/convergence.pdf">
-        <img src="transformations/RUN{{ transformation.transformation.run_id }}/convergence.png" alt="convergence plot">
+        <img src="transformations/RUN{{ transformation.transformation.run_id }}/convergence.png" alt="convergence">
       </a>
     </td>
   </tr>

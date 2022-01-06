@@ -15,6 +15,7 @@ from pymbar import BAR
 from typing import Generator, Iterable, List, Optional
 from ..schema import (
     CompoundSeriesAnalysis,
+    CompoundAnalysis,
     GenAnalysis,
     PhaseAnalysis,
     TransformationAnalysis,
@@ -27,12 +28,11 @@ from arsenic import plotting
 def plot_retrospective_transformations(
     transformations: List[TransformationAnalysis],
     output_dir: str,
-    filename: str = "retrospective",
+    filename: str = "retrospective-transformations",
 ):
-    """
-    Plot retrospective transformations between enantiomerically resolved compounds
-    """
-    logging.info('Generating retrospective plot...')
+    logging.info('Generating retrospective transformations plot...')
+
+    
     graph = nx.DiGraph()
 
     # TODO this loop can be sped up
@@ -62,45 +62,61 @@ def plot_retrospective_transformations(
     if (number_of_edges_with_experimental_data > 1):
         filename_png = filename + ".png"
         print(f'Plotting DDGs with {number_of_edges_with_experimental_data} experimental measurements to {filename_png}')
-        plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename_png))
+        plotting.plot_DDGs(
+            graph,
+            title="Enantiomerically-pure transformations",
+            filename=os.path.join(output_dir, filename_png)
+        )
 
 
-def plot_retrospective_transformations(
-    transformations: List[TransformationAnalysis],
+        
+def plot_retrospective_compounds(
+    compounds: List[CompoundAnalysis],
     output_dir: str,
-    filename: str = "retrospective",
+    filename: str = "retrospective-compounds",
 ):
-    logging.info('Generating retrospective plot...')
+    """
+    Plot retrospective compound free energies for racemates
+
+    """
+    logging.info('Generating retrospective compounds plot...')
     graph = nx.DiGraph()
 
     # TODO this loop can be sped up
-    number_of_edges_with_experimental_data = 0
-    for analysis in transformations:
-        transformation = analysis.transformation
-        print(f'{transformation.initial_microstate.compound_id} -> {transformation.final_microstate.compound_id} : calc {analysis.binding_free_energy} : exp {analysis.exp_ddg}')
+    number_of_compounds_with_experimental_data = 0
+    for compound in compounds:
 
         # Only interested if the compounds have an experimental DDG
-        if (analysis.binding_free_energy is None) or (analysis.exp_ddg.point is None):
+        if ('g_exp' not in compound.metadata.experimental_data) or (compound.free_energy.point is None):
             continue
 
-        logging.info(f'{analysis.transformation.initial_microstate.microstate_id} -> {analysis.transformation.final_microstate.microstate_id} : {analysis.exp_ddg}') # DEBUG
+        # Only plot racemates
+        if not 'racemate' in compound.metadata.experimental_data:
+            continue
+
+        logging.info(f'{compound.metadata.compound_id}') # DEBUG
         
-        graph.add_edge(
-            transformation.initial_microstate,
-            transformation.final_microstate,
-            exp_DDG=analysis.exp_ddg.point * KT_KCALMOL,
-            exp_dDDG=analysis.exp_ddg.stderr * KT_KCALMOL,
-            calc_DDG=analysis.binding_free_energy.point * KT_KCALMOL,
-            calc_dDDG=analysis.binding_free_energy.stderr * KT_KCALMOL,
+        graph.add_node(
+            compound.metadata.compound_id,
+            exp_DG=compound.metadata.experimental_data['g_exp'] * KT_KCALMOL,
+            exp_dDG=compound.metadata.experimental_data['g_dexp'] * KT_KCALMOL,
+            calc_DG=compound.free_energy.point * KT_KCALMOL,
+            calc_dDG=compound.free_energy.stderr * KT_KCALMOL,
         )
-        number_of_edges_with_experimental_data += 1
+        number_of_compounds_with_experimental_data += 1
 
-    print(f'Number of edges with experimental data: {number_of_edges_with_experimental_data}')
+    print(f'Number of compounds with experimental data: {number_of_compounds_with_experimental_data}')
 
-    if (number_of_edges_with_experimental_data > 1):
+    if (number_of_compounds_with_experimental_data > 1):
         filename_png = filename + ".png"
-        print(f'Plotting DDGs with {number_of_edges_with_experimental_data} experimental measurements to {filename_png}')
-        plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename_png))
+        print(f'Plotting DGs with {number_of_compounds_with_experimental_data} experimental measurements to {filename_png}')
+        plotting.plot_DGs(
+            graph,
+            title="Racemic compounds",
+            filename=os.path.join(output_dir, filename_png),
+            centralizing=False,
+            shift=0.0
+        )
 
         
 def plot_work_distributions(
@@ -866,5 +882,13 @@ def generate_plots(
     plot_retrospective_transformations(
         output_dir=output_dir,
         transformations=series.transformations,
-        filename="retrospective-transformations-noracemates",
+        filename="retrospective-transformations",
     )
+
+    # Plot retrospective compounds, comparing racemates only
+    plot_retrospective_compounds(
+        output_dir=output_dir,
+        compounds=series.compounds,
+        filename="retrospective-compounds",
+    )
+    

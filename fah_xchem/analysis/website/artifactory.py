@@ -360,7 +360,7 @@ class WebsiteArtifactory(BaseModel):
         self.generate_microstates(items_per_page)
         self.generate_transformations(items_per_page)
         self.generate_reliable_transformations(items_per_page)
-        self.generate_retrospective_microstate_transformations(items_per_page)
+        self.generate_retrospective_microstate_transformations(items_per_page)        
 
     def generate_summary(self, num_top_compounds):
         self._write_html(

@@ -359,7 +359,6 @@ def generate_artifacts(
         and transformation.binding_free_energy.point is not None
     ]
 
-    snapshots = False # DEBUG
     if snapshots:
         logging.info("Generating representative snapshots")
         saf = SnapshotArtifactory(

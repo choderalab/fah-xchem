@@ -56,6 +56,7 @@ Showing {{ start_index }} through {{ end_index }} of {{ transformations | length
         <button class="btn btn-primary">pdb</button>
       </a>
     </td>
+    <!-- Final microstate -->
     <td>{{ transformation.transformation.final_microstate.microstate_id | format_compound_id }}{{ postera.maybe_link(transformation.transformation.final_microstate.microstate_id) }}</td>
     <td class="thumbnail">
       <a href="molecule_images/{{ microstate_detail[transformation.transformation.final_microstate][1].smiles | smiles_to_filename }}.svg">
