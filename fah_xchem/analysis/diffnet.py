@@ -25,66 +25,18 @@ def experimental_data_to_point_estimate(experimental_data: dict) -> PointEstimat
     Parameters
     ----------
     experimental_data : dict
-        Experimental data record which should contain 'g' and 'g_dexp'
+        Experimental data record which should contain 'g_exp' and 'g_dexp'
 
     Returns
     -------
     point : PointEstimate 
-        The experimental free energy point estimate
+        The experimental free energy point estimate (in kT)
     
     """
     return PointEstimate(
         point=experimental_data['g_exp'],
         stderr=experimental_data['g_dexp']
     )
-
-def pIC50_to_DG(pIC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> float:
-    """
-    Converts IC50 (in M units) to DG
-    Parameters
-    ----------
-    pIC50 : float
-        pIC50
-    s_conc : float, default=375E-9
-        Substrate concentration in M
-    Km : float, default=40E-6
-        Substrate concentration for half-maximal enzyme activity
-    Returns
-    -------
-    PointEstimate
-        Dimensionless free energy (in kT)
- 
-   """
-    ic50 = 10 ** -pIC50
-
-    if ic50 > 200e-6:
-        logging.warning("Expecting IC50 in M units. Please check.")
-
-    Ki = ic50 / (1 + s_conc / Km)
-    return np.log(Ki)
-
-
-def IC50_to_DG(IC50: float, s_conc: float = 375e-9, Km: float = 40e-6) -> float:
-    """
-    Converts IC50 (in M units) to DG
-    Parameters
-    ----------
-    IC50 : float
-        IC50
-    s_conc : float, default=375E-9
-        Substrate concentration in M
-    Km : float, default=40E-6
-        Substrate concentration for half-maximal enzyme activity
-    Returns
-    -------
-    PointEstimate
-        Dimensionless free energy (in kT)
-    """
-    if ic50 > 200e-6:
-        logging.warning("Expecting IC50 in M units. Please check.")
-
-    Ki = ic50 / (1 + s_conc / Km)
-    return np.log(Ki)
 
 
 def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEstimate:
@@ -188,6 +140,10 @@ def build_transformation_graph(
         if analysis.binding_free_energy is None:
             continue
 
+        # Omit null transformations, which cause problems for diffnet
+        if transformation.initial_microstate == transformation.final_microstate:
+            continue
+        
         graph.add_edge(
             transformation.initial_microstate,
             transformation.final_microstate,
@@ -280,7 +236,7 @@ def combine_free_energies(
         compound = [ compound for (node, compound) in largest_connected_subgraph.nodes(data="compound") ][0]
         logging.warning('* * * Setting g_exp = 0 for one compound arbitrarily')
         compound.metadata.experimental_data['g_exp'] = 0.0
-        compound.metadata.experimental_data['g_dexp'] = 0.01 # arbitrary
+        compound.metadata.experimental_data['g_dexp'] = 0.1 # arbitrary
         
     # Inital MLE pass: compute microstate free energies without using
     # experimental reference values
@@ -345,18 +301,26 @@ def combine_free_energies(
             ]
         )
 
+        # TODO: Fix this later when we have a better way of propagating uncertainty in allocation
+        # For now, we skip anything that has multiple microstates
+        if len(g_is) > 1:
+            logging.info(f'Skipping use of experimental data for {compound.metadata.compound_id} because there are {len(g_is)} microstates')            
+            continue
+        
         # Compute normalized microstate probabilities
         p_is = np.exp(-g_is - logsumexp(-g_is))
 
         # Apportion compound K_a according to microstate probability
         Ka_is = p_is * np.exp(-g_exp_compound)
 
-        for (node, _), Ka in zip(valid_nodes, Ka_is):
+        logging.info(f'Computing allocations for {compound.metadata.compound_id}')
+        for (node, _), Ka, p_i in zip(valid_nodes, Ka_is, p_is):
             if node in supergraph:
                 supergraph.nodes[node]["g_exp"] = -np.log(Ka)
                 # NOTE: naming of uncertainty fixed by Arsenic convention
                 # TODO: Determine better experimental error scheme here
                 supergraph.nodes[node]["g_dexp"] = g_dexp_compound
+                logging.info(f' Allocating {p_i} of experimental free energy {g_exp_compound} to microstate {node}: {-np.log(Ka)}')
             else:
                 logging.warning(
                     "Compound microstate '%s' has experimental data, "
@@ -370,11 +334,16 @@ def combine_free_energies(
 
     for graph in valid_subgraphs:
         gs, C = stats.mle(graph, factor="g_ij", node_factor="g_exp")
+        print(gs)
+        print(gs.min(), gs.max())
+              
         errs = np.sqrt(np.diag(C))
         for node, g, g_err in zip(graph.nodes, gs, errs):
             graph.nodes[node]["g"] = g
             graph.nodes[node]["g_err"] = g_err
-
+            if 'g_exp' in graph.nodes[node]:
+                print(f"{node} : exp {graph.nodes[node]['g_exp']} +- {graph.nodes[node]['g_dexp']} : calc {g} +- {g_err}")
+            
     def get_compound_analysis(compound: Compound) -> CompoundAnalysis:
         def get_microstate_analysis(microstate: Microstate) -> MicrostateAnalysis:
 

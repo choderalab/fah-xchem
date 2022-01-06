@@ -24,7 +24,48 @@ from .filters import Racemic
 from arsenic import plotting
 
 
-def plot_retrospective(
+def plot_retrospective_transformations(
+    transformations: List[TransformationAnalysis],
+    output_dir: str,
+    filename: str = "retrospective",
+):
+    """
+    Plot retrospective transformations between enantiomerically resolved compounds
+    """
+    logging.info('Generating retrospective plot...')
+    graph = nx.DiGraph()
+
+    # TODO this loop can be sped up
+    number_of_edges_with_experimental_data = 0
+    for analysis in transformations:
+        transformation = analysis.transformation
+        print(f'{transformation.initial_microstate.compound_id} -> {transformation.final_microstate.compound_id} : calc {analysis.binding_free_energy} : exp {analysis.exp_ddg}')
+
+        # Only interested if the compounds have an experimental DDG
+        if (analysis.binding_free_energy is None) or (analysis.exp_ddg.point is None):
+            continue
+
+        logging.info(f'{analysis.transformation.initial_microstate.microstate_id} -> {analysis.transformation.final_microstate.microstate_id} : {analysis.exp_ddg}') # DEBUG
+        
+        graph.add_edge(
+            transformation.initial_microstate,
+            transformation.final_microstate,
+            exp_DDG=analysis.exp_ddg.point * KT_KCALMOL,
+            exp_dDDG=analysis.exp_ddg.stderr * KT_KCALMOL,
+            calc_DDG=analysis.binding_free_energy.point * KT_KCALMOL,
+            calc_dDDG=analysis.binding_free_energy.stderr * KT_KCALMOL,
+        )
+        number_of_edges_with_experimental_data += 1
+
+    print(f'Number of edges with experimental data: {number_of_edges_with_experimental_data}')
+
+    if (number_of_edges_with_experimental_data > 1):
+        filename_png = filename + ".png"
+        print(f'Plotting DDGs with {number_of_edges_with_experimental_data} experimental measurements to {filename_png}')
+        plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename_png))
+
+
+def plot_retrospective_transformations(
     transformations: List[TransformationAnalysis],
     output_dir: str,
     filename: str = "retrospective",
@@ -61,6 +102,7 @@ def plot_retrospective(
         print(f'Plotting DDGs with {number_of_edges_with_experimental_data} experimental measurements to {filename_png}')
         plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename_png))
 
+        
 def plot_work_distributions(
     complex_forward_works: List[float],
     complex_reverse_works: List[float],
@@ -820,21 +862,9 @@ def generate_plots(
     # this needs to be plotted last as the figure isn't cleared by default in Arsenic
     # TODO generate time stamp
 
-    racemic_filter = Racemic(series)
-    
-    plot_retrospective(
+    # Plot retrospective transformations, which compare enanomerically-resolved compounds only
+    plot_retrospective_transformations(
         output_dir=output_dir,
-        transformations=[
-            transformation
-            for transformation in series.transformations
-            if (
-                not racemic_filter.compound_microstate(
-                    transformation.transformation.initial_microstate
-                )
-                and not racemic_filter.compound_microstate(
-                    transformation.transformation.final_microstate
-                )
-            )
-        ],
+        transformations=series.transformations,
         filename="retrospective-transformations-noracemates",
     )

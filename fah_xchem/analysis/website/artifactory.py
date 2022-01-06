@@ -92,8 +92,8 @@ def format_IC50(compound: CompoundAnalysis) -> str:
         try:
             text = f"""
       <span class="estimate">
-        <span class="point">{{ {format_point(est)}</span>
-        <span class="stderr"> ± {format_stderr(est)}</span>
+        <span class="point">{est.point:.3f}</span>
+        <span class="stderr"> ± {est.point:.3f}</span>
       </span>
     """
             return text
@@ -490,15 +490,7 @@ class WebsiteArtifactory(BaseModel):
                 [
                     transformation
                     for transformation in self.series.transformations
-                    if (
-                        not racemic_filter.compound_microstate(
-                            transformation.transformation.initial_microstate
-                        )
-                        and not racemic_filter.compound_microstate(
-                            transformation.transformation.final_microstate
-                        )
-                        and transformation.absolute_error is not None
-                    )
+                    if (transformation.exp_ddg is not None) and (transformation.exp_ddg.point is not None) and (transformation.absolute_error is not None)
                 ],
                 key=lambda transformation: -transformation.absolute_error.point,
             ),

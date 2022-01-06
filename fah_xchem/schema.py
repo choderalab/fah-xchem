@@ -40,6 +40,8 @@ class PointEstimate(Model):
 
         if self.point is None:
             return None
+        elif (self.stderr <= 0):
+            return 6 # DEBUG
         else:
             return -floor(log10(self.stderr)) if isfinite(self.stderr) else None
 
@@ -106,15 +108,31 @@ class CompoundMetadata(Model):
         dict(), description='Optional experimental data fields, such as "pIC50"'
     )
 
-class ExperimentalCompoundData(Model):
-    """Experimental data for compounds."""
-    compounds: List[CompoundMetadata]
-    
-# JDC: Simple container for loading compounds with experimental data
-class ExperimentalCompoundData(Model):
-    """Experimental data for compounds."""
-    compounds: List[CompoundMetadata]    
 
+class ExperimentalCompoundData(Model):
+    compound_id: str = Field(
+        None, description="The unique compound identifier (PostEra or enumerated ID)"
+    )
+
+    smiles: str = Field(
+        None,
+        description="OpenEye canonical isomeric SMILES string defining suspected SMILES of racemic mixture (with unspecified stereochemistry) or specific enantiopure compound (if is_racemic=False); may differ from what is registered under compound_id.",
+    )
+
+    is_racemic: bool = Field(
+        False,
+        description="If True, this experiment was performed on a racemate; if False, the compound was enantiopure.",
+    )
+
+    experimental_data: Dict[str, float] = Field(
+        dict(), description='Experimental data fields, including "pIC50" and uncertainty (either "pIC50_stderr" or  "pIC50_{lower|upper}"',
+    )
+
+    
+class ExperimentalCompoundDataUpdate(Model):
+    """A bundle of experimental data for compounds (racemic or enantiopure)."""
+    compounds: List[ExperimentalCompoundData]
+    
     
 class Compound(Model):
     metadata: CompoundMetadata = Field(

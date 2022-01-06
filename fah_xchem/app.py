@@ -14,6 +14,7 @@ from .schema import (
     FahConfig,
     CompoundSeries,
     ExperimentalCompoundData,
+    ExperimentalCompoundDataUpdate,
     CompoundSeriesAnalysis,
     TimestampedAnalysis,
     FragalysisConfig,
@@ -65,7 +66,7 @@ def normalize_experimental_data(
     
     if 'pIC50_stderr' not in experimental_data:
         if ('pIC50_lower' in experimental_data) and ('pIC50_upper' in experimental_data):
-            experimental_data['pIC50_stderr'] = (experimental_data['pIC50_upper'] - experimental_data['pIC50_lower']) / 4.0
+            experimental_data['pIC50_stderr'] = abs(experimental_data['pIC50_upper'] - experimental_data['pIC50_lower']) / 4.0
         else:
             experimental_data['pIC50_stderr'] = DEFAULT_pIC50_STDERR
 
@@ -92,12 +93,13 @@ def update_experimental_data(
     update_key : str, optional, default='smiles'
         Select whether experimental data should be assigned based on suspected 'smiles' or 'compound_id'
         'compound_id': Assume measured compound identity is correct (often wrong with stereoisomers)
-        'smiles': Use the presumed_SMILES to update based on SMILES matches (often a better choice)
+        'smiles': Use the suspected_SMILES CDD field to update based on SMILES matches (often a better choice)
         Note that designs are submitted using absolute stereochemistry while experimental measurements are assigned
         using relative stereochemistry, so 'smiles' should be more reliable.
     """
-    if not update_key in ['smiles', 'compound_id']:
-        raise ValueError("update_key must be one of ['smiles', 'compound_id']")
+    ALLOWED_KEYS = ['smiles', 'compound_id']
+    if not update_key in ALLOWED_KEYS:
+        raise ValueError(f"update_key must be one of {ALLOWED_KEYS}")
     
     import os
     if not os.path.exists(experimental_data_file):
@@ -106,9 +108,17 @@ def update_experimental_data(
     # Read experimental data file containing compound ids and presumed SMILES for experimental measurements
     with open(experimental_data_file, "r") as infile:
         import json
-        experimental_compound_data = ExperimentalCompoundData.parse_obj(json.loads(infile.read()))
-        logging.info(f"Data for {len(experimental_compound_data.compounds)} compoudns read from {experimental_data_file}")        
+        experimental_compound_data = ExperimentalCompoundDataUpdate.parse_obj(json.loads(infile.read()))
+        logging.info(f"Data for {len(experimental_compound_data.compounds)} compounds read from {experimental_data_file}")        
 
+    # Add information about composition (racemic or enantiopure) to experimental_data
+    # TODO: Update object model instead of using the experimental_data dict?
+    for compound in experimental_compound_data.compounds:
+        if compound.is_racemic:
+            compound.experimental_data['racemate'] = 1.0
+        else:
+            compound.experimental_data['enantiopure'] = 1.0
+            
     # Build a lookup table for experimental data by suspected SMILES
     logging.info(f"Matching experimental data with compound designs via {update_key}")        
     experimental_data = { getattr(compound, update_key) : compound.experimental_data for compound in experimental_compound_data.compounds }
