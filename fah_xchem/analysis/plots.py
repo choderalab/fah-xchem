@@ -68,7 +68,6 @@ def plot_retrospective_transformations(
             filename=os.path.join(output_dir, filename_png)
         )
 
-
         
 def plot_retrospective_compounds(
     compounds: List[CompoundAnalysis],

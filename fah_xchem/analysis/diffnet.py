@@ -385,8 +385,21 @@ def combine_free_energies(
             )
             free_energy = None
 
+        experimental_free_energy = None
+        if 'g_exp' in compound.metadata.experimental_data:
+            experimental_free_energy = PointEstimate(
+                point=compound.metadata.experimental_data['g_exp'],
+                stderr=compound.metadata.experimental_data['g_dexp']
+                )
+
+        absolute_free_energy_error = None
+        if free_energy and experimental_free_energy:
+            absolute_free_energy_error = abs(free_energy - experimental_free_energy)
+            
         return CompoundAnalysis(
-            metadata=compound.metadata, microstates=microstates, free_energy=free_energy
+            metadata=compound.metadata, microstates=microstates, free_energy=free_energy,
+            experimental_free_energy=experimental_free_energy,
+            absolute_free_energy_error=absolute_free_energy_error,
         )
 
     return [get_compound_analysis(compound) for compound in compounds]

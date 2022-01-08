@@ -22,7 +22,6 @@ from ...schema import (
     CompoundAnalysis,
 )
 from ..constants import KT_KCALMOL, KT_PIC50
-from ..filters import Racemic
 from .molecules import generate_molecule_images, get_image_filename
 
 
@@ -347,7 +346,7 @@ class WebsiteArtifactory(BaseModel):
     def generate_website(
         self,
         items_per_page: int = 100,
-        num_top_compounds: int = 100,
+        num_top_compounds: int = 1000,
     ) -> None:
 
         generate_molecule_images(
@@ -360,7 +359,8 @@ class WebsiteArtifactory(BaseModel):
         self.generate_microstates(items_per_page)
         self.generate_transformations(items_per_page)
         self.generate_reliable_transformations(items_per_page)
-        self.generate_retrospective_microstate_transformations(items_per_page)        
+        self.generate_retrospective_microstate_transformations(items_per_page)
+        self.generate_retrospective_compounds(items_per_page, num_top_compounds)        
 
     def generate_summary(self, num_top_compounds):
         self._write_html(
@@ -480,7 +480,6 @@ class WebsiteArtifactory(BaseModel):
         subdir = "retrospective_microstate_transformations"
         os.makedirs(os.path.join(self.path, subdir), exist_ok=True)
 
-        racemic_filter = Racemic(self.series)
         self._generate_paginated_index(
             write_html=lambda items, **kwargs: self._write_html(
                 transformations=items, **kwargs
@@ -497,3 +496,32 @@ class WebsiteArtifactory(BaseModel):
             items_per_page=items_per_page,
             description="Generating html for retrospective microstate transformations index",
         )
+
+
+    def generate_retrospective_compounds(self, items_per_page, num_top_compounds):
+
+        subdir = "retrospective_compounds"
+        os.makedirs(os.path.join(self.path, subdir), exist_ok=True)
+
+        # TODO: This could be streamlined by extending the schema to include experimental free energies and error with experiment
+        
+        compounds_sorted = sorted(
+            [
+                compound
+                for compound in self.series.compounds
+                if (compound.free_energy is not None) and ('g_exp' in compound.metadata.experimental_data) and ('racemate' in compound.metadata.experimental_data)
+            ],
+            key=lambda compound: compound.absolute_free_energy_error.point,
+            reverse=True
+        )
+        
+        self._generate_paginated_index(
+            write_html=lambda items, **kwargs: self._write_html(
+                compounds=items, num_top_compounds=num_top_compounds, **kwargs
+            ),
+            url_prefix="retrospective_compounds",
+            items=compounds_sorted,
+            items_per_page=items_per_page,
+            description="Generating html for retrospective compounds",
+        )
+        

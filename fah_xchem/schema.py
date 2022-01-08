@@ -220,7 +220,9 @@ class CompoundAnalysis(Model):
     metadata: CompoundMetadata
     microstates: List[MicrostateAnalysis]
     free_energy: Optional[PointEstimate]
-
+    experimental_free_energy: Optional[PointEstimate]
+    absolute_free_energy_error: Optional[PointEstimate]
+    
 
 class CompoundSeriesAnalysis(Model):
     """Full analysis results object for compound series.
