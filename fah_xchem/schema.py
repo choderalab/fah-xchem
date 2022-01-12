@@ -127,9 +127,15 @@ class CompoundMetadata(Model):
         None,
         description="The SMILES string defining the compound in a canonical protonation state. Stereochemistry will be ambiguous for racemates",
     )
-    experimental_data: Dict[str, float] = Field(
+    experimental_data: Dict[str, Dict] = Field(
         dict(), description='Optional experimental data fields, such as "pIC50"'
     )
+
+
+class ExperimentalCompoundData(Model):
+    """Experimental data for compounds.
+    """
+    compounds: List[CompoundMetadata]
 
 
 class Compound(Model):
@@ -159,12 +165,6 @@ class Transformation(Model):
     xchem_fragment_id: str = Field(None, description="The XChem fragment screening ID")
     initial_microstate: CompoundMicrostate
     final_microstate: CompoundMicrostate
-
-
-class CompoundSeries(Model):
-    metadata: CompoundSeriesMetadata
-    compounds: List[Compound]
-    transformations: List[Transformation]
 
 
 class DataPath(Model):

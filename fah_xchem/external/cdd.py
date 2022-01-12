@@ -1,10 +1,13 @@
 """Interface to Collaborative Drug Discovery APIs and data artifacts.
 
 """
-import sys
+import os
 import time
 import logging
 import json
+import shutil
+from typing import List, Dict
+from collections import defaultdict
 
 import requests
 import numpy as np
@@ -12,6 +15,13 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from .base import ExternalData
+from ..schema import CompoundMetadata, ExperimentalCompoundData
+
+
+class FailedExportError(Exception):
+    """Export failed to finish within timeout.
+
+    """
 
 
 class CDDData(ExternalData):
@@ -33,460 +43,257 @@ class CDDData(ExternalData):
         "5549", 
         description="CDD Vault number"
     )
-    rapidfire_IC50_protocol_id: str = Field(
-        "49700",
-        description="Protocol ID for RapidFire assay IC50 measurements"
-    )
     fluorescence_IC50_protocol_id: str = Field(
         "49439",
         description="Protocol ID for fluorescence measurements"
     )
 
     @property
-    def rapidfire_data_dir(self):
-        return self.data_dir.joinpath('rapidfire')
+    def protocols_dir(self):
+        return self.data_dir.joinpath('protocols')
 
-    @property
-    def fluorescence_data_dir(self):
-        return self.data_dir.joinpath('fluorescence')
+    def get_available_protocols(self):
+        # retrieve protocol definitions
+        headers = {"X-CDD-token": self.vault_token}
+        
+        url = f"{self.base_url}/{self.vault_num}/protocols/"
+        url = f"{url}?async=True"
 
-    def _get_async_export(self, async_url):
+        response = self._get_async_exports({"protocols": url}, headers=headers)["protocols"]
+        
+        protocol_data = response.json()
+        
+        return protocol_data
+
+    def _get_async_exports(
+            self, 
+            async_urls: Dict[str, str],
+            headers: Dict[str, str],
+            timeout: int = 3600
+        ):
         from rich.live import Live
         from rich.text import Text
+        from rich.console import Console
 
-        headers = {"X-CDD-token": self.vault_token}
-        response = requests.get(async_url, headers=headers)
-        logging.info("BEGINNING EXPORT")
-        text = Text("BEGINNING EXPORT", style="bold red")
+        responses = {}
+        for name, async_url in async_urls.items():
+            responses[name] = requests.get(async_url, headers=headers)
+
+        console = Console()
+        text = Text("Retrieving urls...", no_wrap=True)
+        for async_url in async_urls.values():
+            text.append(f"\n: {async_url}")
+
+        console.print(text)
+
+        logging.info("CDDData : Beginning export(s)")
+        text = Text("CDDData : Beginning export(s)", style="bold red", no_wrap=True)
 
         with Live(text, refresh_per_second=4) as live:
 
-            export_info = response.json()
-            export_id = export_info["id"]
+            export_ids = {}
+            for name, response in responses.items():
+                export_info = response.json()
+                export_ids[name] = export_info["id"]
     
             # CHECK STATUS of Export
-            status = None
+            statuses = {name: None for name in async_urls}
             seconds_waiting = 0
 
             first = True
-            while status != "finished":
-                text.remove_suffix(" --> CHECKING STATUS OF EXPORT")
-                headers = {"X-CDD-token": self.vault_token}
-                url = f"{self.base_url}/{self.vault_num}/export_progress/{export_id}"
-    
-                response = requests.get(url, headers=headers)
+            while any([status != "finished" for status in statuses.values()]):
+                text.remove_suffix(" --> Checking status of export(s)")
+
+                for name, export_id in export_ids.items():
+                    url = f"{self.base_url}/{self.vault_num}/export_progress/{export_id}"
+                    response = requests.get(url, headers=headers)
+
+                    # to view the status, use:
+                    statuses[name] = response.json()["status"]
     
                 if first:
-                    logging.info("CHECKING STATUS OF EXPORT")
-                text.append(" --> CHECKING STATUS OF EXPORT", style="bold yellow")
+                    logging.info("CDDData : Checking status of export(s)")
+                text.append(" --> Checking status of export(s)", style="bold yellow")
 
-                # to view the status, use:
-                status = response.json()["status"]
-    
                 time.sleep(5)
                 seconds_waiting += 5
-                if seconds_waiting > 5000:
+                if seconds_waiting > timeout:
                     logging.info("Export Never Finished")
                     break
 
                 first = False
     
-            if status != "finished":
-                sys.exit("EXPORT IS BROKEN")
+            failed = []
+            for name, status in statuses.items():
+                if status != "finished":
+                    failed.append(async_urls[name])
+            if failed:
+                raise FailedExportError(f"The following urls failed to deliver an export within the timeout: {failed}")
     
+            logging.info("CDDData : Retrieving finished export(s)")
+            text.append(" --> Retrieving finished export(s)", style="bold green")
+            exports = {}
+            for name, export_id in export_ids.items():
+                url = f"{self.base_url}/{self.vault_num}/exports/{export_id}"
+                exports[name] = requests.get(url, headers=headers)
+            
+            text.append(" --> Done", style="bold blue")
+
+        return exports
+
+    def _get_protocol_data(self, protocol_ids, molecules=False):
+
+        urls = {}
+        protocol_defs = {}
+        protocol_datas = {} 
+        for protocol_id in protocol_ids:
+            # retrieve protocol definitions
             headers = {"X-CDD-token": self.vault_token}
-            url = f"{self.base_url}/{self.vault_num}/exports/{export_id}"
-    
-            logging.info("RETRIEVING FINISHED EXPORT")
-            text.append(" --> RETRIEVING FINISHED EXPORT", style="bold green")
+            url = f"{self.base_url}/{self.vault_num}/protocols/{protocol_id}"
             response = requests.get(url, headers=headers)
-            text.append(" --> DONE", style="bold blue")
+            
+            protocol_defs[protocol_id] = response.json()
+        
+            urls[protocol_id] = f"{url}/data?async=True"
 
-        return response
+        if molecules:
+            url = f"{self.base_url}/{self.vault_num}/molecules?async=True&no_structures=True"
+            urls["molecules"] = url
 
-    def get_rapidfire_IC50_data(self):
-        url = f"{self.base_url}/{self.vault_num}/protocols/{self.rapidfire_IC50_protocol_id}/data?async=True"
-        response = self._get_async_export(url)
-        rapidfire_dose_response_dict = response.json()["objects"]
-    
-        mol_id_list = []
-        avg_ic50_list = []
-        max_reading_list = []
-        min_reading_list = []
-        hill_slope_list = []
-        r2_list = []
-        concentration_list = []
-        inhibition_list = []
-        curve_ic50_list = []
-    
-        curve_dict = {}
-        for mol_dict in rapidfire_dose_response_dict:
-            if "molecule" not in mol_dict:
-                continue
-    
-            if "564286" not in mol_dict["readouts"]:
-                continue
-    
-            if "564283" not in mol_dict["readouts"]:
-                continue
-    
-            if "564285" not in mol_dict["readouts"]:
-                continue
-    
-            mol_id = mol_dict["molecule"]
-            if mol_id not in curve_dict:
-                curve_dict[mol_id] = {}
-    
-            run = mol_dict["run"]
-            if run not in curve_dict[mol_id]:
-                if type(mol_dict["readouts"]["564285"]) != dict:
-                    curve_dict[mol_id][run] = {
-                        "concentration_um": [mol_dict["readouts"]["564283"]],
-                        "percent_inhibition": [mol_dict["readouts"]["564285"]],
-                    }
-                else:
-                    curve_dict[mol_id][run] = {
-                        "concentration_um": [mol_dict["readouts"]["564283"]],
-                        "percent_inhibition": [mol_dict["readouts"]["564285"]["value"]],
-                    }
-                if "564286" in mol_dict["readouts"]:
-                    if type(mol_dict["readouts"]["564286"]) == dict:
-                        if "modifier" in mol_dict["readouts"]["564286"]:
-                            ic50 = 99
-                        elif ("overridden_intercept" in mol_dict["readouts"]["564286"]) or (
-                            "note" in mol_dict["readouts"]["564286"]
-                            and "could not be calculated"
-                            in mol_dict["readouts"]["564286"]["note"]
-                        ):
-                            ic50 = np.nan
-                        else:
-                            ic50 = mol_dict["readouts"]["564286"]["value"]
-    
-                    else:
-                        ic50 = mol_dict["readouts"]["564286"]
-                else:
-                    ic50 = np.nan
-    
-                if "564291" in mol_dict["readouts"]:
-                    min_reading = mol_dict["readouts"]["564291"]
-                else:
-                    min_reading = np.nan
-    
-                if "564292" in mol_dict["readouts"]:
-                    max_reading = mol_dict["readouts"]["564292"]
-                else:
-                    max_reading = np.nan
-    
-                if "564290" in mol_dict["readouts"]:
-                    hill_slope = mol_dict["readouts"]["564290"]
-                else:
-                    hill_slope = np.nan
-    
-                if "564294" in mol_dict["readouts"]:
-                    r2 = mol_dict["readouts"]["564294"]
-                else:
-                    r2 = np.nan
-    
-                curve_dict[mol_id][run]["r_avg_IC50"] = ic50
-                curve_dict[mol_id][run]["r_max_inhibition_reading"] = max_reading
-                curve_dict[mol_id][run]["r_min_inhibition_reading"] = min_reading
-                curve_dict[mol_id][run]["r_hill_slope"] = hill_slope
-                curve_dict[mol_id][run]["r_R2"] = r2
-                curve_dict[mol_id][run]["r_IC50"] = ic50
-            else:
-                curve_dict[mol_id][run]["concentration_um"] = curve_dict[mol_id][run][
-                    "concentration_um"
-                ] + [mol_dict["readouts"]["564283"]]
-                if type(mol_dict["readouts"]["564285"]) != dict:
-                    curve_dict[mol_id][run]["percent_inhibition"] = curve_dict[mol_id][run][
-                        "percent_inhibition"
-                    ] + [mol_dict["readouts"]["564285"]]
-                else:
-                    curve_dict[mol_id][run]["percent_inhibition"] = curve_dict[mol_id][run][
-                        "percent_inhibition"
-                    ] + [mol_dict["readouts"]["564285"]["value"]]
-    
-        for mol in curve_dict:
-            mol_id_list.append(mol)
-            runs_avg_ic50_list = []
-            runs_max_reading_list = []
-            runs_min_reading_list = []
-            runs_hill_slope_list = []
-            runs_r2_list = []
-            runs_concentration_list = []
-            runs_inhibition_list = []
-            runs_curve_ic50_list = []
-            for run in curve_dict[mol]:
-                runs_avg_ic50_list.append(curve_dict[mol][run]["r_avg_IC50"])
-                runs_max_reading_list.append(
-                    curve_dict[mol][run]["r_max_inhibition_reading"]
-                )
-                runs_min_reading_list.append(
-                    curve_dict[mol][run]["r_min_inhibition_reading"]
-                )
-                runs_hill_slope_list.append(curve_dict[mol][run]["r_hill_slope"])
-                runs_r2_list.append(curve_dict[mol][run]["r_R2"])
-                runs_concentration_list.append(curve_dict[mol][run]["concentration_um"])
-                runs_inhibition_list.append(curve_dict[mol][run]["percent_inhibition"])
-                runs_curve_ic50_list.append(curve_dict[mol][run]["r_IC50"])
-    
-            avg_ic50_list.append(runs_avg_ic50_list)
-            max_reading_list.append(runs_max_reading_list)
-            min_reading_list.append(runs_min_reading_list)
-            hill_slope_list.append(runs_hill_slope_list)
-            r2_list.append(runs_r2_list)
-            concentration_list.append(runs_concentration_list)
-            inhibition_list.append(runs_inhibition_list)
-            curve_ic50_list.append(runs_curve_ic50_list)
-    
-        rapidfire_df = pd.DataFrame(
-            {
-                "CDD_mol_ID": mol_id_list,
-                "r_avg_IC50": [x[0] for x in avg_ic50_list],
-                "r_curve_IC50": curve_ic50_list,
-                "r_max_inhibition_reading": max_reading_list,
-                "r_min_inhibition_reading": min_reading_list,
-                "r_hill_slope": hill_slope_list,
-                "r_R2": r2_list,
-                "r_concentration_uM": concentration_list,
-                "r_inhibition_list": inhibition_list,
-            }
-        )
-        return rapidfire_df, rapidfire_dose_response_dict
+        responses = self._get_async_exports(urls, headers=headers)
 
-    def retrieve_rapidfire_IC50_data(self):
-        self.rapidfire_data_dir.mkdir(parents=True, exist_ok=True)
+        if molecules:
+            molecule_data = responses.pop('molecules').json()
 
-        df, datadict = self.get_rapidfire_IC50_data()
-        df.to_csv(self.rapidfire_data_dir.joinpath('rapidfire.csv'), sep=',', header=True)
+        for protocol_id, response in responses.items():
+            protocol_datas[protocol_id] = response.json()
 
-        with open(self.rapidfire_data_dir.joinpath('rapidfire.json'), 'w') as f:
-            json.dump(datadict, f)
 
-    def get_fluorescence_IC50_data(self):
-        url = f"{self.base_url}/{self.vault_num}/protocols/{self.fluorescence_IC50_protocol_id}/data?async=True"
-        response = self._get_async_export(url)
-        fluorescence_response_dict = response.json()["objects"]
-    
-        mol_id_list = []
-        avg_ic50_list = []
-        avg_pic50_list = []
-        max_reading_list = []
-        min_reading_list = []
-        hill_slope_list = []
-        r2_list = []
-        concentration_list = []
-        inhibition_list = []
-        curve_ic50_list = []
-    
-        curve_dict = {}
-        for mol_dict in fluorescence_response_dict:
-            if "molecule" not in mol_dict:
-                continue
-    
-            mol_id = mol_dict["molecule"]
-            if mol_id not in curve_dict:
-                curve_dict[mol_id] = {}
-    
-            run = mol_dict["run"]
-            if run not in curve_dict[mol_id]:
-                curve_dict[mol_id][run] = {
-                    "concentration_um": [mol_dict["readouts"]["557072"]],
-                    "percent_inhibition": [mol_dict["readouts"]["557073"]],
-                }
-                if "557736" in mol_dict["readouts"]:
-                    avg_ic50 = mol_dict["readouts"]["557736"]["value"]
-                else:
-                    avg_ic50 = np.nan
-    
-                if "557738" in mol_dict["readouts"]:
-                    if type(mol_dict["readouts"]["557738"]) == dict:
-                        avg_pic50 = np.nan
-                    else:
-                        avg_pic50 = mol_dict["readouts"]["557738"]
-                else:
-                    avg_pic50 = np.nan
-    
-                if "557085" in mol_dict["readouts"]:
-                    min_reading = mol_dict["readouts"]["557085"]["value"]
-                else:
-                    min_reading = np.nan
-    
-                if "557086" in mol_dict["readouts"]:
-                    max_reading = mol_dict["readouts"]["557086"]["value"]
-                else:
-                    max_reading = np.nan
-    
-                if "557078" in mol_dict["readouts"]:
-                    hill_slope = mol_dict["readouts"]["557078"]
-                else:
-                    hill_slope = np.nan
-    
-                if "557082" in mol_dict["readouts"]:
-                    r2 = mol_dict["readouts"]["557082"]
-                else:
-                    r2 = np.nan
-    
-                if "557074" in mol_dict["readouts"]:
-                    if type(mol_dict["readouts"]["557074"]) == dict:
-                        if avg_ic50 > 99:
-                            curve_ic50 = 99
-                        else:
-                            curve_ic50 = np.nan
-                    else:
-                        curve_ic50 = mol_dict["readouts"]["557074"]
-                else:
-                    curve_ic50 = np.nan
-    
-                curve_dict[mol_id][run]["f_avg_IC50"] = avg_ic50
-                curve_dict[mol_id][run]["f_avg_pIC50"] = avg_pic50
-                curve_dict[mol_id][run]["f_max_inhibition_reading"] = max_reading
-                curve_dict[mol_id][run]["f_min_inhibition_reading"] = min_reading
-                curve_dict[mol_id][run]["f_hill_slope"] = hill_slope
-                curve_dict[mol_id][run]["f_R2"] = r2
-                curve_dict[mol_id][run]["f_IC50"] = curve_ic50
-            else:
-                if ("557072" in mol_dict["readouts"]) and ("557073" in mol_dict["readouts"]):
-                    curve_dict[mol_id][run]["concentration_um"] = curve_dict[mol_id][run][
-                        "concentration_um"
-                    ] + [mol_dict["readouts"]["557072"]]
-                    curve_dict[mol_id][run]["percent_inhibition"] = curve_dict[mol_id][run][
-                        "percent_inhibition"
-                    ] + [mol_dict["readouts"]["557073"]]
-                else:
-                    continue
-    
-        for mol in curve_dict:
-            mol_id_list.append(mol)
-            runs_avg_ic50_list = []
-            runs_avg_pic50_list = []
-            runs_max_reading_list = []
-            runs_min_reading_list = []
-            runs_hill_slope_list = []
-            runs_r2_list = []
-            runs_concentration_list = []
-            runs_inhibition_list = []
-            runs_curve_ic50_list = []
-            for run in curve_dict[mol]:
-                runs_avg_ic50_list.append(curve_dict[mol][run]["f_avg_IC50"])
-                runs_avg_pic50_list.append(curve_dict[mol][run]["f_avg_pIC50"])
-                runs_max_reading_list.append(
-                    curve_dict[mol][run]["f_max_inhibition_reading"]
-                )
-                runs_min_reading_list.append(
-                    curve_dict[mol][run]["f_min_inhibition_reading"]
-                )
-                runs_hill_slope_list.append(curve_dict[mol][run]["f_hill_slope"])
-                runs_r2_list.append(curve_dict[mol][run]["f_R2"])
-                runs_concentration_list.append(curve_dict[mol][run]["concentration_um"])
-                runs_inhibition_list.append(curve_dict[mol][run]["percent_inhibition"])
-                runs_curve_ic50_list.append(curve_dict[mol][run]["f_IC50"])
-    
-            avg_ic50_list.append(runs_avg_ic50_list)
-            avg_pic50_list.append(runs_avg_pic50_list)
-            max_reading_list.append(runs_max_reading_list)
-            min_reading_list.append(runs_min_reading_list)
-            hill_slope_list.append(runs_hill_slope_list)
-            r2_list.append(runs_r2_list)
-            concentration_list.append(runs_concentration_list)
-            inhibition_list.append(runs_inhibition_list)
-            curve_ic50_list.append(runs_curve_ic50_list)
-    
-        fluorescence_df = pd.DataFrame(
-            {
-                "CDD_mol_ID": mol_id_list,
-                "f_avg_IC50": [x[0] for x in avg_ic50_list],
-                "f_avg_pIC50": [x[0] for x in avg_pic50_list],
-                "f_curve_IC50": curve_ic50_list,
-                "f_max_inhibition_reading": max_reading_list,
-                "f_min_inhibition_reading": min_reading_list,
-                "f_hill_slope": hill_slope_list,
-                "f_R2": r2_list,
-                "f_concentration_uM": concentration_list,
-                "f_inhibition_list": inhibition_list,
-            }
-        )
-        return fluorescence_df, fluorescence_response_dict
-    
-    def retrieve_fluorescence_IC50_data(self):
-        self.fluorescence_data_dir.mkdir(parents=True, exist_ok=True)
+        protocol_results = {protocol_id: (protocol_defs[protocol_id],
+                                          protocol_datas[protocol_id])
+                            for protocol_id in protocol_ids}
 
-        df, datadict = self.get_fluorescence_IC50_data()
-        df.to_csv(self.fluorescence_data_dir.joinpath('fluorescence.csv'), sep=',', header=True)
+        if molecules:
+            return protocol_results, molecule_data
+        else:
+            return protocol_results, None
+    
+    def retrieve_protocol_data(self, protocol_ids, molecules=False, return_raw=False):
 
-        with open(self.fluorescence_data_dir.joinpath('fluorescence.json'), 'w') as f:
-            json.dump(datadict, f)
+        results = self._get_protocol_data(protocol_ids, molecules=molecules)
 
-    def get_current_vault_data(self):
+        if molecules:
+            protocol_results, molecule_data = results
+            self.data_dir.mkdir(parents=True, exist_ok=True)
+
+            with open(self.data_dir.joinpath('molecules.json'), 'w') as f:
+                json.dump(molecule_data, f)
+        else:
+            protocol_results, _ = results
+
+        for protocol_id, protocol_result in protocol_results.items():
+            protocol_defs, protocol_data = protocol_result
+
+            protocol_dir = self.protocols_dir.joinpath(protocol_id)
+            protocol_dir.mkdir(parents=True, exist_ok=True)
+
+            with open(protocol_dir.joinpath('protocol-defs.json'), 'w') as f:
+                json.dump(protocol_defs, f)
+                
+            with open(protocol_dir.joinpath('protocol-data.json'), 'w') as f:
+                json.dump(protocol_data, f)
+
+        if return_raw and molecules:
+            return protocol_results, molecule_data
+        elif return_raw:
+            return protocol_results
+
+    def _get_molecule_data(self):
         url = f"{self.base_url}/{self.vault_num}/molecules?async=True&no_structures=True"
-        response = self._get_async_export(url)
+        headers = {"X-CDD-token": self.vault_token}
+        response = self._get_async_exports({"molecules": url}, headers=headers)
 
-        current_mols = response.json()
+        molecules = response["molecules"].json()
     
-        mol_ids = []
-        cdd_names = []
-        batch_ids = []
-        external_ids = []
-        canonical_ids = []
-        virtual_list = []
-        for_synthesis_list = []
-        made_list = []
+        return molecules 
     
-        for mol in current_mols['objects']:
-            try:
-                for i in range(len(mol['batches'])):
-                    cdd_names.append(mol['name'])
-                    batch_ids.append(mol['batches'][i]['id'])
-                    external_ids.append(mol['batches'][i]['batch_fields']['External ID'])
-                    if 'Canonical PostEra ID' in mol['batches'][i]['batch_fields']:
-                        canonical_ids.append(mol['batches'][i]['batch_fields']['Canonical PostEra ID'])
-                    else:
-                        canonical_ids.append(np.nan)
-                    mol_ids.append(mol['id'])
-                    project_names = []
-                    for project in mol['batches'][i]['projects']:
-                        project_names.append(project['name']) 
-                    if 'Compounds_Virtual' in project_names:
-                        virtual_list.append(True)
-                    else:
-                        virtual_list.append(False)
-                    if 'Compounds_for Synthesis' in project_names:
-                        for_synthesis_list.append(True)
-                    else:
-                        for_synthesis_list.append(False)
-                    if 'Compounds_Made' in project_names:
-                        made_list.append(True)
-                    else:
-                        made_list.append(False)
-            except Exception as e:
-                print(e)
-                pass
-    
-        current_cdd_df = pd.DataFrame(
-            {
-                "external_ID": external_ids,
-                "CDD_name": cdd_names,
-                "molecule_ID": mol_ids,
-                "batch_ID": batch_ids,
-                "canonical_CID": canonical_ids,
-                "virtual_project": virtual_list,
-                "for_synthesis_project": for_synthesis_list,
-                "made_project": made_list,
-            }
-        )
-        return current_cdd_df, current_mols
-    
-    def retrieve_current_vault_data(self):
+    def retrieve_molecule_data(self, return_raw=False):
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
-        df, datadict = self.get_current_vault_data()
-        df.to_csv(self.data_dir.joinpath('molecules.csv'), sep=',', header=True)
-
+        datadict = self._get_molecule_data()
         with open(self.data_dir.joinpath('molecules.json'), 'w') as f:
             json.dump(datadict, f)
 
-    def generate_compound_series_update(self):
-        ...
-        # is there a way to use the CompoundSeries model to get the structure right, but only populate with the fields
-        # metadata:[compound_id,experimental_data]?
+        if return_raw:
+            return datadict
+
+    def generate_experimental_compound_data(self, protocol_ids):
+        protocol_data_ns = []
+        for protocol_id in protocol_ids:
+            protocol_dir = self.protocols_dir.joinpath(protocol_id)
+
+            with open(self.data_dir.joinpath('molecules.json'), 'r') as f:
+                molecules = json.load(f)
+
+            with open(protocol_dir.joinpath('protocol-defs.json'), 'r') as f:
+                protocol_defs = json.load(f)
+                
+            with open(protocol_dir.joinpath('protocol-data.json'), 'r') as f:
+                protocol_data = json.load(f)
+
+            readout_definitions = {rdef['id']: rdef for rdef in protocol_defs['readout_definitions']}
+
+            protocol_data_n = defaultdict(dict)
+            
+            for record in protocol_data['objects']:
+                if 'molecule' not in record:
+                    continue
+                
+                for readout in record['readouts']:
+                    record['readouts'][readout]['name'] = readout_definitions[int(readout)]['name']
+                
+                protocol_data_n[record['molecule']][record['batch']] = record
+
+            protocol_data_ns.append(protocol_data_n)
+            
+        compound_metadatas = []
+        for mol in molecules['objects']:
+            for batch in mol['batches']:
+                experimental_data = {}
+                for protocol_data_n in protocol_data_ns:
+                    if mol['id'] in protocol_data_n:
+                        if batch['id'] in protocol_data_n[mol['id']]:
+                            readouts = protocol_data_n[mol['id']][batch['id']]['readouts']
+                        else:
+                            continue
+                    else:
+                        continue
+                            
+                    experimental_data.update({readout['name']: readout for readout in readouts.values()})
+                    
+                    # remove redundant 'name' field from each readout
+                    for readout in experimental_data.values():
+                        readout.pop('name')
+                
+                compound_metadata = CompoundMetadata(
+                    compound_id=batch['batch_fields']['External ID'],
+                    experimental_data=experimental_data)
+                
+                compound_metadatas.append(compound_metadata)
+
+        ecd = ExperimentalCompoundData(compounds=compound_metadatas)
+
+        return ecd
+
+
+    def clear(self, protocols=True, molecules=True):
+        """Clear local data
+
+        """
+
+        if protocols:
+            shutil.rmtree(self.protocols_dir)
+
+        if molecules:
+            os.remove(self.data_dir / 'molecules.json')
 

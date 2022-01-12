@@ -78,18 +78,19 @@ def retrieve_target_structures(structures_url, data_dir, config):
 
 
 @cli.group()
-def cdd():
-    ...
-
-@cdd.command()
 @click.option('--base-url', default="https://app.collaborativedrug.com/api/v1/vaults", type=str)
 @click.option('--vault-token', envvar='CDD_VAULT_TOKEN', type=str)
 @click.option('--vault-num', envvar='CDD_VAULT_NUM', default='5549', type=str)
-@click.option('--fluorescence-ic50-protocol-id', default='49439', type=str)
 @click.option('--data-dir', required=True, type=Path)
 @click.option('--config', type=click.File('r'), help="Input via JSON; command-line arguments take precedence over JSON fields if both provided")
-def retrieve_fluorescence_activity_data(base_url, vault_token, vault_num, fluorescence_ic50_protocol_id, data_dir, config):
-    """Get fluorescence activity data from Fragalysis ACTIVITY-URL and place in DATA-DIR.
+def cdd():
+    ...
+
+# TODO add context from this group to commands below
+
+@cdd.command()
+def retrieve_molecule_data():
+    """Get protocol data from CDD and place in DATA-DIR.
 
     VAULT-TOKEN and VAULT-NUM can be set with the environment variables CDD_VAULT_TOKEN and CDD_VAULT_NUM, respectively.
 
@@ -104,7 +105,33 @@ def retrieve_fluorescence_activity_data(base_url, vault_token, vault_num, fluore
 
     if not data_dir.exists() or not any(data_dir.iterdir()):
         logging.info(f"Downloading fluorescence activity data to {data_dir.absolute()}")
-        cddd.retrieve_fluorescence_IC50_data()
+        cddd.retrieve_molecule_data()
+
+
+@cdd.command()
+@click.option('-i', '--protocol-id', type=str, multiple=True)
+@click.option('-m', '--molecules', is_flag=True)
+def retrieve_protocol_data(protocol_id, molecules):
+    """Get protocol data from CDD and place in DATA-DIR.
+
+    VAULT-TOKEN and VAULT-NUM can be set with the environment variables CDD_VAULT_TOKEN and CDD_VAULT_NUM, respectively.
+
+    """
+    from .external.cdd import CDDData
+    import json
+
+    args = locals()
+    config_values = _parse_config(args, config)
+
+    cddd = CDDData(**config_values)
+
+    if not data_dir.exists() or not any(data_dir.iterdir()):
+        logging.info(f"Downloading fluorescence activity data to {data_dir.absolute()}")
+        cddd.retrieve_protocol_data()
+
+@cdd.command()
+def generate_experimental_compound_data(protocol_id, molecules):
+    ...
 
 
 @cli.group()
@@ -247,14 +274,33 @@ def compound_series_generate():
     ...
 
 
-@compound_series.command('update')
+@compound_series.group('update')
 def compound_series_update():
     ...
+
+# TODO want to support STDIN for any of these
+@compound_series_update.command('experimental-data')
+@click.argument('compound-series-file', type=click.File('r'))
+@click.argument('compound-series-update-file', type=click.File('r'))
+@click.argument('new-compound-series-file', type=click.File('w'))
+def compound_series_update(compound_series_file, compound_series_analysis_file, new_compound_series_file):
+    """
+
+    """
+    from .compute import CompoundSeries, CompoundSeriesUpdate
+
+    cs = CompoundSeries.parse_obj(json.load(compound_series_file))
+    csu = CompoundSeriesUpdate.parse_obj(json.load(compound_series_file))
+
+    metadata = [c.metadata for c in csu.compounds]
+    cs.update_experimental_data(metadata=metadata)
+
+    new_compound_series_file.write(cs.json())
 
 
 @compound_series.command('analyze')
 @click.argument('compound-series-file', type=Path)
-@click.argument('output-directory', type=Path)
+@click.argument('compound-series-analysis-file', type=Path)
 @click.option('--config-file', type=Path, help="File containing analysis configuration as JSON-encoded AnalysisConfig")
 @click.option('--fah-projects-dir', required=True, type=Path, help="Path to Folding@home project definitions directory")
 @click.option('--fah-data-dir', required=True, type=Path, help="Path to Folding@home data directory")
@@ -263,25 +309,25 @@ def compound_series_update():
 @click.option('-l', '--loglevel', type=str, default='WARN', help="Logging level to use for execution")
 def compound_series_analyze(
     compound_series_file,
-    output_directory,
+    compound_series_analysis_file,
     config_file,
     fah_projects_dir,
     fah_data_dir,
     nprocs,
     max_transformations,
     loglevel,
-) -> None:
+):
     """
     Run free energy analysis on COMPOUND-SERIES-FILE with `CompoundSeries` data
     and write JSON-serialized results consisting of input augmented with
-    analysis results.
+    analysis results to COMPOUND-SERIES-ANALYSIS-FILE.
 
     """
     import fah_xchem
+    from .compute import CompoundSeries
     from .schema import (
         AnalysisConfig,
         FahConfig,
-        CompoundSeries,
         CompoundSeriesAnalysis,
         TimestampedAnalysis,
         FragalysisConfig,
@@ -315,8 +361,8 @@ def compound_series_analyze(
     timestamp = dt.datetime.now(dt.timezone.utc)
     output = TimestampedAnalysis(as_of=timestamp, series=series_analysis)
 
-    os.makedirs(output_directory, exist_ok=True)
-    with open(os.path.join(output_directory, "analysis.json"), "w") as output_file:
+    os.makedirs(compound_series , exist_ok=True)
+    with open(os.path.join(compound_series_analysis_file, "analysis.json"), "w") as output_file:
         output_file.write(output.json(indent=3))
 
 
@@ -352,7 +398,7 @@ def artifacts():
                     "Assumes that for a given `run_id` the output files do not ever change;"
                     "does *no* checking that files wouldn't be different if inputs for a given `run_id` have changed."))
 def artifacts_generate(
-    compound_series_analysis_file: str,
+    compound_series_analysis_file,
     output_directory,
     config_file,
     fah_projects_dir,
@@ -360,15 +406,15 @@ def artifacts_generate(
     fah_api_url,
     nprocs,
     website_base_url,
-    cache_dir: Optional[str] = None,
-    snapshots: bool = True,
-    plots: bool = True,
-    report: bool = True,
-    website: bool = True,
-    loglevel: str = "WARN",
-    fragalysis_config: Optional[str] = None,
-    overwrite: bool = False,
-) -> None:
+    cache_dir,
+    snapshots,
+    plots, 
+    report,
+    website,
+    loglevel,
+    fragalysis_config,
+    overwrite,
+):
     """
     Given results of free energy analysis in COMPOUND-SERIES-ANALYSIS-FILE with
     `CompoundSeriesAnalysis` data, generate analysis artifacts.
