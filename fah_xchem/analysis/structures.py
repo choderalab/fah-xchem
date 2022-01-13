@@ -193,20 +193,48 @@ class SnapshotArtifactory(BaseModel):
         except OSError as e:
             raise ValueError(f"Failed to load PDB file: {e}")
         topology = pdbfile.topology
+        # Slice out counterions
+        # TODO: Figure out why counterions are in the PDB file to begin with; that shouldn't be happening!
+        def get_solute_indices(topology, exclude=[]):
+            from mdtraj.core.residue_names import _SOLVENT_TYPES
+            solvent_types = list(_SOLVENT_TYPES)
+            for solvent_type in exclude:
+                if solvent_type not in solvent_types:
+                    raise ValueError(solvent_type + 'is not a valid solvent type')
+                solvent_types.remove(solvent_type)
+            atom_indices = [atom.index for atom in topology.atoms if
+                atom.residue.name not in solvent_types]
+            return atom_indices
+        n_topology_atoms_1 = topology.n_atoms # DEBUG
+        topology = topology.subset(get_solute_indices(topology))
+        n_topology_atoms_2 = topology.n_atoms # DEBUG
 
         # Attempt to slice out real atoms
-        # Truncate to number of atoms in PDB file
-        #hybrid_to_real_atom_map = { hybrid_index : real_index for (hybrid_index, real_index) in hybrid_to_real_atom_map.items() if (real_index < topology.n_atoms) }        
-        # Load atom index mappings to slice the hybrid ligand and protein/ions out of the hybrid system
         hybrid_atom_mappings_path = os.path.join(
-            project_dir, "RUNS", f"RUN{run}", "hybrid_atom_mappings-new.npz"
+            project_dir, "RUNS", f"RUN{run}", "hybrid_atom_mappings.npz"
         )        
-        if not os.path.exists(hybrid_atom_mappings_path):
-            SnapshotArtifactory.regenerate_atom_mappings(project_dir, run, hybrid_atom_mappings_path)
-
         mappings = np.load(hybrid_atom_mappings_path, allow_pickle=True)
-        real_to_hybrid_atom_map = mappings[f'{ligand}_nowater_to_hybrid_nowater_map'].tolist()
-        hybrid_atom_indices = [ int(real_to_hybrid_atom_map[real_atom]) for real_atom in range(len(real_to_hybrid_atom_map)) ]
+        if 'hybrid_solute_atom_indices' in mappings:            
+            # New-style mappings
+            hybrid_atom_indices = [ int(index) for index in mappings[f'hybrid_solute_atom_indices'] ] # solute hybrid atom indices stored in the XTC (and hence PDB)
+            n_hybrid_solute = len(hybrid_atom_indices)
+            hybrid_to_real_map = mappings[f'hybrid_to_{ligand}_map'].flat[0] # mapping from full hybrid indices to full real indices
+            real_to_hybrid_map = { int(v):int(k) for k,v in hybrid_to_real_map.items() }
+            real_indices_in_pdb = np.sort([int(index) for index in hybrid_to_real_map.values() ]) # indices of real system that appear in solute-only PDB, in correct order
+            hybrid_atom_indices = [ hybrid_atom_indices.index(real_to_hybrid_map[real_index]) for real_index in real_indices_in_pdb if real_to_hybrid_map[real_index] in hybrid_atom_indices ]
+            logging.info(f'{pdbfile_path} : hybrid solute has {n_hybrid_solute}; topology had : {n_topology_atoms_1} -> {n_topology_atoms_2}; {ligand} solute slice has {len(hybrid_atom_indices)} atoms')
+        else:
+            # Old-style mappings: Need to use hybrid topology file
+            # Load atom index mappings to slice the hybrid ligand and protein/ions out of the hybrid system
+            hybrid_atom_mappings_path = os.path.join(
+                project_dir, "RUNS", f"RUN{run}", "hybrid_atom_mappings-new.npz"
+            )        
+            if not os.path.exists(hybrid_atom_mappings_path):
+                SnapshotArtifactory.regenerate_atom_mappings(project_dir, run, hybrid_atom_mappings_path)
+                
+            mappings = np.load(hybrid_atom_mappings_path, allow_pickle=True)
+            real_to_hybrid_atom_map = mappings[f'{ligand}_nowater_to_hybrid_nowater_map'].tolist()
+            hybrid_atom_indices = [ int(real_to_hybrid_atom_map[real_atom]) for real_atom in range(len(real_to_hybrid_atom_map)) ]
 
         # Load the hybrid xtc trajectory
         # TODO: Reuse path logic from fah_xchem.lib

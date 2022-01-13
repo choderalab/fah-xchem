@@ -81,9 +81,9 @@ def extract_work_pair(path: DataPath) -> WorkPair:
         The forward and reverse dimensionless protocol work
 
     """
-
+    
     # TODO: magic numbers
-    NUM_WORKS_EXPECTED = 41
+    NUM_WORKS_EXPECTED = [41, 401]
     NUM_STEPS_EXPECTED = 1000000
 
     # TODO: Because of a known bug in core22 0.0.11,
@@ -114,13 +114,16 @@ def extract_work_pair(path: DataPath) -> WorkPair:
     # Check to make sure we don't have an incorrect number of work values
     # TODO: Diagnose why this happens and file an issue in core
     # https://github.com/FoldingAtHome/openmm-core/issues
-    if len(protocol_work_nodims) != NUM_WORKS_EXPECTED:
+    if len(protocol_work_nodims) not in NUM_WORKS_EXPECTED:
         raise DataValidationError(
             f"Expected {NUM_WORKS_EXPECTED} work values, "
             f"but found {len(protocol_work_nodims)}",
             path=path,
         )
 
+    # Determine number of work values per phase
+    nworks_per_phase = int((len(protocol_work_nodims)-1)/4)
+    
     # Check to make sure we don't have an incorrect number of steps
     # TODO: Diagnose why this happens and file an issue in core
     # https://github.com/FoldingAtHome/openmm-core/issues
@@ -134,8 +137,8 @@ def extract_work_pair(path: DataPath) -> WorkPair:
     try:
         return WorkPair(
             clone=path.clone,
-            forward=protocol_work_nodims[20] - protocol_work_nodims[10],
-            reverse=protocol_work_nodims[40] - protocol_work_nodims[30],
+            forward=protocol_work_nodims[2*nworks_per_phase] - protocol_work_nodims[1*nworks_per_phase],
+            reverse=protocol_work_nodims[4*nworks_per_phase] - protocol_work_nodims[3*nworks_per_phase],
             # forward_final_potential=Enew_nodims[20],
             # reverse_final_potential=Enew_nodims[40],
         )

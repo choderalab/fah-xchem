@@ -86,7 +86,7 @@ def plot_retrospective_compounds(
     for compound in compounds:
 
         # Only interested if the compounds have an experimental DDG
-        if ('g_exp' not in compound.metadata.experimental_data) or (compound.free_energy.point is None):
+        if ('g_exp' not in compound.metadata.experimental_data) or (compound.free_energy is None) or (compound.free_energy.point is None):
             continue
 
         # Only plot racemates
