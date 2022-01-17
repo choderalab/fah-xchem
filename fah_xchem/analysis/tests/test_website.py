@@ -582,13 +582,17 @@ class TestWebsiteArtifactory:
             tds = row.find_all("td")
             self._test_transformation(tds)
 
-    def test_generate_retrospective_transformations(self, website_artifactory):
+    def test_generate_retrospective_microstate_transformations(
+        self, website_artifactory
+    ):
         """Test Retrspective Transformations page content generation."""
         waf = website_artifactory
         items_per_page = 7
         tabname = "Retrospective Transformations"
 
-        waf.generate_retrospective_transformations(items_per_page=items_per_page)
+        waf.generate_retrospective_microstate_transformations(
+            items_per_page=items_per_page
+        )
 
         # TODO: re-paginate reliable transforms?
         # pagination is confusing right now
