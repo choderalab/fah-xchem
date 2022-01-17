@@ -88,14 +88,14 @@ class CDDData(ExternalData):
             responses[name] = requests.get(async_url, headers=headers)
 
         console = Console()
-        text = Text("Retrieving urls...", no_wrap=True)
+        text = Text("Retrieving urls...")
         for async_url in async_urls.values():
             text.append(f"\n: {async_url}")
 
         console.print(text)
 
         logging.info("CDDData : Beginning export(s)")
-        text = Text("CDDData : Beginning export(s)", style="bold red", no_wrap=True)
+        text = Text("CDDData : Beginning export(s)", style="bold red",)
 
         with Live(text, refresh_per_second=4) as live:
 

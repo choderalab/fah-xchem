@@ -46,6 +46,9 @@ def cli():
 
 @cli.group()
 def fragalysis():
+    """Commands for interaction with Fragalysis.
+
+    """
     ...
 
 
@@ -77,6 +80,11 @@ def retrieve_target_structures(structures_url, data_dir, config):
 @click.option('--config', type=click.File('r'), help="Input via JSON; command-line arguments take precedence over JSON fields if both provided")
 @click.pass_context
 def cdd(ctx, base_url, vault_token, vault_num, data_dir, config):
+    """Commands for interaction with CDD.
+
+    All subcommands require DATA_DIR be specified.
+    VAULT-TOKEN and VAULT-NUM can be set with the environment variables CDD_VAULT_TOKEN and CDD_VAULT_NUM, respectively.
+    """
     ctx.ensure_object(dict)
     
     args = locals()
@@ -87,10 +95,7 @@ def cdd(ctx, base_url, vault_token, vault_num, data_dir, config):
 @cdd.command()
 @click.pass_context
 def retrieve_molecule_data(ctx):
-    """Get protocol data from CDD and place in DATA-DIR.
-
-    VAULT-TOKEN and VAULT-NUM can be set with the environment variables CDD_VAULT_TOKEN and CDD_VAULT_NUM, respectively.
-
+    """Get molecule data from CDD and place in DATA-DIR.
     """
     from .external.cdd import CDDData
 
@@ -107,19 +112,37 @@ def retrieve_molecule_data(ctx):
 def retrieve_protocol_data(ctx, protocol_id, molecules):
     """Get protocol data from CDD and place in DATA-DIR.
 
-    VAULT-TOKEN and VAULT-NUM can be set with the environment variables CDD_VAULT_TOKEN and CDD_VAULT_NUM, respectively.
-
+    Multiple PROTOCOL_IDs can be given with multiple uses of `-i`.
     """
     from .external.cdd import CDDData
 
     config_values = ctx.obj['CONFIG_VALUES']
 
     cddd = CDDData(**config_values)
-    cddd.retrieve_protocol_data(protocol_id=protocol_id, molecules=molecules)
+    cddd.retrieve_protocol_data(protocol_ids=protocol_id, molecules=molecules)
+
 
 @cdd.command()
-def generate_experimental_compound_data(protocol_id, molecules):
-    ...
+@click.option('-i', '--protocol-id', type=str, multiple=True)
+@click.argument('experimental_compound_data_file', type=Path)
+@click.pass_context
+def generate_experimental_compound_data(ctx, protocol_id, experimental_compound_data_file):
+    """Generate experimental compound data file including selected protocols.
+
+    Multiple PROTOCOL_IDs can be given with multiple uses of `-i`.
+    """
+    from .external.cdd import CDDData
+
+    config_values = ctx.obj['CONFIG_VALUES']
+
+    cddd = CDDData(**config_values)
+    experimental_compound_data = cddd.generate_experimental_compound_data(protocol_ids=protocol_id)
+
+    if not experimental_compound_data_file.parent.exists():
+        experimental_compound_data_file.mkdir(parents=True)
+
+    with open(experimental_compound_data_file, 'w') as f:
+        f.write(experimental_compound_data.json())
 
 
 @cli.group()
@@ -144,7 +167,7 @@ def receptors_generate(
     import itertools
 
     from openeye import oechem
-    from .prepare.receptors import ReceptorArtifactory
+    from .prepare.receptors import Receptors
 
     oechem.OEThrow.SetLevel(oechem.OEErrorLevel_Quiet)
 
@@ -152,7 +175,7 @@ def receptors_generate(
     output_paths = [output_directory.absolute().joinpath(subdir) for subdir in ['monomer', 'dimer']]
 
     products = list(itertools.product(input_structures, output_paths))
-    factories = [ReceptorArtifactory(input=x, output=y, create_dimer=y.stem == 'dimer') for x, y in
+    factories = [Receptors(input=x, output=y, create_dimer=y.stem == 'dimer') for x, y in
                products]
 
     for factory in factories:
@@ -225,19 +248,19 @@ def fah_project_run(
     with tempfile.TemporaryDirectory() as tmpdir:
         cache = os.path.join(tmpdir, 'cache.json')
 
-        fp.generate_run(run, )
+        fp.generate_run(run)
 
         # TODO remove project hardcodes
         # prepare_variant('13430', args.run, crystal_name, 'monomer', 'His41(0) Cys145(0)', None)
-        prepare_variant('13431', run, crystal_name, 'monomer', 'His41(+) Cys145(-)', None)
-        if oemol is not None:
-            # prepare_variant('13432', args.run, crystal_name, 'monomer', 'His41(0) Cys145(0)', oemol)
-            prepare_variant('13433', run, crystal_name, 'monomer', 'His41(+) Cys145(-)', oemol)
-        # prepare_variant('13434', args.run, crystal_name, 'dimer',   'His41(0) Cys145(0)', None)
-        prepare_variant('13435', run, crystal_name, 'dimer', 'His41(+) Cys145(-)', None)
-        if oemol is not None:
-            # prepare_variant('13436', args.run, crystal_name, 'dimer',   'His41(0) Cys145(0)', oemol)
-            prepare_variant('13437', run, crystal_name, 'dimer', 'His41(+) Cys145(-)', oemol)
+       # prepare_variant('13431', run, crystal_name, 'monomer', 'His41(+) Cys145(-)', None)
+       # if oemol is not None:
+       #     # prepare_variant('13432', args.run, crystal_name, 'monomer', 'His41(0) Cys145(0)', oemol)
+       #     prepare_variant('13433', run, crystal_name, 'monomer', 'His41(+) Cys145(-)', oemol)
+       # # prepare_variant('13434', args.run, crystal_name, 'dimer',   'His41(0) Cys145(0)', None)
+       # prepare_variant('13435', run, crystal_name, 'dimer', 'His41(+) Cys145(-)', None)
+       # if oemol is not None:
+       #     # prepare_variant('13436', args.run, crystal_name, 'dimer',   'His41(0) Cys145(0)', oemol)
+       #     prepare_variant('13437', run, crystal_name, 'dimer', 'His41(+) Cys145(-)', oemol)
 
 
 @cli.command()
@@ -262,32 +285,33 @@ def compound_series_generate():
     ...
 
 
-@compound_series.group('update')
-def compound_series_update():
-    ...
+#@compound_series.group('update')
+#def compound_series_update():
+#    ...
 
 # TODO want to support STDIN for any of these
-@compound_series_update.command('experimental-data')
-@click.argument('compound-series-file', type=click.File('r'))
-@click.argument('compound-series-update-file', type=click.File('r'))
-@click.argument('new-compound-series-file', type=click.File('w'))
-def compound_series_update(compound_series_file, compound_series_analysis_file, new_compound_series_file):
-    """
-
-    """
-    from .compute import CompoundSeries, CompoundSeriesUpdate
-
-    cs = CompoundSeries.parse_obj(json.load(compound_series_file))
-    csu = CompoundSeriesUpdate.parse_obj(json.load(compound_series_file))
-
-    metadata = [c.metadata for c in csu.compounds]
-    cs.update_experimental_data(metadata=metadata)
-
-    new_compound_series_file.write(cs.json())
+#@compound_series_update.command('experimental-data')
+#@click.argument('compound-series-file', type=click.File('r'))
+#@click.argument('compound-series-update-file', type=click.File('r'))
+#@click.argument('new-compound-series-file', type=click.File('w'))
+#def compound_series_update(compound_series_file, compound_series_analysis_file, new_compound_series_file):
+#    """
+#
+#    """
+#    from .compute import CompoundSeries, CompoundSeriesUpdate
+#
+#    cs = CompoundSeries.parse_obj(json.load(compound_series_file))
+#    csu = CompoundSeriesUpdate.parse_obj(json.load(compound_series_file))
+#
+#    metadata = [c.metadata for c in csu.compounds]
+#    cs.update_experimental_data(metadata=metadata)
+#
+#    new_compound_series_file.write(cs.json())
 
 
 @compound_series.command('analyze')
 @click.argument('compound-series-file', type=Path)
+@click.argument('experimental_compound_data_file', type=Path)
 @click.argument('compound-series-analysis-file', type=Path)
 @click.option('--config-file', type=Path, help="File containing analysis configuration as JSON-encoded AnalysisConfig")
 @click.option('--fah-projects-dir', required=True, type=Path, help="Path to Folding@home project definitions directory")
@@ -297,6 +321,7 @@ def compound_series_update(compound_series_file, compound_series_analysis_file, 
 @click.option('-l', '--loglevel', type=str, default='WARN', help="Logging level to use for execution")
 def compound_series_analyze(
     compound_series_file,
+    experimental_compound_data_file,
     compound_series_analysis_file,
     config_file,
     fah_projects_dir,

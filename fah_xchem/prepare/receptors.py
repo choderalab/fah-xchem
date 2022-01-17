@@ -24,7 +24,29 @@ from pydantic import BaseModel, Field
 
 from .constants import (BIOLOGICAL_SYMMETRY_HEADER, SEQRES_DIMER, SEQRES_MONOMER, FRAGALYSIS_URL,
                                MINIMUM_FRAGMENT_SIZE, CHAIN_PDB_INDEX)
-from ..schema import OutputPaths, DockingSystem
+from ..schema import Model
+
+
+class OutputPaths(Model):
+    receptor_gzipped: pathlib.Path
+    receptor_thiolate_gzipped: pathlib.Path
+    design_unit_gzipped: pathlib.Path
+    design_unit_thiolate_gzipped: pathlib.Path
+    protein_pdb: pathlib.Path
+    protein_thiolate_pdb: pathlib.Path
+    ligand_pdb: pathlib.Path
+    ligand_sdf: pathlib.Path
+    ligand_mol2: pathlib.Path
+
+
+class DockingSystem(Model):
+    class Config:
+        arbitrary_types_allowed = True
+
+    protein: oechem.OEGraphMol
+    ligand: oechem.OEGraphMol
+    receptor: oechem.OEGraphMol
+    design_unit: oechem.OEDesignUnit
 
 
 class Receptors(BaseModel):
