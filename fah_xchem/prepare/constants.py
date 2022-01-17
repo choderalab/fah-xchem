@@ -102,10 +102,10 @@ SEQRES  23 B  306  LEU GLU ASP GLU PHE THR PRO PHE ASP VAL VAL ARG GLN
 SEQRES  24 B  306  CYS SER GLY VAL THR PHE GLN
 """
 
-FRAGALYSIS_URL='https://fragalysis.diamond.ac.uk/media/targets/Mpro.zip'
+FRAGALYSIS_URL = "https://fragalysis.diamond.ac.uk/media/targets/Mpro.zip"
 
 CHAIN_PDB_INDEX = 21
 
 MINIMUM_FRAGMENT_SIZE = 7
 
-ALIGN_PDB = 'Mpro-x1334.pdb'
+ALIGN_PDB = "Mpro-x1334.pdb"

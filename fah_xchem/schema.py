@@ -10,7 +10,9 @@ class Model(BaseModel):
         allow_mutation = False
         extra = "forbid"
 
+
 ## analyze and generate
+
 
 class PointEstimate(Model):
     point: Union[None, float]
@@ -109,8 +111,8 @@ class CompoundMetadata(Model):
 
 
 class ExperimentalCompoundData(Model):
-    """Experimental data for compounds.
-    """
+    """Experimental data for compounds."""
+
     compounds: List[CompoundMetadata]
 
 
