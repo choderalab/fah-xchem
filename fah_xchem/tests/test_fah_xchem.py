@@ -6,6 +6,7 @@ Unit and regression test for the fah_xchem package.
 import pytest
 import sys
 from fah_xchem.schema import *
+from fah_xchem.compute import CompoundSeries
 
 
 @pytest.fixture

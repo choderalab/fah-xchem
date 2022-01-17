@@ -6,7 +6,7 @@ import time
 import logging
 import json
 import shutil
-from typing import List, Dict
+from typing import List, Dict, Tuple, Union
 from collections import defaultdict
 
 import requests
@@ -53,6 +53,14 @@ class CDDData(ExternalData):
         return self.data_dir.joinpath('protocols')
 
     def get_available_protocols(self):
+        """Return full protocol definitions for all protocols available.
+
+        Returns
+        -------
+        protocol_defs
+            Full response from CDD on available protocols, definitions for all readouts.
+
+        """
         # retrieve protocol definitions
         headers = {"X-CDD-token": self.vault_token}
         
@@ -178,13 +186,38 @@ class CDDData(ExternalData):
         else:
             return protocol_results, None
     
-    def retrieve_protocol_data(self, protocol_ids, molecules=False, return_raw=False):
+    def retrieve_protocol_data(
+            self,
+            protocol_ids: List[str],
+            molecules: bool = False, 
+            return_raw: bool = False
+        ) -> Union[dict, Tuple[dict], None]:
+        """Retrieve full definitions and data records for the given protocol ids.
 
+        If `molecules=True`, then also retrieve full molecule data.
+
+        Parameters
+        ----------
+        protocol_ids
+            List of protocol ids to retrieve definitions and data records for.
+        molecules
+            If `True`, retrieve molecule data along with data for given protocol ids.
+        return_raw
+            If `True`, directly return all data structures retrieved in
+            addition to writing them to `data_dir`.
+
+        Returns
+        -------
+        results
+            If `return_raw=True`, then a dict with protocol ids as keys, definitions and data as values is returned.
+            If `return_raw=True` and `molecules=True`, then a tuple with the above, followed by the molecule data data is returned.
+            Otherwise, `None` is returned.
+
+        """
         results = self._get_protocol_data(protocol_ids, molecules=molecules)
 
         if molecules:
             protocol_results, molecule_data = results
-            self.data_dir.mkdir(parents=True, exist_ok=True)
 
             with open(self.data_dir.joinpath('molecules.json'), 'w') as f:
                 json.dump(molecule_data, f)
@@ -218,6 +251,20 @@ class CDDData(ExternalData):
         return molecules 
     
     def retrieve_molecule_data(self, return_raw=False):
+        """Retrieve full molecule data.
+
+        Parameters
+        ----------
+        return_raw
+            If `True`, directly return molecule data in addition to writing to `data_dir`.
+
+        Returns
+        -------
+        results
+            If `return_raw=True`, then a dict with molecule data is returned.
+            Otherwise, `None` is returned.
+
+        """
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
         datadict = self._get_molecule_data()
@@ -227,8 +274,25 @@ class CDDData(ExternalData):
         if return_raw:
             return datadict
 
-    def generate_experimental_compound_data(self, protocol_ids):
-        protocol_data_ns = []
+    def generate_experimental_compound_data(
+            self, 
+            protocol_ids: List[str]
+        ) -> ExperimentalCompoundData:
+        """Generate `ExperimentalCompoundData` from current molecule and selected protocol data.
+
+        Parameters
+        ----------
+        protocol_ids
+            List of protocol ids to retrieve definitions and data records for.
+
+        Returns
+        -------
+        experimental_compound_data
+            A data structure giving a list of compound metadata, each having at least a compound id
+            and if present among the given protocol data a dictionary of experimental data
+
+        """
+        protocol_data_ns = {}
         for protocol_id in protocol_ids:
             protocol_dir = self.protocols_dir.joinpath(protocol_id)
 
@@ -242,6 +306,7 @@ class CDDData(ExternalData):
                 protocol_data = json.load(f)
 
             readout_definitions = {rdef['id']: rdef for rdef in protocol_defs['readout_definitions']}
+            protocol_name = protocol_defs['name']
 
             protocol_data_n = defaultdict(dict)
             
@@ -254,13 +319,13 @@ class CDDData(ExternalData):
                 
                 protocol_data_n[record['molecule']][record['batch']] = record
 
-            protocol_data_ns.append(protocol_data_n)
+            protocol_data_ns[protocol_name] = protocol_data_n
             
         compound_metadatas = []
         for mol in molecules['objects']:
             for batch in mol['batches']:
                 experimental_data = {}
-                for protocol_data_n in protocol_data_ns:
+                for protocol_name, protocol_data_n in protocol_data_ns.items():
                     if mol['id'] in protocol_data_n:
                         if batch['id'] in protocol_data_n[mol['id']]:
                             readouts = protocol_data_n[mol['id']][batch['id']]['readouts']
@@ -269,10 +334,10 @@ class CDDData(ExternalData):
                     else:
                         continue
                             
-                    experimental_data.update({readout['name']: readout for readout in readouts.values()})
+                    experimental_data.update({protocol_name: {readout['name']: readout for readout in readouts.values()}})
                     
                     # remove redundant 'name' field from each readout
-                    for readout in experimental_data.values():
+                    for readout in experimental_data[protocol_name].values():
                         readout.pop('name')
                 
                 compound_metadata = CompoundMetadata(
@@ -285,15 +350,24 @@ class CDDData(ExternalData):
 
         return ecd
 
+    def clear(
+            self,
+            protocols: bool = True,
+            molecules: bool = True
+        ):
+        """Clear local data.
 
-    def clear(self, protocols=True, molecules=True):
-        """Clear local data
+        Parameters
+        ----------
+        protocols
+            If `True`, clear all local protocol data.
+        molecules
+            If `True`, clear all local molecule data.
 
         """
 
         if protocols:
-            shutil.rmtree(self.protocols_dir)
+            shutil.rmtree(self.protocols_dir, ignore_errors=True)
 
         if molecules:
             os.remove(self.data_dir / 'molecules.json')
-

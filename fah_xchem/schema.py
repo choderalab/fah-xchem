@@ -127,7 +127,7 @@ class CompoundMetadata(Model):
         None,
         description="The SMILES string defining the compound in a canonical protonation state. Stereochemistry will be ambiguous for racemates",
     )
-    experimental_data: Dict[str, Dict] = Field(
+    experimental_data: Dict[str, Union[str, Dict]] = Field(
         dict(), description='Optional experimental data fields, such as "pIC50"'
     )
 

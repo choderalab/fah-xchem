@@ -14,6 +14,12 @@ class ExternalData(BaseModel):
         ...,
         description="Data directory; retrieved data will be deposited here, can be pre-existing")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # create data directory if not present
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+
 
     @staticmethod
     def _download_url(url, save_path, headers=None, chunk_size=128, message=None):

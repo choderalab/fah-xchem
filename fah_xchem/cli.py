@@ -58,17 +58,9 @@ def retrieve_target_structures(structures_url, data_dir, config):
 
     """
     from .external.fragalysis import FragalysisData
-    import json
 
-    if config:
-        config_values = {key.replace('-', '_'): value for key, value in json.load(config).items()}
-    else:
-        config_values = {}
-
-    if structures_url:
-        config_values.update(structures_url=structures_url)
-    if data_dir:
-        config_values.update(data_dir=data_dir)
+    args = locals()
+    config_values = _parse_config(args, config)
 
     fgh = FragalysisData(**config_values)
 
@@ -83,51 +75,47 @@ def retrieve_target_structures(structures_url, data_dir, config):
 @click.option('--vault-num', envvar='CDD_VAULT_NUM', default='5549', type=str)
 @click.option('--data-dir', required=True, type=Path)
 @click.option('--config', type=click.File('r'), help="Input via JSON; command-line arguments take precedence over JSON fields if both provided")
-def cdd():
-    ...
+@click.pass_context
+def cdd(ctx, base_url, vault_token, vault_num, data_dir, config):
+    ctx.ensure_object(dict)
+    
+    args = locals()
+    config_values = _parse_config(args, config)
 
-# TODO add context from this group to commands below
+    ctx.obj['CONFIG_VALUES'] = config_values
 
 @cdd.command()
-def retrieve_molecule_data():
+@click.pass_context
+def retrieve_molecule_data(ctx):
     """Get protocol data from CDD and place in DATA-DIR.
 
     VAULT-TOKEN and VAULT-NUM can be set with the environment variables CDD_VAULT_TOKEN and CDD_VAULT_NUM, respectively.
 
     """
     from .external.cdd import CDDData
-    import json
 
-    args = locals()
-    config_values = _parse_config(args, config)
+    config_values = ctx.obj['CONFIG_VALUES']
 
     cddd = CDDData(**config_values)
-
-    if not data_dir.exists() or not any(data_dir.iterdir()):
-        logging.info(f"Downloading fluorescence activity data to {data_dir.absolute()}")
-        cddd.retrieve_molecule_data()
+    cddd.retrieve_molecule_data()
 
 
 @cdd.command()
 @click.option('-i', '--protocol-id', type=str, multiple=True)
 @click.option('-m', '--molecules', is_flag=True)
-def retrieve_protocol_data(protocol_id, molecules):
+@click.pass_context
+def retrieve_protocol_data(ctx, protocol_id, molecules):
     """Get protocol data from CDD and place in DATA-DIR.
 
     VAULT-TOKEN and VAULT-NUM can be set with the environment variables CDD_VAULT_TOKEN and CDD_VAULT_NUM, respectively.
 
     """
     from .external.cdd import CDDData
-    import json
 
-    args = locals()
-    config_values = _parse_config(args, config)
+    config_values = ctx.obj['CONFIG_VALUES']
 
     cddd = CDDData(**config_values)
-
-    if not data_dir.exists() or not any(data_dir.iterdir()):
-        logging.info(f"Downloading fluorescence activity data to {data_dir.absolute()}")
-        cddd.retrieve_protocol_data()
+    cddd.retrieve_protocol_data(protocol_id=protocol_id, molecules=molecules)
 
 @cdd.command()
 def generate_experimental_compound_data(protocol_id, molecules):
