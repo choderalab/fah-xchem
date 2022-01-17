@@ -11,6 +11,7 @@ import numpy as np
 from ..fah_utils import list_results
 from ..schema import (
     AnalysisConfig,
+    CompoundSeries,
     CompoundSeriesAnalysis,
     CompoundMicrostate,
     FahConfig,
@@ -24,7 +25,6 @@ from ..schema import (
     FragalysisConfig,
     RunStatus,
 )
-from ..compute import CompoundSeries
 from .constants import KT_KCALMOL
 from .diffnet import combine_free_energies, pIC50_to_DG
 from .exceptions import AnalysisError, DataValidationError

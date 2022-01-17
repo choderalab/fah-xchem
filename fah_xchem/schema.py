@@ -145,6 +145,12 @@ class Transformation(Model):
     final_microstate: CompoundMicrostate
 
 
+class CompoundSeries(Model):
+    metadata: CompoundSeriesMetadata
+    compounds: List[Compound]
+    transformations: List[Transformation]
+
+
 class DataPath(Model):
     path: str
     clone: int
