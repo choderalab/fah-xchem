@@ -6,8 +6,8 @@ from ..schema import CompoundMicrostate, CompoundSeriesAnalysis
 
 
 class Racemic:
-    """Filter to determine whether a compound microstate belongs to a compound that was assayed as a racemic mixture.
-    """
+    """Filter to determine whether a compound microstate belongs to a compound that was assayed as a racemic mixture."""
+
     def __init__(self, series: CompoundSeriesAnalysis):
 
         self.series = series

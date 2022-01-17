@@ -66,7 +66,7 @@ class SnapshotArtifactory(BaseModel):
 
         NOTE: This is very slow, and the need for this will (hopefully) be eliminated by
         https://github.com/choderalab/perses/issues/908
-        
+
         Parameters
         ----------
         project_dir : str
@@ -77,26 +77,28 @@ class SnapshotArtifactory(BaseModel):
             Path to hybrid atom mappings npz file to generate
         """
         # Load hybrid topology factory
-        htf_path = os.path.join(
-            project_dir, "RUNS", f"RUN{run}", "htf.npz"
-        )
+        htf_path = os.path.join(project_dir, "RUNS", f"RUN{run}", "htf.npz")
         if not os.path.exists(htf_path):
-            logging.warning(f'{pdbfile_path} does not exist. {htf_path} not found, so unable to regenerate hybrid_atom_mappings.npz')
-            raise ValueError(f"Failed to load PDB file: {e}")                
+            logging.warning(
+                f"{pdbfile_path} does not exist. {htf_path} not found, so unable to regenerate hybrid_atom_mappings.npz"
+            )
+            raise ValueError(f"Failed to load PDB file: {e}")
 
-        logging.warning(f'Regenerating {hybrid_atom_mappings_path} from {htf_path}')
+        logging.warning(f"Regenerating {hybrid_atom_mappings_path} from {htf_path}")
         # TODO: This is very fragile because it requres *exactly* the same versions of tools that generated the pickle to be installed
         # Replace this when able
-        import openmm # openmm 7.6 or later, needed for perses htf import
-        #from openeye import oechem # needed for perses htf import
-        htf = np.load(htf_path, allow_pickle=True)['arr_0'].tolist()
+        import openmm  # openmm 7.6 or later, needed for perses htf import
+
+        # from openeye import oechem # needed for perses htf import
+        htf = np.load(htf_path, allow_pickle=True)["arr_0"].tolist()
 
         # Determine atom indices stored by FAH core
         # This replicates the code in https://github.com/FoldingAtHome/openmm-core/blob/core22/src/OpenMMCore.cpp#L1435-L1464
         import openmm
         from openmm import unit
+
         system = htf.hybrid_system
-        platform = openmm.Platform.getPlatformByName('Reference')
+        platform = openmm.Platform.getPlatformByName("Reference")
         integrator = openmm.VerletIntegrator(0.001)
         context = openmm.Context(system, integrator, platform)
         molecules = context.getMolecules()
@@ -108,53 +110,81 @@ class SnapshotArtifactory(BaseModel):
             for atom_index in molecule:
                 mass = system.getParticleMass(atom_index) / unit.amu
                 total_mass += mass
-                if (mass > 0.0):
+                if mass > 0.0:
                     particles += 1
             if (particles != 3) or (total_mass >= 20.0):
                 for atom_index in molecule:
                     non_water_atoms.append(int(atom_index))
         # hybrid_to_xtc_map[hybrid_atom_index] is the atom index in the XTC for hybrid_atom_index in the full hybrid System, if present
-        hybrid_to_xtc_map = { non_water_atoms[xtc_atom_index] : xtc_atom_index for xtc_atom_index in range(len(non_water_atoms)) }
+        hybrid_to_xtc_map = {
+            non_water_atoms[xtc_atom_index]: xtc_atom_index
+            for xtc_atom_index in range(len(non_water_atoms))
+        }
         # xtc_to_hybrid_map[xtc_atom_index] is the atom index in the full hybrid System corrsponding to XTC atom index xtc_atom_index
-        xtc_to_hybrid_map = { v:k for (k,v) in hybrid_to_xtc_map.items() }
+        xtc_to_hybrid_map = {v: k for (k, v) in hybrid_to_xtc_map.items()}
 
         # Determine atom indices in the non-water old and new PDB files
         # Reproduce code added in perses in https://github.com/choderalab/perses/pull/839/files#diff-3c5caedfcf63266b94c0f07d1c15a050900b3d4c2aac336ec0a4f3d38290a2d3L416
         # and MDTraj remove_solvent: https://github.com/mdtraj/mdtraj/blob/62269309ef3b3c465bfc4f76bdcdf9522f5b2d16/mdtraj/core/trajectory.py#L1826-L1859
-        def get_solute_indices(topology, exclude=['CL', 'NA']):
+        def get_solute_indices(topology, exclude=["CL", "NA"]):
             from mdtraj.core.residue_names import _SOLVENT_TYPES
+
             solvent_types = list(_SOLVENT_TYPES)
             for solvent_type in exclude:
                 if solvent_type not in solvent_types:
-                    raise ValueError(solvent_type + 'is not a valid solvent type')
+                    raise ValueError(solvent_type + "is not a valid solvent type")
                 solvent_types.remove(solvent_type)
-            atom_indices = [atom.index for atom in topology.atoms if
-                atom.residue.name not in solvent_types]
+            atom_indices = [
+                atom.index
+                for atom in topology.atoms
+                if atom.residue.name not in solvent_types
+            ]
             return atom_indices
-        
+
         old_topology = md.Topology.from_openmm(htf._topology_proposal.old_topology)
         old_solute_indices = get_solute_indices(old_topology)
-        hybrid_to_old_solute_map = { htf._old_to_hybrid_map[old_solute_indices[old_solute_index]] : old_solute_index for old_solute_index in range(len(old_solute_indices)) }
-        old_solute_to_xtc_map = { old_solute_index : hybrid_to_xtc_map[hybrid_index] for (hybrid_index, old_solute_index) in hybrid_to_old_solute_map.items() }
-        
+        hybrid_to_old_solute_map = {
+            htf._old_to_hybrid_map[
+                old_solute_indices[old_solute_index]
+            ]: old_solute_index
+            for old_solute_index in range(len(old_solute_indices))
+        }
+        old_solute_to_xtc_map = {
+            old_solute_index: hybrid_to_xtc_map[hybrid_index]
+            for (hybrid_index, old_solute_index) in hybrid_to_old_solute_map.items()
+        }
+
         new_topology = md.Topology.from_openmm(htf._topology_proposal.new_topology)
         new_solute_indices = get_solute_indices(new_topology)
-        hybrid_to_new_solute_map = { htf._new_to_hybrid_map[new_solute_indices[new_solute_index]] : new_solute_index for new_solute_index in range(len(new_solute_indices)) }
-        new_solute_to_xtc_map = { new_solute_index : hybrid_to_xtc_map[hybrid_index] for (hybrid_index, new_solute_index) in hybrid_to_new_solute_map.items() }
-        
+        hybrid_to_new_solute_map = {
+            htf._new_to_hybrid_map[
+                new_solute_indices[new_solute_index]
+            ]: new_solute_index
+            for new_solute_index in range(len(new_solute_indices))
+        }
+        new_solute_to_xtc_map = {
+            new_solute_index: hybrid_to_xtc_map[hybrid_index]
+            for (hybrid_index, new_solute_index) in hybrid_to_new_solute_map.items()
+        }
+
         # Save atom mappings, following format in
         # https://github.com/choderalab/perses/pull/839/files#diff-3c5caedfcf63266b94c0f07d1c15a050900b3d4c2aac336ec0a4f3d38290a2d3R430-R438
-        np.savez(hybrid_atom_mappings_path,
-                 hybrid_to_old_map=htf._hybrid_to_old_map,
-                 hybrid_to_new_map=htf._hybrid_to_new_map,
-                 old_nowater_to_hybrid_nowater_map=old_solute_to_xtc_map,
-                 new_nowater_to_hybrid_nowater_map=new_solute_to_xtc_map,
-        )        
-        
+        np.savez(
+            hybrid_atom_mappings_path,
+            hybrid_to_old_map=htf._hybrid_to_old_map,
+            hybrid_to_new_map=htf._hybrid_to_new_map,
+            old_nowater_to_hybrid_nowater_map=old_solute_to_xtc_map,
+            new_nowater_to_hybrid_nowater_map=new_solute_to_xtc_map,
+        )
 
     @staticmethod
     def load_trajectory(
-        project_dir: str, project_data_dir: str, ligand: str, run: int, clone: int, gen: int
+        project_dir: str,
+        project_data_dir: str,
+        ligand: str,
+        run: int,
+        clone: int,
+        gen: int,
     ) -> md.Trajectory:
         """
         Load the trajectory from the specified PRCG.
@@ -181,9 +211,11 @@ class SnapshotArtifactory(BaseModel):
 
         """
         # Sanity checks
-        if not ligand in ['old', 'new']:
-            raise ValueError(f"ligand must be one of ['old', 'new']; instead got {ligand}")
-        
+        if not ligand in ["old", "new"]:
+            raise ValueError(
+                f"ligand must be one of ['old', 'new']; instead got {ligand}"
+            )
+
         # Load Topology for old or new ligand complex
         pdbfile_path = os.path.join(
             project_dir, "RUNS", f"RUN{run}", f"{ligand}_complex.pdb"
@@ -197,44 +229,68 @@ class SnapshotArtifactory(BaseModel):
         # TODO: Figure out why counterions are in the PDB file to begin with; that shouldn't be happening!
         def get_solute_indices(topology, exclude=[]):
             from mdtraj.core.residue_names import _SOLVENT_TYPES
+
             solvent_types = list(_SOLVENT_TYPES)
             for solvent_type in exclude:
                 if solvent_type not in solvent_types:
-                    raise ValueError(solvent_type + 'is not a valid solvent type')
+                    raise ValueError(solvent_type + "is not a valid solvent type")
                 solvent_types.remove(solvent_type)
-            atom_indices = [atom.index for atom in topology.atoms if
-                atom.residue.name not in solvent_types]
+            atom_indices = [
+                atom.index
+                for atom in topology.atoms
+                if atom.residue.name not in solvent_types
+            ]
             return atom_indices
-        n_topology_atoms_1 = topology.n_atoms # DEBUG
+
+        n_topology_atoms_1 = topology.n_atoms  # DEBUG
         topology = topology.subset(get_solute_indices(topology))
-        n_topology_atoms_2 = topology.n_atoms # DEBUG
+        n_topology_atoms_2 = topology.n_atoms  # DEBUG
 
         # Attempt to slice out real atoms
         hybrid_atom_mappings_path = os.path.join(
             project_dir, "RUNS", f"RUN{run}", "hybrid_atom_mappings.npz"
-        )        
+        )
         mappings = np.load(hybrid_atom_mappings_path, allow_pickle=True)
-        if 'hybrid_solute_atom_indices' in mappings:            
+        if "hybrid_solute_atom_indices" in mappings:
             # New-style mappings
-            hybrid_atom_indices = [ int(index) for index in mappings[f'hybrid_solute_atom_indices'] ] # solute hybrid atom indices stored in the XTC (and hence PDB)
+            hybrid_atom_indices = [
+                int(index) for index in mappings[f"hybrid_solute_atom_indices"]
+            ]  # solute hybrid atom indices stored in the XTC (and hence PDB)
             n_hybrid_solute = len(hybrid_atom_indices)
-            hybrid_to_real_map = mappings[f'hybrid_to_{ligand}_map'].flat[0] # mapping from full hybrid indices to full real indices
-            real_to_hybrid_map = { int(v):int(k) for k,v in hybrid_to_real_map.items() }
-            real_indices_in_pdb = np.sort([int(index) for index in hybrid_to_real_map.values() ]) # indices of real system that appear in solute-only PDB, in correct order
-            hybrid_atom_indices = [ hybrid_atom_indices.index(real_to_hybrid_map[real_index]) for real_index in real_indices_in_pdb if real_to_hybrid_map[real_index] in hybrid_atom_indices ]
-            logging.info(f'{pdbfile_path} : hybrid solute has {n_hybrid_solute}; topology had : {n_topology_atoms_1} -> {n_topology_atoms_2}; {ligand} solute slice has {len(hybrid_atom_indices)} atoms')
+            hybrid_to_real_map = mappings[f"hybrid_to_{ligand}_map"].flat[
+                0
+            ]  # mapping from full hybrid indices to full real indices
+            real_to_hybrid_map = {int(v): int(k) for k, v in hybrid_to_real_map.items()}
+            real_indices_in_pdb = np.sort(
+                [int(index) for index in hybrid_to_real_map.values()]
+            )  # indices of real system that appear in solute-only PDB, in correct order
+            hybrid_atom_indices = [
+                hybrid_atom_indices.index(real_to_hybrid_map[real_index])
+                for real_index in real_indices_in_pdb
+                if real_to_hybrid_map[real_index] in hybrid_atom_indices
+            ]
+            logging.info(
+                f"{pdbfile_path} : hybrid solute has {n_hybrid_solute}; topology had : {n_topology_atoms_1} -> {n_topology_atoms_2}; {ligand} solute slice has {len(hybrid_atom_indices)} atoms"
+            )
         else:
             # Old-style mappings: Need to use hybrid topology file
             # Load atom index mappings to slice the hybrid ligand and protein/ions out of the hybrid system
             hybrid_atom_mappings_path = os.path.join(
                 project_dir, "RUNS", f"RUN{run}", "hybrid_atom_mappings-new.npz"
-            )        
+            )
             if not os.path.exists(hybrid_atom_mappings_path):
-                SnapshotArtifactory.regenerate_atom_mappings(project_dir, run, hybrid_atom_mappings_path)
-                
+                SnapshotArtifactory.regenerate_atom_mappings(
+                    project_dir, run, hybrid_atom_mappings_path
+                )
+
             mappings = np.load(hybrid_atom_mappings_path, allow_pickle=True)
-            real_to_hybrid_atom_map = mappings[f'{ligand}_nowater_to_hybrid_nowater_map'].tolist()
-            hybrid_atom_indices = [ int(real_to_hybrid_atom_map[real_atom]) for real_atom in range(len(real_to_hybrid_atom_map)) ]
+            real_to_hybrid_atom_map = mappings[
+                f"{ligand}_nowater_to_hybrid_nowater_map"
+            ].tolist()
+            hybrid_atom_indices = [
+                int(real_to_hybrid_atom_map[real_atom])
+                for real_atom in range(len(real_to_hybrid_atom_map))
+            ]
 
         # Load the hybrid xtc trajectory
         # TODO: Reuse path logic from fah_xchem.lib
@@ -247,12 +303,13 @@ class SnapshotArtifactory(BaseModel):
         )
         try:
             from mdtraj.formats import XTCTrajectoryFile
+
             with XTCTrajectoryFile(trajectory_path) as xtcfile:
                 xyz, time, step, box = xtcfile.read(atom_indices=hybrid_atom_indices)
         except OSError as e:
-            raise ValueError(f"Failed to load trajectory: {e}")            
+            raise ValueError(f"Failed to load trajectory: {e}")
 
-        # Create the Trajectory for the real system    
+        # Create the Trajectory for the real system
         trajectory = md.Trajectory(xyz, topology)
 
         return trajectory
@@ -374,11 +431,13 @@ class SnapshotArtifactory(BaseModel):
         )
 
         # Load the fragment
-        fragment = self.load_fragment(structure_path=self.config.structure_path,
-                                      target_name=self.config.target_name,
-                                      fragment_id=fragment_id,
-                                      annotations=self.config.annotations,
-                                      component=self.config.component)
+        fragment = self.load_fragment(
+            structure_path=self.config.structure_path,
+            target_name=self.config.target_name,
+            fragment_id=fragment_id,
+            annotations=self.config.annotations,
+            component=self.config.component,
+        )
 
         # Align the trajectory to the fragment (in place)
         # TODO: Perform this imaging if the protein monomers and ligand are not connected with virtual bonds.
@@ -391,9 +450,7 @@ class SnapshotArtifactory(BaseModel):
         atom_selection_dsl = "(name CA) and (residue 145 or residue 41 or residue 164 or residue 165 or residue 142 or residue 163)"
         trajectory.superpose(
             fragment,
-            atom_indices=fragment.top.select(
-                atom_selection_dsl
-            ),
+            atom_indices=fragment.top.select(atom_selection_dsl),
         )  # DEBUG : Mpro active site only
 
         # Extract the snapshot
@@ -443,11 +500,17 @@ class SnapshotArtifactory(BaseModel):
         """
         # Define atom indices
         atom_indices = {
-            'complex' : snapshot.topology.select("not water"), # <xtcAtoms v="solute"/> eliminates waters
-            'protein' : snapshot.topology.select("protein and (mass > 1.1)"), # omit hydrogens for fragalysis
-            'ligand' : snapshot.topology.select("resn MOL and (mass > 1.1)"), # omit hydrogens for fragalysis
+            "complex": snapshot.topology.select(
+                "not water"
+            ),  # <xtcAtoms v="solute"/> eliminates waters
+            "protein": snapshot.topology.select(
+                "protein and (mass > 1.1)"
+            ),  # omit hydrogens for fragalysis
+            "ligand": snapshot.topology.select(
+                "resn MOL and (mass > 1.1)"
+            ),  # omit hydrogens for fragalysis
         }
-        
+
         sliced_snapshot = dict()
         for key, atom_indices in atom_indices.items():
             sliced_snapshot[key] = md.Trajectory(
@@ -536,6 +599,7 @@ class SnapshotArtifactory(BaseModel):
 
             # Extract representative snapshot
             import traceback
+
             try:
                 sliced_snapshots, components = self.extract_snapshot(
                     project_dir=self.project_dir,
@@ -548,9 +612,9 @@ class SnapshotArtifactory(BaseModel):
                     fragment_id=transformation.transformation.xchem_fragment_id,
                 )
 
-                # Write protein PDB                
+                # Write protein PDB
                 name = f"{ligand}_protein"
-                sliced_snapshots['protein'].save(
+                sliced_snapshots["protein"].save(
                     os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb")
                 )
 
@@ -558,7 +622,7 @@ class SnapshotArtifactory(BaseModel):
                 # TODO: Make sure that the atom names/elements are correctly interpolated for atoms shared between old/new
                 # FIXME: This is producing incorrect new ligand complex PDBs, because some atoms are not changing identity
                 name = f"{ligand}_complex"
-                sliced_snapshots['complex'].save(
+                sliced_snapshots["complex"].save(
                     os.path.join(output_dir, f"RUN{run_id}", f"{name}.pdb")
                 )
 
@@ -570,7 +634,7 @@ class SnapshotArtifactory(BaseModel):
                 with oechem.oemolostream(
                     os.path.join(output_dir, f"RUN{run_id}", f"{name}.sdf")
                 ) as ofs:
-                    oechem.OEWriteMolecule(ofs, components['ligand'])
+                    oechem.OEWriteMolecule(ofs, components["ligand"])
             except Exception as e:
                 print(
                     f"\nException occurred extracting snapshot from {self.project_dir} data {self.project_data_dir} run {run_id} clone {gen_work[1].clone} gen {gen_work[0].gen}"

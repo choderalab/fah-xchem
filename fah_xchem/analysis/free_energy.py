@@ -45,6 +45,7 @@ def _mask_outliers(
     mask = np.abs(a) < max_value
     if len(a) >= min_sample_size:
         import statsmodels.api as sm
+
         # Use a robust estimator of stddev that is robust to outliers
         # TODO: Trim outliers in estimating stddev
         mean = np.median(a[mask])

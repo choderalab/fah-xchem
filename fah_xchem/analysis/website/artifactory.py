@@ -63,9 +63,9 @@ def format_pIC50(compound: CompoundAnalysis) -> str:
         return "TBD"
     else:
         est = PointEstimate(
-            point= - KT_PIC50*experimental_data['g_exp'],
-            stderr=KT_PIC50*experimental_data['g_dexp'],
-            )
+            point=-KT_PIC50 * experimental_data["g_exp"],
+            stderr=KT_PIC50 * experimental_data["g_dexp"],
+        )
 
         return f"""
       <span class="estimate">
@@ -73,6 +73,7 @@ def format_pIC50(compound: CompoundAnalysis) -> str:
         <span class="stderr"> ± {format_stderr(est)}</span>
       </span>
     """
+
 
 def format_IC50(compound: CompoundAnalysis) -> str:
     """
@@ -85,9 +86,11 @@ def format_IC50(compound: CompoundAnalysis) -> str:
         return "TBD"
     else:
         est = PointEstimate(
-            point=np.exp(experimental_data['g_exp']) / 1e-6,
-            stderr=np.exp(experimental_data['g_exp']) * experimental_data['g_dexp'] / 1e-6,
-            )
+            point=np.exp(experimental_data["g_exp"]) / 1e-6,
+            stderr=np.exp(experimental_data["g_exp"])
+            * experimental_data["g_dexp"]
+            / 1e-6,
+        )
         try:
             text = f"""
       <span class="estimate">
@@ -98,7 +101,7 @@ def format_IC50(compound: CompoundAnalysis) -> str:
             return text
         except Exception as e:
             return ""
-    
+
 
 def format_experimental_DeltaG(compound: CompoundAnalysis) -> str:
     """
@@ -111,9 +114,9 @@ def format_experimental_DeltaG(compound: CompoundAnalysis) -> str:
         return "TBD"
     else:
         est = PointEstimate(
-            point=KT_KCALMOL * experimental_data['g_exp'],
-            stderr=KT_KCALMOL * experimental_data['g_dexp'],
-            )
+            point=KT_KCALMOL * experimental_data["g_exp"],
+            stderr=KT_KCALMOL * experimental_data["g_dexp"],
+        )
 
         return f"""
       <span class="estimate">
@@ -121,7 +124,8 @@ def format_experimental_DeltaG(compound: CompoundAnalysis) -> str:
         <span class="stderr"> ± {format_stderr(est)}</span>
       </span>
     """
-    
+
+
 def postera_url(compound_or_microstate_id: str) -> Optional[str]:
     """
     If `compound_id` matches regex, link to Postera compound details
@@ -360,7 +364,7 @@ class WebsiteArtifactory(BaseModel):
         self.generate_transformations(items_per_page)
         self.generate_reliable_transformations(items_per_page)
         self.generate_retrospective_microstate_transformations(items_per_page)
-        self.generate_retrospective_compounds(items_per_page, num_top_compounds)        
+        self.generate_retrospective_compounds(items_per_page, num_top_compounds)
 
     def generate_summary(self, num_top_compounds):
         self._write_html(
@@ -467,10 +471,11 @@ class WebsiteArtifactory(BaseModel):
                 transformations=items, **kwargs
             ),
             url_prefix="reliable_transformations",
-            items=[transformation
-                   for transformation in self.series.transformations
-                   if transformation.reliable_transformation
-                ],
+            items=[
+                transformation
+                for transformation in self.series.transformations
+                if transformation.reliable_transformation
+            ],
             items_per_page=items_per_page,
             description="Generating html for reliable transformations index",
         )
@@ -489,7 +494,9 @@ class WebsiteArtifactory(BaseModel):
                 [
                     transformation
                     for transformation in self.series.transformations
-                    if (transformation.exp_ddg is not None) and (transformation.exp_ddg.point is not None) and (transformation.absolute_error is not None)
+                    if (transformation.exp_ddg is not None)
+                    and (transformation.exp_ddg.point is not None)
+                    and (transformation.absolute_error is not None)
                 ],
                 key=lambda transformation: -transformation.absolute_error.point,
             ),
@@ -497,24 +504,25 @@ class WebsiteArtifactory(BaseModel):
             description="Generating html for retrospective microstate transformations index",
         )
 
-
     def generate_retrospective_compounds(self, items_per_page, num_top_compounds):
 
         subdir = "retrospective_compounds"
         os.makedirs(os.path.join(self.path, subdir), exist_ok=True)
 
         # TODO: This could be streamlined by extending the schema to include experimental free energies and error with experiment
-        
+
         compounds_sorted = sorted(
             [
                 compound
                 for compound in self.series.compounds
-                if (compound.free_energy is not None) and ('g_exp' in compound.metadata.experimental_data) and ('racemate' in compound.metadata.experimental_data)
+                if (compound.free_energy is not None)
+                and ("g_exp" in compound.metadata.experimental_data)
+                and ("racemate" in compound.metadata.experimental_data)
             ],
             key=lambda compound: compound.absolute_free_energy_error.point,
-            reverse=True
+            reverse=True,
         )
-        
+
         self._generate_paginated_index(
             write_html=lambda items, **kwargs: self._write_html(
                 compounds=items, num_top_compounds=num_top_compounds, **kwargs
@@ -524,4 +532,3 @@ class WebsiteArtifactory(BaseModel):
             items_per_page=items_per_page,
             description="Generating html for retrospective compounds",
         )
-        

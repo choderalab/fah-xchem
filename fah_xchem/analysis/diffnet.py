@@ -18,6 +18,7 @@ from ..schema import (
 )
 from .exceptions import AnalysisError, ConfigurationError, InsufficientDataError
 
+
 def experimental_data_to_point_estimate(experimental_data: dict) -> PointEstimate:
     """
     Convert experimental data dict to a point estimate of absolute binding free energy
@@ -29,13 +30,12 @@ def experimental_data_to_point_estimate(experimental_data: dict) -> PointEstimat
 
     Returns
     -------
-    point : PointEstimate 
+    point : PointEstimate
         The experimental free energy point estimate (in kT)
-    
+
     """
     return PointEstimate(
-        point=experimental_data['g_exp'],
-        stderr=experimental_data['g_dexp']
+        point=experimental_data["g_exp"], stderr=experimental_data["g_dexp"]
     )
 
 
@@ -143,7 +143,7 @@ def build_transformation_graph(
         # Omit null transformations, which cause problems for diffnet
         if transformation.initial_microstate == transformation.final_microstate:
             continue
-        
+
         graph.add_edge(
             transformation.initial_microstate,
             transformation.final_microstate,
@@ -221,23 +221,30 @@ def combine_free_energies(
         )
 
     if len(valid_subgraphs) > 0:
-        experimental_data_available = True            
+        experimental_data_available = True
     else:
         # No experimental data is available, so analyze the largest connected subgraph only
         # since we don't know how to connect different subgraphs with absolute free energies
         experimental_data_available = False
         logging.warning(
             "* * * No connected subgraphs with experimental data found; selecting largest connected subgraph to analyze"
-            )
-        largest_connected_subgraph_index = np.argmax([graph.number_of_nodes() for graph in connected_subgraphs])
-        largest_connected_subgraph = connected_subgraphs[largest_connected_subgraph_index]
+        )
+        largest_connected_subgraph_index = np.argmax(
+            [graph.number_of_nodes() for graph in connected_subgraphs]
+        )
+        largest_connected_subgraph = connected_subgraphs[
+            largest_connected_subgraph_index
+        ]
         valid_subgraphs = [largest_connected_subgraph]
         # Select a compound to set experimental g_exp arbitrarily to zero
-        compound = [ compound for (node, compound) in largest_connected_subgraph.nodes(data="compound") ][0]
-        logging.warning('* * * Setting g_exp = 0 for one compound arbitrarily')
-        compound.metadata.experimental_data['g_exp'] = 0.0
-        compound.metadata.experimental_data['g_dexp'] = 0.1 # arbitrary
-        
+        compound = [
+            compound
+            for (node, compound) in largest_connected_subgraph.nodes(data="compound")
+        ][0]
+        logging.warning("* * * Setting g_exp = 0 for one compound arbitrarily")
+        compound.metadata.experimental_data["g_exp"] = 0.0
+        compound.metadata.experimental_data["g_dexp"] = 0.1  # arbitrary
+
     # Inital MLE pass: compute microstate free energies without using
     # experimental reference values
     for idx, graph in enumerate(valid_subgraphs):
@@ -261,16 +268,16 @@ def combine_free_energies(
     #
     for compound in compounds:
         # Skip compounds with no experimental data
-        if ('g_exp' not in compound.metadata.experimental_data):
+        if "g_exp" not in compound.metadata.experimental_data:
             continue
 
         # DEBUG: Use only one reference compound
-        if (compound.metadata.compound_id != 'VLA-UCB-50c39ae8-2'):
+        if compound.metadata.compound_id != "VLA-UCB-50c39ae8-2":
             continue
-        
+
         # Retrieve experimental dimensionless free energy and uncertainty
-        g_exp_compound = compound.metadata.experimental_data['g_exp']
-        g_dexp_compound = compound.metadata.experimental_data['g_dexp']        
+        g_exp_compound = compound.metadata.experimental_data["g_exp"]
+        g_dexp_compound = compound.metadata.experimental_data["g_dexp"]
 
         nodes = [
             CompoundMicrostate(
@@ -308,23 +315,27 @@ def combine_free_energies(
         # TODO: Fix this later when we have a better way of propagating uncertainty in allocation
         # For now, we skip anything that has multiple microstates
         if len(g_is) > 1:
-            logging.info(f'Skipping use of experimental data for {compound.metadata.compound_id} because there are {len(g_is)} microstates')            
+            logging.info(
+                f"Skipping use of experimental data for {compound.metadata.compound_id} because there are {len(g_is)} microstates"
+            )
             continue
-        
+
         # Compute normalized microstate probabilities
         p_is = np.exp(-g_is - logsumexp(-g_is))
 
         # Apportion compound K_a according to microstate probability
         Ka_is = p_is * np.exp(-g_exp_compound)
 
-        logging.info(f'Computing allocations for {compound.metadata.compound_id}')
+        logging.info(f"Computing allocations for {compound.metadata.compound_id}")
         for (node, _), Ka, p_i in zip(valid_nodes, Ka_is, p_is):
             if node in supergraph:
                 supergraph.nodes[node]["g_exp"] = -np.log(Ka)
                 # NOTE: naming of uncertainty fixed by Arsenic convention
                 # TODO: Determine better experimental error scheme here
                 supergraph.nodes[node]["g_dexp"] = g_dexp_compound
-                logging.info(f' Allocating {p_i} of experimental free energy {g_exp_compound} to microstate {node}: {-np.log(Ka)}')
+                logging.info(
+                    f" Allocating {p_i} of experimental free energy {g_exp_compound} to microstate {node}: {-np.log(Ka)}"
+                )
             else:
                 logging.warning(
                     "Compound microstate '%s' has experimental data, "
@@ -340,14 +351,16 @@ def combine_free_energies(
         gs, C = stats.mle(graph, factor="g_ij", node_factor="g_exp")
         print(gs)
         print(gs.min(), gs.max())
-              
+
         errs = np.sqrt(np.diag(C))
         for node, g, g_err in zip(graph.nodes, gs, errs):
             graph.nodes[node]["g"] = g
             graph.nodes[node]["g_err"] = g_err
-            if 'g_exp' in graph.nodes[node]:
-                print(f"{node} : exp {graph.nodes[node]['g_exp']} +- {graph.nodes[node]['g_dexp']} : calc {g} +- {g_err}")
-            
+            if "g_exp" in graph.nodes[node]:
+                print(
+                    f"{node} : exp {graph.nodes[node]['g_exp']} +- {graph.nodes[node]['g_dexp']} : calc {g} +- {g_err}"
+                )
+
     def get_compound_analysis(compound: Compound) -> CompoundAnalysis:
         def get_microstate_analysis(microstate: Microstate) -> MicrostateAnalysis:
 
@@ -386,18 +399,20 @@ def combine_free_energies(
             free_energy = None
 
         experimental_free_energy = None
-        if 'g_exp' in compound.metadata.experimental_data:
+        if "g_exp" in compound.metadata.experimental_data:
             experimental_free_energy = PointEstimate(
-                point=compound.metadata.experimental_data['g_exp'],
-                stderr=compound.metadata.experimental_data['g_dexp']
-                )
+                point=compound.metadata.experimental_data["g_exp"],
+                stderr=compound.metadata.experimental_data["g_dexp"],
+            )
 
         absolute_free_energy_error = None
         if free_energy and experimental_free_energy:
             absolute_free_energy_error = abs(free_energy - experimental_free_energy)
-            
+
         return CompoundAnalysis(
-            metadata=compound.metadata, microstates=microstates, free_energy=free_energy,
+            metadata=compound.metadata,
+            microstates=microstates,
+            free_energy=free_energy,
             experimental_free_energy=experimental_free_energy,
             absolute_free_energy_error=absolute_free_energy_error,
         )

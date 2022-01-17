@@ -21,7 +21,6 @@ from .schema import (
 )
 
 
-
 def _get_config(
     cls,
     config_file: Optional[str],
@@ -38,9 +37,10 @@ def _get_config(
     logging.info("Using %s: %s", description, config)
     return config
 
+
 def normalize_experimental_data(
     experimental_data: dict,
-    ) -> None:
+) -> None:
     """
     Standardize the experimental_data dict to ensure all necessary quantities are available.
 
@@ -53,33 +53,42 @@ def normalize_experimental_data(
     * g_exp : binding free energy (in kT)
     * g_dexp : standard error (in kT)
     """
-    if 'pIC50' not in experimental_data:
+    if "pIC50" not in experimental_data:
         return
-    
+
     # TODO: Specify these in the experimental record or some higher-level metadata?
-    s_conc = 375e-9 # substrate concentration (molar)
-    Km = 40e-6 # Km (molar)
-    kT = 0.596 # kcal/mol # TODO: Use temperature instead
-    DEFAULT_pIC50_STDERR = 0.2 # from n=9 replicate measurements of CVD-0002707 : 7.23 +/- 1.57
+    s_conc = 375e-9  # substrate concentration (molar)
+    Km = 40e-6  # Km (molar)
+    kT = 0.596  # kcal/mol # TODO: Use temperature instead
+    DEFAULT_pIC50_STDERR = (
+        0.2  # from n=9 replicate measurements of CVD-0002707 : 7.23 +/- 1.57
+    )
 
     # Compute dimensionless free energy and standard error
-    
-    if 'pIC50_stderr' not in experimental_data:
-        if ('pIC50_lower' in experimental_data) and ('pIC50_upper' in experimental_data):
-            experimental_data['pIC50_stderr'] = abs(experimental_data['pIC50_upper'] - experimental_data['pIC50_lower']) / 4.0
+
+    if "pIC50_stderr" not in experimental_data:
+        if ("pIC50_lower" in experimental_data) and (
+            "pIC50_upper" in experimental_data
+        ):
+            experimental_data["pIC50_stderr"] = (
+                abs(experimental_data["pIC50_upper"] - experimental_data["pIC50_lower"])
+                / 4.0
+            )
         else:
-            experimental_data['pIC50_stderr'] = DEFAULT_pIC50_STDERR
+            experimental_data["pIC50_stderr"] = DEFAULT_pIC50_STDERR
 
     # Compute dimensionless free energy and uncertainty
     import numpy as np
-    experimental_data['g_exp'] = - np.log(10.0) * experimental_data['pIC50']
-    experimental_data['g_dexp'] = np.log(10.0) * experimental_data['pIC50_stderr']
+
+    experimental_data["g_exp"] = -np.log(10.0) * experimental_data["pIC50"]
+    experimental_data["g_dexp"] = np.log(10.0) * experimental_data["pIC50_stderr"]
     # TODO: Delete other records to avoid conflics?
+
 
 def update_experimental_data(
     compound_series: CompoundSeries,
     experimental_data_file: str,
-    update_key: Optional[str] = 'smiles',
+    update_key: Optional[str] = "smiles",
 ) -> None:
     """
     Update the experimental data records in the CompoundSeries with new data provided by an external file.
@@ -97,33 +106,44 @@ def update_experimental_data(
         Note that designs are submitted using absolute stereochemistry while experimental measurements are assigned
         using relative stereochemistry, so 'smiles' should be more reliable.
     """
-    ALLOWED_KEYS = ['smiles', 'compound_id']
+    ALLOWED_KEYS = ["smiles", "compound_id"]
     if not update_key in ALLOWED_KEYS:
         raise ValueError(f"update_key must be one of {ALLOWED_KEYS}")
-    
+
     import os
+
     if not os.path.exists(experimental_data_file):
-        raise ValueError(f'Experimental data file {experimental_data_file} does not exist.')
+        raise ValueError(
+            f"Experimental data file {experimental_data_file} does not exist."
+        )
 
     # Read experimental data file containing compound ids and presumed SMILES for experimental measurements
     with open(experimental_data_file, "r") as infile:
         import json
-        experimental_compound_data = ExperimentalCompoundDataUpdate.parse_obj(json.loads(infile.read()))
-        logging.info(f"Data for {len(experimental_compound_data.compounds)} compounds read from {experimental_data_file}")        
+
+        experimental_compound_data = ExperimentalCompoundDataUpdate.parse_obj(
+            json.loads(infile.read())
+        )
+        logging.info(
+            f"Data for {len(experimental_compound_data.compounds)} compounds read from {experimental_data_file}"
+        )
 
     # Add information about composition (racemic or enantiopure) to experimental_data
     # TODO: Update object model instead of using the experimental_data dict?
     for compound in experimental_compound_data.compounds:
         if compound.is_racemic:
-            compound.experimental_data['racemate'] = 1.0
+            compound.experimental_data["racemate"] = 1.0
         else:
-            compound.experimental_data['enantiopure'] = 1.0
-            
-    # Build a lookup table for experimental data by suspected SMILES
-    logging.info(f"Matching experimental data with compound designs via {update_key}")        
-    experimental_data = { getattr(compound, update_key) : compound.experimental_data for compound in experimental_compound_data.compounds }
+            compound.experimental_data["enantiopure"] = 1.0
 
-    number_of_compounds_updated = 0            
+    # Build a lookup table for experimental data by suspected SMILES
+    logging.info(f"Matching experimental data with compound designs via {update_key}")
+    experimental_data = {
+        getattr(compound, update_key): compound.experimental_data
+        for compound in experimental_compound_data.compounds
+    }
+
+    number_of_compounds_updated = 0
     for compound in compound_series.compounds:
         metadata = compound.metadata
         key = getattr(metadata, update_key)
@@ -131,9 +151,14 @@ def update_experimental_data(
             number_of_compounds_updated += 1
             metadata.experimental_data.update(experimental_data[key])
             # TODO: Standardize which experimental data records are available here: IC50, pIC50, DeltaG, delta_g, and uncertainties
-            logging.info(f'Updating experiental data for {metadata.compound_id} : {metadata.experimental_data}')
+            logging.info(
+                f"Updating experiental data for {metadata.compound_id} : {metadata.experimental_data}"
+            )
 
-    logging.info(f"Updated experimental data for {number_of_compounds_updated} compounds")
+    logging.info(
+        f"Updated experimental data for {number_of_compounds_updated} compounds"
+    )
+
 
 def run_analysis(
     compound_series_file: str,
@@ -187,7 +212,7 @@ def run_analysis(
     # Normalize experimental data
     for compound in compound_series.compounds:
         normalize_experimental_data(compound.metadata.experimental_data)
-        
+
     # Limit number of transformations considered (for debugging purposes) if requested
     if max_transformations is not None:
         logging.warning(
@@ -197,8 +222,8 @@ def run_analysis(
             metadata=compound_series.metadata,
             compounds=compound_series.compounds,
             transformations=compound_series.transformations[:max_transformations],
-        )        
-        
+        )
+
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
 
     series_analysis = analyze_compound_series(

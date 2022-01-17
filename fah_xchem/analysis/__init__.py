@@ -178,13 +178,18 @@ def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeri
 
     # TODO: Overhaul this to use 95% CIs, or convert 95% CIs into stderr?
     from .diffnet import experimental_data_to_point_estimate
-    if ('g_exp' in initial_experimental_data) and ('g_exp' in final_experimental_data) \
-       and ('enantiopure' in initial_experimental_data) and ('enantiopure' in final_experimental_data):
-            # Retrieve point estimates for initial and final compounds
-            initial_dg = experimental_data_to_point_estimate(initial_experimental_data)
-            final_dg = experimental_data_to_point_estimate(final_experimental_data)
-            ddg = final_dg - initial_dg
-            return ddg
+
+    if (
+        ("g_exp" in initial_experimental_data)
+        and ("g_exp" in final_experimental_data)
+        and ("enantiopure" in initial_experimental_data)
+        and ("enantiopure" in final_experimental_data)
+    ):
+        # Retrieve point estimates for initial and final compounds
+        initial_dg = experimental_data_to_point_estimate(initial_experimental_data)
+        final_dg = experimental_data_to_point_estimate(final_experimental_data)
+        ddg = final_dg - initial_dg
+        return ddg
     else:
         return PointEstimate(point=None, stderr=None)
 
@@ -266,7 +271,7 @@ def analyze_compound_series(
         ]
 
     # Only compute transformation experimental errors between enantiopure compounds
-    
+
     # # Reprocess transformation experimental errors to only include most favorable transformation
     # # NOTE: This is a hack, and should be replaced by a more robust method for accounting for racemic mixtures
     # # Compile list of all microstate transformations for each compound
@@ -359,7 +364,7 @@ def generate_artifacts(
         and transformation.binding_free_energy.point is not None
     ]
 
-    #snapshots = False # DEBUG
+    # snapshots = False # DEBUG
     if snapshots:
         logging.info("Generating representative snapshots")
         saf = SnapshotArtifactory(
@@ -390,15 +395,20 @@ def generate_artifacts(
     # TODO: Integrate this into its appropriate artifactory?
     for transformation in series.transformations:
         run_id = transformation.transformation.run_id
-        atom_map_src_filename = os.path.join(complex_project_dir, "RUNS", f"RUN{run_id}", "atom_map.png")
-        atom_map_dest_path = os.path.join(output_dir, "transformations", f"RUN{run_id}")                
+        atom_map_src_filename = os.path.join(
+            complex_project_dir, "RUNS", f"RUN{run_id}", "atom_map.png"
+        )
+        atom_map_dest_path = os.path.join(output_dir, "transformations", f"RUN{run_id}")
         if not os.path.exists(atom_map_dest_path):
             os.makedirs(atom_map_dest_path, exist_ok=True)
-        atom_map_dest_filename = os.path.join(output_dir, "transformations", f"RUN{run_id}", "atom_map.png")
+        atom_map_dest_filename = os.path.join(
+            output_dir, "transformations", f"RUN{run_id}", "atom_map.png"
+        )
         if not os.path.exists(atom_map_dest_filename):
             import shutil
+
             shutil.copyfile(atom_map_src_filename, atom_map_dest_filename)
-            
+
     if snapshots and report:
         logging.info("Generating pdf report")
         generate_report(

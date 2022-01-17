@@ -30,23 +30,26 @@ def plot_retrospective_transformations(
     output_dir: str,
     filename: str = "retrospective-transformations",
 ):
-    logging.info('Generating retrospective transformations plot...')
+    logging.info("Generating retrospective transformations plot...")
 
-    
     graph = nx.DiGraph()
 
     # TODO this loop can be sped up
     number_of_edges_with_experimental_data = 0
     for analysis in transformations:
         transformation = analysis.transformation
-        print(f'{transformation.initial_microstate.compound_id} -> {transformation.final_microstate.compound_id} : calc {analysis.binding_free_energy} : exp {analysis.exp_ddg}')
+        print(
+            f"{transformation.initial_microstate.compound_id} -> {transformation.final_microstate.compound_id} : calc {analysis.binding_free_energy} : exp {analysis.exp_ddg}"
+        )
 
         # Only interested if the compounds have an experimental DDG
         if (analysis.binding_free_energy is None) or (analysis.exp_ddg.point is None):
             continue
 
-        logging.info(f'{analysis.transformation.initial_microstate.microstate_id} -> {analysis.transformation.final_microstate.microstate_id} : {analysis.exp_ddg}') # DEBUG
-        
+        logging.info(
+            f"{analysis.transformation.initial_microstate.microstate_id} -> {analysis.transformation.final_microstate.microstate_id} : {analysis.exp_ddg}"
+        )  # DEBUG
+
         graph.add_edge(
             transformation.initial_microstate,
             transformation.final_microstate,
@@ -57,18 +60,22 @@ def plot_retrospective_transformations(
         )
         number_of_edges_with_experimental_data += 1
 
-    print(f'Number of edges with experimental data: {number_of_edges_with_experimental_data}')
+    print(
+        f"Number of edges with experimental data: {number_of_edges_with_experimental_data}"
+    )
 
-    if (number_of_edges_with_experimental_data > 1):
+    if number_of_edges_with_experimental_data > 1:
         filename_png = filename + ".png"
-        print(f'Plotting DDGs with {number_of_edges_with_experimental_data} experimental measurements to {filename_png}')
+        print(
+            f"Plotting DDGs with {number_of_edges_with_experimental_data} experimental measurements to {filename_png}"
+        )
         plotting.plot_DDGs(
             graph,
             title="Enantiomerically-pure transformations",
-            filename=os.path.join(output_dir, filename_png)
+            filename=os.path.join(output_dir, filename_png),
         )
 
-        
+
 def plot_retrospective_compounds(
     compounds: List[CompoundAnalysis],
     output_dir: str,
@@ -78,7 +85,7 @@ def plot_retrospective_compounds(
     Plot retrospective compound free energies for racemates
 
     """
-    logging.info('Generating retrospective compounds plot...')
+    logging.info("Generating retrospective compounds plot...")
     graph = nx.DiGraph()
 
     # TODO this loop can be sped up
@@ -86,38 +93,46 @@ def plot_retrospective_compounds(
     for compound in compounds:
 
         # Only interested if the compounds have an experimental DDG
-        if ('g_exp' not in compound.metadata.experimental_data) or (compound.free_energy is None) or (compound.free_energy.point is None):
+        if (
+            ("g_exp" not in compound.metadata.experimental_data)
+            or (compound.free_energy is None)
+            or (compound.free_energy.point is None)
+        ):
             continue
 
         # Only plot racemates
-        if not 'racemate' in compound.metadata.experimental_data:
+        if not "racemate" in compound.metadata.experimental_data:
             continue
 
-        logging.info(f'{compound.metadata.compound_id}') # DEBUG
-        
+        logging.info(f"{compound.metadata.compound_id}")  # DEBUG
+
         graph.add_node(
             compound.metadata.compound_id,
-            exp_DG=compound.metadata.experimental_data['g_exp'] * KT_KCALMOL,
-            exp_dDG=compound.metadata.experimental_data['g_dexp'] * KT_KCALMOL,
+            exp_DG=compound.metadata.experimental_data["g_exp"] * KT_KCALMOL,
+            exp_dDG=compound.metadata.experimental_data["g_dexp"] * KT_KCALMOL,
             calc_DG=compound.free_energy.point * KT_KCALMOL,
             calc_dDG=compound.free_energy.stderr * KT_KCALMOL,
         )
         number_of_compounds_with_experimental_data += 1
 
-    print(f'Number of compounds with experimental data: {number_of_compounds_with_experimental_data}')
+    print(
+        f"Number of compounds with experimental data: {number_of_compounds_with_experimental_data}"
+    )
 
-    if (number_of_compounds_with_experimental_data > 1):
+    if number_of_compounds_with_experimental_data > 1:
         filename_png = filename + ".png"
-        print(f'Plotting DGs with {number_of_compounds_with_experimental_data} experimental measurements to {filename_png}')
+        print(
+            f"Plotting DGs with {number_of_compounds_with_experimental_data} experimental measurements to {filename_png}"
+        )
         plotting.plot_DGs(
             graph,
             title="Racemic compounds",
             filename=os.path.join(output_dir, filename_png),
             centralizing=False,
-            shift=0.0
+            shift=0.0,
         )
 
-        
+
 def plot_work_distributions(
     complex_forward_works: List[float],
     complex_reverse_works: List[float],
@@ -586,6 +601,7 @@ def _save_table_pdf(path: str, name: str):
     file_name = os.path.join(path, os.extsep.join([name, "pdf"]))
 
     import traceback
+
     with PdfPages(file_name) as pdf_plt:
         yield
         try:
@@ -836,7 +852,7 @@ def generate_plots(
 
     # Summary plots
     # we always regenerate these, since they concern all data
-    logging.info('Regenerating summary plots')
+    logging.info("Regenerating summary plots")
 
     fig = plot_relative_distribution(binding_delta_fs)
     plt.title("Relative free energy")
@@ -850,7 +866,7 @@ def generate_plots(
         plot_poor_convergence_fe_table(series.transformations)
 
     # Transformation-level plots
-    logging.info('Generating transformation plots via multiprocessing')
+    logging.info("Generating transformation plots via multiprocessing")
 
     generate_transformation_plots_partial = partial(
         generate_transformation_plots,
@@ -871,8 +887,8 @@ def generate_plots(
     #
     # Retrospective plots
     #
-    logging.info('Generating retrospective plots...')
-    
+    logging.info("Generating retrospective plots...")
+
     # NOTE this is handled by Arsenic
     # this needs to be plotted last as the figure isn't cleared by default in Arsenic
     # TODO generate time stamp
@@ -890,4 +906,3 @@ def generate_plots(
         compounds=series.compounds,
         filename="retrospective-compounds",
     )
-    

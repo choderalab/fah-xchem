@@ -40,8 +40,8 @@ class PointEstimate(Model):
 
         if self.point is None:
             return None
-        elif (self.stderr <= 0):
-            return 6 # DEBUG
+        elif self.stderr <= 0:
+            return 6  # DEBUG
         else:
             return -floor(log10(self.stderr)) if isfinite(self.stderr) else None
 
@@ -125,15 +125,17 @@ class ExperimentalCompoundData(Model):
     )
 
     experimental_data: Dict[str, float] = Field(
-        dict(), description='Experimental data fields, including "pIC50" and uncertainty (either "pIC50_stderr" or  "pIC50_{lower|upper}"',
+        dict(),
+        description='Experimental data fields, including "pIC50" and uncertainty (either "pIC50_stderr" or  "pIC50_{lower|upper}"',
     )
 
-    
+
 class ExperimentalCompoundDataUpdate(Model):
     """A bundle of experimental data for compounds (racemic or enantiopure)."""
+
     compounds: List[ExperimentalCompoundData]
-    
-    
+
+
 class Compound(Model):
     metadata: CompoundMetadata = Field(
         None,
@@ -222,12 +224,11 @@ class CompoundAnalysis(Model):
     free_energy: Optional[PointEstimate]
     experimental_free_energy: Optional[PointEstimate]
     absolute_free_energy_error: Optional[PointEstimate]
-    
+
 
 class CompoundSeriesAnalysis(Model):
-    """Full analysis results object for compound series.
+    """Full analysis results object for compound series."""
 
-    """
     metadata: CompoundSeriesMetadata
     # TODO: perhaps make this a dict with `metadata.compound_id` as key?
     compounds: List[CompoundAnalysis]
