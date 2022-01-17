@@ -221,9 +221,8 @@ class CompoundAnalysis(Model):
 
 
 class CompoundSeriesAnalysis(Model):
-    """Full analysis results object for compound series.
+    """Full analysis results object for compound series."""
 
-    """
     metadata: CompoundSeriesMetadata
     # TODO: perhaps make this a dict with `metadata.compound_id` as key?
     compounds: List[CompoundAnalysis]
