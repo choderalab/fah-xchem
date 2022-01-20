@@ -59,7 +59,7 @@ def format_pIC50(compound: CompoundAnalysis) -> str:
     TODO: Handle 95% CIs
     """
     experimental_data = compound.metadata.experimental_data
-    if "g_exp" not in experimental_data:
+    if ("g_exp" not in experimental_data) or ("g_dexp" not in experimental_data):
         return "TBD"
     else:
         est = PointEstimate(
@@ -81,6 +81,7 @@ def format_IC50(compound: CompoundAnalysis) -> str:
 
     TODO: Handle 95% CIs
     """
+    # we report these in micromolar, hence division by 1e-6
     experimental_data = compound.metadata.experimental_data
     if ("g_exp" not in experimental_data) or ("g_dexp" not in experimental_data):
         return "TBD"
@@ -110,7 +111,7 @@ def format_experimental_DeltaG(compound: CompoundAnalysis) -> str:
     TODO: Handle 95% CIs
     """
     experimental_data = compound.metadata.experimental_data
-    if "g_exp" not in experimental_data:
+    if ("g_exp" not in experimental_data) or ("g_dexp" not in experimental_data):
         return "TBD"
     else:
         est = PointEstimate(

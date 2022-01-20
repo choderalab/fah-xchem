@@ -21,7 +21,6 @@ from ..schema import (
     TransformationAnalysis,
 )
 from .constants import KT_KCALMOL
-from .filters import Racemic
 from openff.arsenic import plotting
 
 
