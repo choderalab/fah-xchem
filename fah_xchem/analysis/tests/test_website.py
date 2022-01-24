@@ -334,9 +334,7 @@ class TestWebsiteArtifactory:
             assert td.a.text.startswith(
                 td.find_all("a")[1].attrs["href"].split("/")[-1]
             )
-            assert (
-                td.find_all("a")[1].i.attrs["class"] == "fa fa-rocket ml-2".split()
-            )
+            assert td.find_all("a")[1].i.attrs["class"] == "fa fa-rocket ml-2".split()
 
         ### molecule image
         td = next(tdsg)
@@ -348,9 +346,9 @@ class TestWebsiteArtifactory:
 
         # TODO: restore once we have SDF file download for ligands working again
         ### ligand sdf
-        #td = next(tdsg)
-        #assert td.a.attrs["href"].split("/")[1] == run_name
-        #assert td.a.button.text == "sdf"
+        # td = next(tdsg)
+        # assert td.a.attrs["href"].split("/")[1] == run_name
+        # assert td.a.button.text == "sdf"
 
         ### protein pdb
         td = next(tdsg)
@@ -365,9 +363,7 @@ class TestWebsiteArtifactory:
             assert td.a.text.startswith(
                 td.find_all("a")[1].attrs["href"].split("/")[-1]
             )
-            assert (
-                td.find_all("a")[1].i.attrs["class"] == "fa fa-rocket ml-2".split()
-            )
+            assert td.find_all("a")[1].i.attrs["class"] == "fa fa-rocket ml-2".split()
 
         ### molecule image
         td = next(tdsg)
@@ -379,9 +375,9 @@ class TestWebsiteArtifactory:
 
         # TODO: restore once we have SDF file download for ligands working again
         ### ligand sdf
-        #td = next(tdsg)
-        #assert td.a.attrs["href"].split("/")[1] == run_name
-        #assert td.a.button.text == "sdf"
+        # td = next(tdsg)
+        # assert td.a.attrs["href"].split("/")[1] == run_name
+        # assert td.a.button.text == "sdf"
 
         ### protein pdb
         td = next(tdsg)
@@ -482,7 +478,9 @@ class TestWebsiteArtifactory:
             # Computed quantities table
             computed_quantities_heading = soupd.find_all("h4")[1]
             assert computed_quantities_heading.text == "Computed quantities"
-            computed_quantities_table = computed_quantities_heading.find_next_sibling("table")
+            computed_quantities_table = computed_quantities_heading.find_next_sibling(
+                "table"
+            )
             computed_quantities_rows = computed_quantities_table.find_all("tr")
 
             ## ΔG
@@ -499,7 +497,9 @@ class TestWebsiteArtifactory:
             # Experimental data table
             experimental_data_heading = soupd.find_all("h4")[2]
             assert experimental_data_heading.text == "Experimental data"
-            experimental_data_table = experimental_data_heading.find_next_sibling("table")
+            experimental_data_table = experimental_data_heading.find_next_sibling(
+                "table"
+            )
             experimental_data_rows = experimental_data_table.find_all("tr")
 
             ## ΔG
