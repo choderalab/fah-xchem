@@ -13,6 +13,8 @@ from .schema import (
     AnalysisConfig,
     FahConfig,
     CompoundSeries,
+    ExperimentalCompoundData,
+    ExperimentalCompoundDataUpdate,
     CompoundSeriesAnalysis,
     TimestampedAnalysis,
     FragalysisConfig,
@@ -36,6 +38,128 @@ def _get_config(
     return config
 
 
+def normalize_experimental_data(
+    experimental_data: dict,
+) -> None:
+    """
+    Standardize the experimental_data dict to ensure all necessary quantities are available.
+
+    Currently, this assumes the following are available:
+    * pIC50
+    * pIC50_lower
+    * pIC50_upper
+
+    and generates
+    * g_exp : binding free energy (in kT)
+    * g_dexp : standard error (in kT)
+    """
+    if "pIC50" not in experimental_data:
+        return
+
+    # TODO: Specify these in the experimental record or some higher-level metadata?
+    s_conc = 375e-9  # substrate concentration (molar)
+    Km = 40e-6  # Km (molar)
+    kT = 0.596  # kcal/mol # TODO: Use temperature instead
+    DEFAULT_pIC50_STDERR = (
+        0.2  # from n=9 replicate measurements of CVD-0002707 : 7.23 +/- 1.57
+    )
+
+    # Compute dimensionless free energy and standard error
+
+    if "pIC50_stderr" not in experimental_data:
+        if ("pIC50_lower" in experimental_data) and (
+            "pIC50_upper" in experimental_data
+        ):
+            experimental_data["pIC50_stderr"] = (
+                abs(experimental_data["pIC50_upper"] - experimental_data["pIC50_lower"])
+                / 4.0
+            )
+        else:
+            experimental_data["pIC50_stderr"] = DEFAULT_pIC50_STDERR
+
+    # Compute dimensionless free energy and uncertainty
+    import numpy as np
+
+    experimental_data["g_exp"] = -np.log(10.0) * experimental_data["pIC50"]
+    experimental_data["g_dexp"] = np.log(10.0) * experimental_data["pIC50_stderr"]
+    # TODO: Delete other records to avoid conflics?
+
+
+def update_experimental_data(
+    compound_series: CompoundSeries,
+    experimental_data_file: str,
+    update_key: Optional[str] = "smiles",
+) -> None:
+    """
+    Update the experimental data records in the CompoundSeries with new data provided by an external file.
+
+    Parameters
+    ----------
+    compound_series : CompoundSeries
+        The compound series to update
+    experimental_data_file : str
+        The JSON experimental data file containing a serialized form of ExperimentalCompoundData
+    update_key : str, optional, default='smiles'
+        Select whether experimental data should be assigned based on suspected 'smiles' or 'compound_id'
+        'compound_id': Assume measured compound identity is correct (often wrong with stereoisomers)
+        'smiles': Use the suspected_SMILES CDD field to update based on SMILES matches (often a better choice)
+        Note that designs are submitted using absolute stereochemistry while experimental measurements are assigned
+        using relative stereochemistry, so 'smiles' should be more reliable.
+    """
+    ALLOWED_KEYS = ["smiles", "compound_id"]
+    if not update_key in ALLOWED_KEYS:
+        raise ValueError(f"update_key must be one of {ALLOWED_KEYS}")
+
+    import os
+
+    if not os.path.exists(experimental_data_file):
+        raise ValueError(
+            f"Experimental data file {experimental_data_file} does not exist."
+        )
+
+    # Read experimental data file containing compound ids and presumed SMILES for experimental measurements
+    with open(experimental_data_file, "r") as infile:
+        import json
+
+        experimental_compound_data = ExperimentalCompoundDataUpdate.parse_obj(
+            json.loads(infile.read())
+        )
+        logging.info(
+            f"Data for {len(experimental_compound_data.compounds)} compounds read from {experimental_data_file}"
+        )
+
+    # Add information about composition (racemic or enantiopure) to experimental_data
+    # TODO: Update object model instead of using the experimental_data dict?
+    for compound in experimental_compound_data.compounds:
+        if compound.is_racemic:
+            compound.experimental_data["racemate"] = 1.0
+        else:
+            compound.experimental_data["enantiopure"] = 1.0
+
+    # Build a lookup table for experimental data by suspected SMILES
+    logging.info(f"Matching experimental data with compound designs via {update_key}")
+    experimental_data = {
+        getattr(compound, update_key): compound.experimental_data
+        for compound in experimental_compound_data.compounds
+    }
+
+    number_of_compounds_updated = 0
+    for compound in compound_series.compounds:
+        metadata = compound.metadata
+        key = getattr(metadata, update_key)
+        if key in experimental_data:
+            number_of_compounds_updated += 1
+            metadata.experimental_data.update(experimental_data[key])
+            # TODO: Standardize which experimental data records are available here: IC50, pIC50, DeltaG, delta_g, and uncertainties
+            logging.info(
+                f"Updating experiental data for {metadata.compound_id} : {metadata.experimental_data}"
+            )
+
+    logging.info(
+        f"Updated experimental data for {number_of_compounds_updated} compounds"
+    )
+
+
 def run_analysis(
     compound_series_file: str,
     config_file: Optional[str] = None,
@@ -45,7 +169,7 @@ def run_analysis(
     cache_dir: Optional[str] = None,
     num_procs: Optional[int] = 8,
     max_transformations: Optional[int] = None,
-    use_only_reference_compound_data: Optional[bool] = False,
+    experimental_data_file: Optional[str] = None,
     log: str = "WARN",
 ) -> None:
     """
@@ -70,6 +194,8 @@ def run_analysis(
         Number of parallel processes to run
     max_transformations : int, optional
         If not None, limit to this number of transformations
+    experimental_data_file : str, optional, default=None
+        If not None, load experimental compound data and update compound experimental_data dictionaries
     """
 
     logging.basicConfig(level=getattr(logging, log.upper()))
@@ -78,6 +204,16 @@ def run_analysis(
         CompoundSeries, compound_series_file, "compound series"
     )
 
+    # Update available experimental data if an experimental data file is specified
+    # TODO: Allow CLI specification of whether 'compound_id' or 'smiles' is used for update_key optional argument
+    if experimental_data_file is not None:
+        update_experimental_data(compound_series, experimental_data_file)
+
+    # Normalize experimental data
+    for compound in compound_series.compounds:
+        normalize_experimental_data(compound.metadata.experimental_data)
+
+    # Limit number of transformations considered (for debugging purposes) if requested
     if max_transformations is not None:
         logging.warning(
             f"Limiting maximum number of transformations to {max_transformations}"
@@ -86,34 +222,6 @@ def run_analysis(
             metadata=compound_series.metadata,
             compounds=compound_series.compounds,
             transformations=compound_series.transformations[:max_transformations],
-        )
-
-    # TODO: Remove this?
-    if use_only_reference_compound_data:
-        # Strip experimental data frorm all but reference compound
-        logging.warning(f"Stripping experimental data from all but reference compound")
-        from .schema import CompoundMetadata, Compound
-
-        new_compounds = list()
-        for compound in compound_series.compounds:
-            metadata = compound.metadata
-            if metadata.compound_id == "MAT-POS-8a69d52e-7":  # TODO: Magic strings
-                new_compound = compound
-                print(compound)
-            else:
-                new_metadata = CompoundMetadata(
-                    compound_id=metadata.compound_id,
-                    smiles=metadata.smiles,
-                    experimental_data=dict(),
-                )
-                new_compound = Compound(
-                    metadata=new_metadata, microstates=compound.microstates
-                )
-            new_compounds.append(new_compound)
-        compound_series = CompoundSeries(
-            metadata=compound_series.metadata,
-            compounds=new_compounds,
-            transformations=compound_series.transformations,
         )
 
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")

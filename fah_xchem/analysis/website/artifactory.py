@@ -22,7 +22,6 @@ from ...schema import (
     CompoundAnalysis,
 )
 from ..constants import KT_KCALMOL, KT_PIC50
-from ..filters import Racemic
 from .molecules import generate_molecule_images, get_image_filename
 
 
@@ -56,12 +55,76 @@ def format_stderr(est: PointEstimate) -> str:
 def format_pIC50(compound: CompoundAnalysis) -> str:
     """
     Format the compound's experimental pIC50 if present, or TBD if not
+
+    TODO: Handle 95% CIs
     """
     experimental_data = compound.metadata.experimental_data
-    if "pIC50" in experimental_data:
-        return experimental_data["pIC50"]
-    else:
+    if ("g_exp" not in experimental_data) or ("g_dexp" not in experimental_data):
         return "TBD"
+    else:
+        est = PointEstimate(
+            point=-KT_PIC50 * experimental_data["g_exp"],
+            stderr=KT_PIC50 * experimental_data["g_dexp"],
+        )
+
+        return f"""
+      <span class="estimate">
+        <span class="point">{format_point(est)}</span>
+        <span class="stderr"> ± {format_stderr(est)}</span>
+      </span>
+    """
+
+
+def format_IC50(compound: CompoundAnalysis) -> str:
+    """
+    Format the compound's experimental pIC50 if present, or TBD if not
+
+    TODO: Handle 95% CIs
+    """
+    # we report these in micromolar, hence division by 1e-6
+    experimental_data = compound.metadata.experimental_data
+    if ("g_exp" not in experimental_data) or ("g_dexp" not in experimental_data):
+        return "TBD"
+    else:
+        est = PointEstimate(
+            point=np.exp(experimental_data["g_exp"]) / 1e-6,
+            stderr=np.exp(experimental_data["g_exp"])
+            * experimental_data["g_dexp"]
+            / 1e-6,
+        )
+        try:
+            text = f"""
+      <span class="estimate">
+        <span class="point">{est.point:.3f}</span>
+        <span class="stderr"> ± {est.point:.3f}</span>
+      </span>
+    """
+            return text
+        except Exception as e:
+            return ""
+
+
+def format_experimental_DeltaG(compound: CompoundAnalysis) -> str:
+    """
+    Format the compound's experimental DeltaG if present, or TBD if not
+
+    TODO: Handle 95% CIs
+    """
+    experimental_data = compound.metadata.experimental_data
+    if ("g_exp" not in experimental_data) or ("g_dexp" not in experimental_data):
+        return "TBD"
+    else:
+        est = PointEstimate(
+            point=KT_KCALMOL * experimental_data["g_exp"],
+            stderr=KT_KCALMOL * experimental_data["g_dexp"],
+        )
+
+        return f"""
+      <span class="estimate">
+        <span class="point">{format_point(est)}</span>
+        <span class="stderr"> ± {format_stderr(est)}</span>
+      </span>
+    """
 
 
 def postera_url(compound_or_microstate_id: str) -> Optional[str]:
@@ -277,6 +340,8 @@ class WebsiteArtifactory(BaseModel):
         environment.filters["format_stderr"] = format_stderr
         environment.filters["format_compound_id"] = format_compound_id
         environment.filters["format_pIC50"] = format_pIC50
+        environment.filters["format_IC50"] = format_IC50
+        environment.filters["format_experimental_DeltaG"] = format_experimental_DeltaG
         environment.filters["postera_url"] = postera_url
         environment.filters["experimental_data_url"] = experimental_data_url
         environment.filters["smiles_to_filename"] = get_image_filename
@@ -286,7 +351,7 @@ class WebsiteArtifactory(BaseModel):
     def generate_website(
         self,
         items_per_page: int = 100,
-        num_top_compounds: int = 100,
+        num_top_compounds: int = 1000,
     ) -> None:
 
         generate_molecule_images(
@@ -300,6 +365,7 @@ class WebsiteArtifactory(BaseModel):
         self.generate_transformations(items_per_page)
         self.generate_reliable_transformations(items_per_page)
         self.generate_retrospective_microstate_transformations(items_per_page)
+        self.generate_retrospective_compounds(items_per_page, num_top_compounds)
 
     def generate_summary(self, num_top_compounds):
         self._write_html(
@@ -420,7 +486,6 @@ class WebsiteArtifactory(BaseModel):
         subdir = "retrospective_microstate_transformations"
         os.makedirs(os.path.join(self.path, subdir), exist_ok=True)
 
-        racemic_filter = Racemic(self.series)
         self._generate_paginated_index(
             write_html=lambda items, **kwargs: self._write_html(
                 transformations=items, **kwargs
@@ -430,18 +495,41 @@ class WebsiteArtifactory(BaseModel):
                 [
                     transformation
                     for transformation in self.series.transformations
-                    if (
-                        not racemic_filter.compound_microstate(
-                            transformation.transformation.initial_microstate
-                        )
-                        and not racemic_filter.compound_microstate(
-                            transformation.transformation.final_microstate
-                        )
-                        and transformation.absolute_error is not None
-                    )
+                    if (transformation.exp_ddg is not None)
+                    and (transformation.exp_ddg.point is not None)
+                    and (transformation.absolute_error is not None)
                 ],
                 key=lambda transformation: -transformation.absolute_error.point,
             ),
             items_per_page=items_per_page,
             description="Generating html for retrospective microstate transformations index",
+        )
+
+    def generate_retrospective_compounds(self, items_per_page, num_top_compounds):
+
+        subdir = "retrospective_compounds"
+        os.makedirs(os.path.join(self.path, subdir), exist_ok=True)
+
+        # TODO: This could be streamlined by extending the schema to include experimental free energies and error with experiment
+
+        compounds_sorted = sorted(
+            [
+                compound
+                for compound in self.series.compounds
+                if (compound.free_energy is not None)
+                and ("g_exp" in compound.metadata.experimental_data)
+                and ("racemate" in compound.metadata.experimental_data)
+            ],
+            key=lambda compound: compound.absolute_free_energy_error.point,
+            reverse=True,
+        )
+
+        self._generate_paginated_index(
+            write_html=lambda items, **kwargs: self._write_html(
+                compounds=items, num_top_compounds=num_top_compounds, **kwargs
+            ),
+            url_prefix="retrospective_compounds",
+            items=compounds_sorted,
+            items_per_page=items_per_page,
+            description="Generating html for retrospective compounds",
         )
