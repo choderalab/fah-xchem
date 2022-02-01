@@ -271,10 +271,6 @@ def combine_free_energies(
         if "g_exp" not in compound.metadata.experimental_data:
             continue
 
-        # DEBUG: Use only one reference compound
-        if compound.metadata.compound_id != "VLA-UCB-50c39ae8-2":
-            continue
-
         # Retrieve experimental dimensionless free energy and uncertainty
         g_exp_compound = compound.metadata.experimental_data["g_exp"]
         g_dexp_compound = compound.metadata.experimental_data["g_dexp"]
