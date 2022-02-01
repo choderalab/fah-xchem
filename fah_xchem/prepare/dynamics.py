@@ -250,7 +250,7 @@ class FAHProject(BaseModel):
             )  # CA atoms and ligand heavy atoms
             rmsd_atom_indices = [int(index) for index in rmsd_atom_indices]
             custom_cv_force = openmm.CustomCVForce("(K_RMSD/2)*RMSD^2")
-            custom_cv_force.addGlobalParameter("K_RMSD", kT / unit.angstrom ** 2)
+            custom_cv_force.addGlobalParameter("K_RMSD", kT / unit.angstrom**2)
             rmsd_force = openmm.RMSDForce(modeller.positions, rmsd_atom_indices)
             custom_cv_force.addCollectiveVariable("RMSD", rmsd_force)
             force_index = system.addForce(custom_cv_force)

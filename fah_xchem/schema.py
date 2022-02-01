@@ -23,7 +23,7 @@ class PointEstimate(Model):
 
         return PointEstimate(
             point=self.point + other.point,
-            stderr=sqrt(self.stderr ** 2 + other.stderr ** 2),
+            stderr=sqrt(self.stderr**2 + other.stderr**2),
         )
 
     def __abs__(self) -> "PointEstimate":
