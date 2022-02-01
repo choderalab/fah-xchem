@@ -2,14 +2,15 @@ name: fah-xchem
 channels:
   - conda-forge
   - defaults
-  - omnia
   - openeye
 dependencies:
-  - fire
+  - beautifulsoup4
+  - click
   - jinja2
   - joblib
   - matplotlib
   - mdtraj
+  - networkx
   - numpy >= 1.19
   - openeye-toolkits
   - openmm
@@ -19,16 +20,15 @@ dependencies:
   - plotly
   - pydantic
   - pymbar
-  - python >= 3.6
+  - python >= 3.7
   - rich
+  - requests
   - seaborn >= 0.11
   - simplejson
-  - networkx
-  - beautifulsoup4
   - pip
+  - compilers
+  - arsenic
   - pip:
-      - git+https://github.com/openforcefield/Arsenic.git@0.1.0
       - git+https://github.com/xchem/pandda_gemmi.git
       - git+https://github.com/xchem/gemmi_pandda.git
       - git+https://github.com/xchem/fragalysis-api.git
-

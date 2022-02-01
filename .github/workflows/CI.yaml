@@ -31,7 +31,7 @@ jobs:
     strategy:
       matrix:
         os: 
-          - macOS-latest
+          #- macOS-latest
           - ubuntu-latest
           #- windows-latest
         python-version: ["3.8", "3.9", "3.10"]
@@ -63,10 +63,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
         environment-file: devtools/conda-envs/test.yaml
         activate-environment: fah-xchem
-        auto-update-conda: true
+        #auto-update-conda: true
         show-channel-urls: true
         auto-activate-base: false
         use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+        mamba-version: "*"
+        use-mamba: true
 
     - name: Install package
 

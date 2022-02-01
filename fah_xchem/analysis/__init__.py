@@ -26,7 +26,7 @@ from ..schema import (
     RunStatus,
 )
 from .constants import KT_KCALMOL
-from .diffnet import combine_free_energies, pIC50_to_DG
+from .diffnet import combine_free_energies
 from .exceptions import AnalysisError, DataValidationError
 from .extract_work import extract_work_pair
 from .free_energy import compute_relative_free_energy, InsufficientDataError
@@ -34,9 +34,6 @@ from .plots import generate_plots
 from .report import generate_report, gens_are_consistent
 from .structures import SnapshotArtifactory
 from .website import WebsiteArtifactory
-
-
-EXP_DDG_IJ_ERR = 0.2  # TODO check this is correct
 
 
 def analyze_phase(server: FahConfig, run: int, project: int, config: AnalysisConfig):
@@ -149,11 +146,7 @@ def analyze_transformation(
 
 def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeries):
     """
-    Compute experimental free energy difference between two compounds, if available.
-
-    NOTE: This method makes the approximation that each microstate has the same affinity as the parent compound.
-
-    TODO: Instead, solve DiffNet without experimental data and use derived DDGs between compounds (not transformations).
+    Compute experimental free energy difference between two enantiopure compounds, if available.
 
     Parameters
     ----------
@@ -165,16 +158,17 @@ def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeri
     Returns
     -------
     ddg : PointEstimate
-        Point estimate of free energy difference for this transformation,
+        Point estimate of the difference in experimental free energies for this transformation,
         or PointEstimate(None, None) if not available.
 
     """
+    # Transformations are between microstates, so build an index of microstate_id -> compound to fish out experimental data
     compounds_by_microstate = {
         microstate.microstate_id: compound
         for compound in compounds
         for microstate in compound.microstates
     }
-
+    # Extract experimental data for initial and final compounds
     initial_experimental_data = compounds_by_microstate[
         transformation.initial_microstate.microstate_id
     ].metadata.experimental_data
@@ -182,15 +176,20 @@ def calc_exp_ddg(transformation: TransformationAnalysis, compounds: CompoundSeri
         transformation.final_microstate.microstate_id
     ].metadata.experimental_data
 
-    if ("pIC50" in initial_experimental_data) and ("pIC50" in final_experimental_data):
-        initial_dg = PointEstimate(
-            point=pIC50_to_DG(initial_experimental_data["pIC50"]), stderr=EXP_DDG_IJ_ERR
-        )
-        final_dg = PointEstimate(
-            point=pIC50_to_DG(final_experimental_data["pIC50"]), stderr=EXP_DDG_IJ_ERR
-        )
-        error = final_dg - initial_dg
-        return error
+    # TODO: Overhaul this to use 95% CIs, or convert 95% CIs into stderr?
+    from .diffnet import experimental_data_to_point_estimate
+
+    if (
+        ("g_exp" in initial_experimental_data)
+        and ("g_exp" in final_experimental_data)
+        and ("enantiopure" in initial_experimental_data)
+        and ("enantiopure" in final_experimental_data)
+    ):
+        # Retrieve point estimates for initial and final compounds
+        initial_dg = experimental_data_to_point_estimate(initial_experimental_data)
+        final_dg = experimental_data_to_point_estimate(final_experimental_data)
+        ddg = final_dg - initial_dg
+        return ddg
     else:
         return PointEstimate(point=None, stderr=None)
 
@@ -271,38 +270,40 @@ def analyze_compound_series(
             if result is not None
         ]
 
-    # Reprocess transformation experimental errors to only include most favorable transformation
-    # NOTE: This is a hack, and should be replaced by a more robust method for accounting for racemic mixtures
-    # Compile list of all microstate transformations for each compound
-    compound_ddgs = dict()
-    for transformation in transformations:
-        compound_id = transformation.transformation.final_microstate.compound_id
-        if compound_id in compound_ddgs:
-            compound_ddgs[compound_id].append(transformation.binding_free_energy.point)
-        else:
-            compound_ddgs[compound_id] = [transformation.binding_free_energy.point]
-    # Collapse to a single estimate
-    from scipy.special import logsumexp
+    # Only compute transformation experimental errors between enantiopure compounds
 
-    for compound_id, ddgs in compound_ddgs.items():
-        compound_ddgs[compound_id] = -logsumexp(-np.array(ddgs)) + np.log(len(ddgs))
-    # Regenerate list of transformations
-    for index, t in enumerate(transformations):
-        if (t.exp_ddg is None) or (t.exp_ddg.point is None):
-            continue
-        compound_id = t.transformation.final_microstate.compound_id
-        absolute_error_point = abs(t.exp_ddg.point - compound_ddgs[compound_id])
-        transformations[index] = TransformationAnalysis(
-            transformation=t.transformation,
-            reliable_transformation=t.reliable_transformation,
-            binding_free_energy=t.binding_free_energy,
-            complex_phase=t.complex_phase,
-            solvent_phase=t.solvent_phase,
-            exp_ddg=t.exp_ddg,
-            absolute_error=PointEstimate(
-                point=absolute_error_point, stderr=t.absolute_error.stderr
-            ),
-        )
+    # # Reprocess transformation experimental errors to only include most favorable transformation
+    # # NOTE: This is a hack, and should be replaced by a more robust method for accounting for racemic mixtures
+    # # Compile list of all microstate transformations for each compound
+    # compound_ddgs = dict()
+    # for transformation in transformations:
+    #     compound_id = transformation.transformation.final_microstate.compound_id
+    #     if compound_id in compound_ddgs:
+    #         compound_ddgs[compound_id].append(transformation.binding_free_energy.point)
+    #     else:
+    #         compound_ddgs[compound_id] = [transformation.binding_free_energy.point]
+    # # Collapse to a single estimate
+    # from scipy.special import logsumexp
+
+    # for compound_id, ddgs in compound_ddgs.items():
+    #     compound_ddgs[compound_id] = -logsumexp(-np.array(ddgs)) + np.log(len(ddgs))
+    # # Regenerate list of transformations
+    # for index, t in enumerate(transformations):
+    #     if (t.exp_ddg is None) or (t.exp_ddg.point is None):
+    #         continue
+    #     compound_id = t.transformation.final_microstate.compound_id
+    #     absolute_error_point = abs(t.exp_ddg.point - compound_ddgs[compound_id])
+    #     transformations[index] = TransformationAnalysis(
+    #         transformation=t.transformation,
+    #         reliable_transformation=t.reliable_transformation,
+    #         binding_free_energy=t.binding_free_energy,
+    #         complex_phase=t.complex_phase,
+    #         solvent_phase=t.solvent_phase,
+    #         exp_ddg=t.exp_ddg,
+    #         absolute_error=PointEstimate(
+    #             point=absolute_error_point, stderr=t.absolute_error.stderr
+    #         ),
+    #     )
 
     # Sort transformations by RUN
     # transformations.sort(key=lambda transformation_analysis : transformation_analysis.transformation.run_id)
@@ -363,6 +364,7 @@ def generate_artifacts(
         and transformation.binding_free_energy.point is not None
     ]
 
+    # snapshots = False # DEBUG
     if snapshots:
         logging.info("Generating representative snapshots")
         saf = SnapshotArtifactory(
@@ -388,6 +390,24 @@ def generate_artifacts(
             num_procs=num_procs,
             overwrite=overwrite,
         )
+
+    # Copy atom maps
+    # TODO: Integrate this into its appropriate artifactory?
+    for transformation in series.transformations:
+        run_id = transformation.transformation.run_id
+        atom_map_src_filename = os.path.join(
+            complex_project_dir, "RUNS", f"RUN{run_id}", "atom_map.png"
+        )
+        atom_map_dest_path = os.path.join(output_dir, "transformations", f"RUN{run_id}")
+        if not os.path.exists(atom_map_dest_path):
+            os.makedirs(atom_map_dest_path, exist_ok=True)
+        atom_map_dest_filename = os.path.join(
+            output_dir, "transformations", f"RUN{run_id}", "atom_map.png"
+        )
+        if not os.path.exists(atom_map_dest_filename):
+            import shutil
+
+            shutil.copyfile(atom_map_src_filename, atom_map_dest_filename)
 
     if snapshots and report:
         logging.info("Generating pdf report")
