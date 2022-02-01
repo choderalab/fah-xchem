@@ -272,8 +272,8 @@ class AnalysisConfig(Model):
 
 
 class FahConfig(Model):
-    projects_dir: str = None
-    data_dir: str = None
+    projects_dir: pathlib.Path = None
+    data_dir: pathlib.Path = None
     api_url: str = None
 
 
