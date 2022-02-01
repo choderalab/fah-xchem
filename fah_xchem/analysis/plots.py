@@ -304,7 +304,7 @@ def plot_convergence(
 
     DDG_kcal = complex_delta_fs_kcal - solvent_delta_fs_kcal
     DDG_err_kcal = np.sqrt(
-        solvent_delta_f_errs_kcal ** 2 + complex_delta_f_errs_kcal ** 2
+        solvent_delta_f_errs_kcal**2 + complex_delta_f_errs_kcal**2
     )
 
     ax1.scatter(DDG_kcal.index, DDG_kcal, color="green", label="binding")

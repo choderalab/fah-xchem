@@ -11,6 +11,9 @@ class Model(BaseModel):
         extra = "forbid"
 
 
+## analyze and generate
+
+
 class PointEstimate(Model):
     point: Union[None, float]
     stderr: Union[None, float]
@@ -20,7 +23,7 @@ class PointEstimate(Model):
 
         return PointEstimate(
             point=self.point + other.point,
-            stderr=sqrt(self.stderr ** 2 + other.stderr ** 2),
+            stderr=sqrt(self.stderr**2 + other.stderr**2),
         )
 
     def __abs__(self) -> "PointEstimate":
@@ -104,7 +107,7 @@ class CompoundMetadata(Model):
         None,
         description="The SMILES string defining the compound in a canonical protonation state. Stereochemistry will be ambiguous for racemates",
     )
-    experimental_data: Dict[str, float] = Field(
+    experimental_data: Dict[str, Union[str, Dict]] = Field(
         dict(), description='Optional experimental data fields, such as "pIC50"'
     )
 

@@ -81,7 +81,7 @@ def get_compound_free_energy(microstates: List[MicrostateAnalysis]) -> PointEsti
     Kas = np.exp(-s)
     Zs = np.sum(Kas)
     ds = 1 - Kas / Zs
-    gs_err = np.sqrt(g_err ** 2 + (ds * s_err) ** 2)
+    gs_err = np.sqrt(g_err**2 + (ds * s_err) ** 2)
 
     # Error propagation for g
     g = -logsumexp(-gs)
