@@ -652,6 +652,7 @@ def artifacts_generate(
     compound_series_analysis_file,
     output_directory,
     config_file,
+    fragalysis_config_file,
     fah_projects_dir,
     fah_data_dir,
     fah_api_url,
@@ -663,7 +664,6 @@ def artifacts_generate(
     report,
     website,
     loglevel,
-    fragalysis_config,
     overwrite,
 ):
     """
@@ -685,7 +685,7 @@ def artifacts_generate(
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
 
     fragalysis_config = _get_config(
-        FragalysisConfig, fragalysis_config, "fragalysis configuration"
+        FragalysisConfig, fragalysis_config_file, "fragalysis configuration"
     )
 
     with open(compound_series_analysis_file, "r") as infile:
