@@ -327,31 +327,30 @@ class CDDData(ExternalData):
                 experimental_data = {}
                 for protocol_name, protocol_data_n in protocol_data_ns.items():
                     if (mol["id"], batch["id"]) in protocol_data_n:
-                        rec_readouts = [rec["readouts"] for rec in protocol_data_n[(mol["id"], batch["id"])]]
+                        rec_readouts = [
+                            rec["readouts"]
+                            for rec in protocol_data_n[(mol["id"], batch["id"])]
+                        ]
 
                         # we want a single key for each readout, with a list of records as values
                         readouts_n = defaultdict(list)
                         for readouts in rec_readouts:
                             for key, value in readouts.items():
                                 # remove redundant 'name' field from each readout
-                                readouts_n[value['name']].append(value)
-                                value.pop('name')
+                                readouts_n[value["name"]].append(value)
+                                value.pop("name")
 
                     else:
                         continue
 
-                    experimental_data.update(
-                        {
-                            protocol_name: readouts_n
-                        }
-                    )
+                    experimental_data.update({protocol_name: readouts_n})
 
                 # TODO: we are losing readouts by using a dict
                 # TODO: drop compounds that have no experimental data completely
                 if experimental_data:
                     compound_metadata = CompoundMetadata(
                         compound_id=batch["batch_fields"]["External ID"],
-                        smiles=batch['batch_fields'].get('suspected_SMILES'),
+                        smiles=batch["batch_fields"].get("suspected_SMILES"),
                         experimental_data=experimental_data,
                     )
 

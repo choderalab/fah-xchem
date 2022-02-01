@@ -52,6 +52,7 @@ def _parse_config(args, config):
 
     return config_values
 
+
 # TODO: this should go in a separate module, not here
 def normalize_experimental_data(
     experimental_data: dict,
