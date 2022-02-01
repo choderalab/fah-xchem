@@ -305,7 +305,7 @@ class CDDData(ExternalData):
             }
             protocol_name = protocol_defs["name"]
 
-            protocol_data_n = defaultdict(dict)
+            protocol_data_n = defaultdict(list)
 
             for record in protocol_data["objects"]:
                 if "molecule" not in record:
@@ -316,7 +316,8 @@ class CDDData(ExternalData):
                         int(readout)
                     ]["name"]
 
-                protocol_data_n[record["molecule"]][record["batch"]] = record
+                # there can be more than one record for a given molecule,batch
+                protocol_data_n[(record["molecule"], record["batch"])].append(record)
 
             protocol_data_ns[protocol_name] = protocol_data_n
 
@@ -325,35 +326,36 @@ class CDDData(ExternalData):
             for batch in mol["batches"]:
                 experimental_data = {}
                 for protocol_name, protocol_data_n in protocol_data_ns.items():
-                    if mol["id"] in protocol_data_n:
-                        if batch["id"] in protocol_data_n[mol["id"]]:
-                            readouts = protocol_data_n[mol["id"]][batch["id"]][
-                                "readouts"
-                            ]
-                        else:
-                            continue
+                    if (mol["id"], batch["id"]) in protocol_data_n:
+                        rec_readouts = [rec["readouts"] for rec in protocol_data_n[(mol["id"], batch["id"])]]
+
+                        # we want a single key for each readout, with a list of records as values
+                        readouts_n = defaultdict(list)
+                        for readouts in rec_readouts:
+                            for key, value in readouts.items():
+                                # remove redundant 'name' field from each readout
+                                readouts_n[value['name']].append(value)
+                                value.pop('name')
+
                     else:
                         continue
 
                     experimental_data.update(
                         {
-                            protocol_name: {
-                                readout["name"]: readout
-                                for readout in readouts.values()
-                            }
+                            protocol_name: readouts_n
                         }
                     )
 
-                    # remove redundant 'name' field from each readout
-                    for readout in experimental_data[protocol_name].values():
-                        readout.pop("name")
+                # TODO: we are losing readouts by using a dict
+                # TODO: drop compounds that have no experimental data completely
+                if experimental_data:
+                    compound_metadata = CompoundMetadata(
+                        compound_id=batch["batch_fields"]["External ID"],
+                        smiles=batch['batch_fields'].get('suspected_SMILES'),
+                        experimental_data=experimental_data,
+                    )
 
-                compound_metadata = CompoundMetadata(
-                    compound_id=batch["batch_fields"]["External ID"],
-                    experimental_data=experimental_data,
-                )
-
-                compound_metadatas.append(compound_metadata)
+                    compound_metadatas.append(compound_metadata)
 
         ecd = ExperimentalCompoundData(compounds=compound_metadatas)
 
