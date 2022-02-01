@@ -562,10 +562,8 @@ def compound_series_analyze(
     timestamp = dt.datetime.now(dt.timezone.utc)
     output = TimestampedAnalysis(as_of=timestamp, series=series_analysis)
 
-    os.makedirs(compound_series, exist_ok=True)
-    with open(
-        os.path.join(compound_series_analysis_file, "analysis.json"), "w"
-    ) as output_file:
+    os.makedirs(compound_series_analysis_file.parent, exist_ok=True)
+    with open(compound_series_analysis_file, "w") as output_file:
         output_file.write(output.json(indent=3))
 
 
