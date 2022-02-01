@@ -534,6 +534,9 @@ class SnapshotArtifactory(BaseModel):
         new         \[1]---[2]/
 
         TODO: Can we use a more general scheme for extracting representative snapshots or snapshot ensembles?
+              For SAMS, repex, or even alternative formulations of nonequilibrium switching,
+              this scheme may not be relevant for extracting snapshots.
+              Instead, we can potentially come up with a way to generalize which snapshot(s) to extract.
 
         Parameters
         ----------

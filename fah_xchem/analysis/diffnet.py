@@ -345,15 +345,13 @@ def combine_free_energies(
 
     for graph in valid_subgraphs:
         gs, C = stats.mle(graph, factor="g_ij", node_factor="g_exp")
-        print(gs)
-        print(gs.min(), gs.max())
 
         errs = np.sqrt(np.diag(C))
         for node, g, g_err in zip(graph.nodes, gs, errs):
             graph.nodes[node]["g"] = g
             graph.nodes[node]["g_err"] = g_err
             if "g_exp" in graph.nodes[node]:
-                print(
+                logging.debug(
                     f"{node} : exp {graph.nodes[node]['g_exp']} +- {graph.nodes[node]['g_dexp']} : calc {g} +- {g_err}"
                 )
 

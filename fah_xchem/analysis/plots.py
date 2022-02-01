@@ -37,7 +37,7 @@ def plot_retrospective_transformations(
     number_of_edges_with_experimental_data = 0
     for analysis in transformations:
         transformation = analysis.transformation
-        print(
+        logging.debug(
             f"{transformation.initial_microstate.compound_id} -> {transformation.final_microstate.compound_id} : calc {analysis.binding_free_energy} : exp {analysis.exp_ddg}"
         )
 
@@ -59,13 +59,13 @@ def plot_retrospective_transformations(
         )
         number_of_edges_with_experimental_data += 1
 
-    print(
+    logging.debug(
         f"Number of edges with experimental data: {number_of_edges_with_experimental_data}"
     )
 
     if number_of_edges_with_experimental_data > 1:
         filename_png = filename + ".png"
-        print(
+        logging.debug(
             f"Plotting DDGs with {number_of_edges_with_experimental_data} experimental measurements to {filename_png}"
         )
         plotting.plot_DDGs(
@@ -114,13 +114,13 @@ def plot_retrospective_compounds(
         )
         number_of_compounds_with_experimental_data += 1
 
-    print(
+    logging.debug(
         f"Number of compounds with experimental data: {number_of_compounds_with_experimental_data}"
     )
 
     if number_of_compounds_with_experimental_data > 1:
         filename_png = filename + ".png"
-        print(
+        logging.debug(
             f"Plotting DGs with {number_of_compounds_with_experimental_data} experimental measurements to {filename_png}"
         )
         plotting.plot_DGs(
