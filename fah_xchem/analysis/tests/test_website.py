@@ -313,76 +313,95 @@ class TestWebsiteArtifactory:
 
         assert len(tds) == 12
 
+        # create a generator for less index sensitivity
+        tdsg = (td for td in tds)
+
         ## run name
-        assert tds[0].text.startswith("RUN")
+        td = next(tdsg)
+        run_name = td.text
+        assert td.text.startswith("RUN")
+
+        ## transformation atom map
+        td = next(tdsg)
+        assert td.a.attrs["href"].split("/")[1] == run_name
+        assert td.a.button.text == "map"
 
         ## initial microstate
-        if tds[1].find_all("a"):
+        td = next(tdsg)
+        if td.find_all("a"):
             # microstates have a trailing index, e.g. `_1`
-            assert tds[1].a.text.startswith(tds[1].a.attrs["href"].split("/")[-1])
-            assert tds[1].a.text.startswith(
-                tds[1].find_all("a")[1].attrs["href"].split("/")[-1]
+            assert td.a.text.startswith(td.a.attrs["href"].split("/")[-1])
+            assert td.a.text.startswith(
+                td.find_all("a")[1].attrs["href"].split("/")[-1]
             )
-            assert (
-                tds[1].find_all("a")[1].i.attrs["class"] == "fa fa-rocket ml-2".split()
-            )
+            assert td.find_all("a")[1].i.attrs["class"] == "fa fa-rocket ml-2".split()
 
         ### molecule image
-        assert tds[2].attrs["class"] == ["thumbnail"]
+        td = next(tdsg)
+        assert td.attrs["class"] == ["thumbnail"]
         assert (
-            get_image_filename(tds[2].a.img.attrs["title"])
-            == tds[2].a.attrs["href"].split("/")[1].split(".")[0]
+            get_image_filename(td.a.img.attrs["title"])
+            == td.a.attrs["href"].split("/")[1].split(".")[0]
         )
 
+        # TODO: restore once we have SDF file download for ligands working again
         ### ligand sdf
-        assert tds[3].a.attrs["href"].split("/")[1] == tds[0].text
-        assert tds[3].a.button.text == "sdf"
+        # td = next(tdsg)
+        # assert td.a.attrs["href"].split("/")[1] == run_name
+        # assert td.a.button.text == "sdf"
 
         ### protein pdb
-        assert tds[4].a.attrs["href"].split("/")[1] == tds[0].text
-        assert tds[4].a.button.text == "pdb"
+        td = next(tdsg)
+        assert td.a.attrs["href"].split("/")[1] == run_name
+        assert td.a.button.text == "pdb"
 
         ## final microstate
-        if tds[5].find_all("a"):
+        td = next(tdsg)
+        if td.find_all("a"):
             # microstates have a trailing index, e.g. `_1`
-            assert tds[5].a.text.startswith(tds[5].a.attrs["href"].split("/")[-1])
-            assert tds[5].a.text.startswith(
-                tds[5].find_all("a")[1].attrs["href"].split("/")[-1]
+            assert td.a.text.startswith(td.a.attrs["href"].split("/")[-1])
+            assert td.a.text.startswith(
+                td.find_all("a")[1].attrs["href"].split("/")[-1]
             )
-            assert (
-                tds[5].find_all("a")[1].i.attrs["class"] == "fa fa-rocket ml-2".split()
-            )
+            assert td.find_all("a")[1].i.attrs["class"] == "fa fa-rocket ml-2".split()
 
         ### molecule image
-        assert tds[6].attrs["class"] == ["thumbnail"]
+        td = next(tdsg)
+        assert td.attrs["class"] == ["thumbnail"]
         assert (
-            get_image_filename(tds[6].a.img.attrs["title"])
-            == tds[6].a.attrs["href"].split("/")[1].split(".")[0]
+            get_image_filename(td.a.img.attrs["title"])
+            == td.a.attrs["href"].split("/")[1].split(".")[0]
         )
 
+        # TODO: restore once we have SDF file download for ligands working again
         ### ligand sdf
-        assert tds[7].a.attrs["href"].split("/")[1] == tds[0].text
-        assert tds[7].a.button.text == "sdf"
+        # td = next(tdsg)
+        # assert td.a.attrs["href"].split("/")[1] == run_name
+        # assert td.a.button.text == "sdf"
 
         ### protein pdb
-        assert tds[8].a.attrs["href"].split("/")[1] == tds[0].text
-        assert tds[8].a.button.text == "pdb"
+        td = next(tdsg)
+        assert td.a.attrs["href"].split("/")[1] == run_name
+        assert td.a.button.text == "pdb"
 
         ## ΔΔG
-        assert tds[9].attrs["class"] == ["binding"]
+        td = next(tdsg)
+        assert td.attrs["class"] == ["binding"]
 
         ## Work distributions
-        assert tds[10].attrs["class"] == ["thumbnail"]
+        td = next(tdsg)
+        assert td.attrs["class"] == ["thumbnail"]
         assert (
-            tds[10].a.attrs["href"].split(".pdf")[0]
-            == tds[10].a.img.attrs["src"].split(".png")[0]
+            td.a.attrs["href"].split(".pdf")[0]
+            == td.a.img.attrs["src"].split(".png")[0]
         )
 
         ## Convergence
-        assert tds[11].attrs["class"] == ["thumbnail"]
+        td = next(tdsg)
+        assert td.attrs["class"] == ["thumbnail"]
         assert (
-            tds[11].a.attrs["href"].split(".pdf")[0]
-            == tds[11].a.img.attrs["src"].split(".png")[0]
+            td.a.attrs["href"].split(".pdf")[0]
+            == td.a.img.attrs["src"].split(".png")[0]
         )
 
     def test_top_compounds_detail(self, website_artifactory):
@@ -445,39 +464,66 @@ class TestWebsiteArtifactory:
             else:
                 assert molecule.img.attrs["title"] == soupd.h3.text
 
-            # Data table
-            data_heading = soupd.find_all("h4")[0]
-            assert data_heading.text == "Data"
-            data_table = data_heading.find_next_sibling("table")
-            data_table_rows = data_table.find_all("tr")
+            # Metadata table
+            metadata_heading = soupd.find_all("h4")[0]
+            assert metadata_heading.text == "Metadata"
+            metadata_table = metadata_heading.find_next_sibling("table")
+            metadata_rows = metadata_table.find_all("tr")
 
             ## compound id
-            title, value = data_table_rows[0].find_all("td")
+            title, value = metadata_rows[0].find_all("td")
             assert title.text == "Compound ID"
             assert value.text == soupd.h3.text
 
+            # Computed quantities table
+            computed_quantities_heading = soupd.find_all("h4")[1]
+            assert computed_quantities_heading.text == "Computed quantities"
+            computed_quantities_table = computed_quantities_heading.find_next_sibling(
+                "table"
+            )
+            computed_quantities_rows = computed_quantities_table.find_all("tr")
+
             ## ΔG
-            title, value = data_table_rows[1].find_all("td")
+            title, value = computed_quantities_rows[0].find_all("td")
             assert (
                 "".join([str(i) for i in title.contents]) == "ΔG / kcal M<sup>-1</sup>"
             )
             assert value.attrs["class"] == ["binding"]
 
-            ## IC50
-            title, value = data_table_rows[2].find_all("td")
-            assert title.text == "IC50 / µM"
-
             ## pIC50
-            title, value = data_table_rows[3].find_all("td")
+            title, value = computed_quantities_rows[1].find_all("td")
             assert title.text == "pIC50"
 
-            # Transformations table / ordered by ΔΔG
-            transform_heading = data_table.find_next_sibling("h4")
-            assert transform_heading.text == "Transformations"
-            transform_table = transform_heading.find_next_sibling("table")
+            # Experimental data table
+            experimental_data_heading = soupd.find_all("h4")[2]
+            assert experimental_data_heading.text == "Experimental data"
+            experimental_data_table = experimental_data_heading.find_next_sibling(
+                "table"
+            )
+            experimental_data_rows = experimental_data_table.find_all("tr")
+
+            ## ΔG
+            title, value = experimental_data_rows[0].find_all("td")
+            assert (
+                "".join([str(i) for i in title.contents]) == "ΔG / kcal M<sup>-1</sup>"
+            )
+            assert value.attrs["class"] == ["binding"]
+
+            ## pIC50
+            title, value = experimental_data_rows[1].find_all("td")
+            assert title.text == "pIC50"
+
+            ## IC50
+            title, value = experimental_data_rows[2].find_all("td")
+            assert title.text == "IC50 / µM"
+
+            # Transformations table
+            transformations_heading = soupd.find_all("h4")[3]
+            assert transformations_heading.text == "Transformations"
+            transformations_table = transformations_heading.find_next_sibling("table")
 
             ## column headers
-            transform_columns = transform_table.tr.find_all("th")
+            transform_columns = transformations_table.tr.find_all("th")
             assert transform_columns[0].text == "RUN"
             assert transform_columns[1].text == "Initial microstate"
             assert transform_columns[2].text == "Final microstate"
@@ -489,14 +535,17 @@ class TestWebsiteArtifactory:
             assert transform_columns[5].text == "Convergence"
 
             # Each row corresponds to a RUN
-            transform_rows = transform_table.find_all("tr")[1:]
+            transform_rows = transformations_table.find_all("tr")
             for row in transform_rows[1:]:
                 tds = row.find_all("td")
                 self._test_transformation(tds)
 
+                initial_microstate = tds[2].text
+                final_microstate = tds[5].text
+
                 # assert that at least one of initial / final microstate has this molecule
-                assert (soupd.h3.text.strip() in tds[1].text) or (
-                    soupd.h3.text.strip() in tds[5].text
+                assert (soupd.h3.text.strip() in initial_microstate) or (
+                    soupd.h3.text.strip() in final_microstate
                 )
 
     def test_generate_microstates(self, website_artifactory):
@@ -551,7 +600,7 @@ class TestWebsiteArtifactory:
         waf.generate_transformations(items_per_page=items_per_page)
 
         transformations = self._test_paginated_table(
-            waf, tabname, items_per_page, n_pages=3, n_header_cols=6, n_cols=12
+            waf, tabname, items_per_page, n_pages=3, n_header_cols=8, n_cols=12
         )
 
         # TODO: test column header names
@@ -572,7 +621,7 @@ class TestWebsiteArtifactory:
         # TODO: re-paginate reliable transforms?
         # pagination is confusing right now
         transformations = self._test_paginated_table(
-            waf, tabname, items_per_page, n_pages=1, n_header_cols=6, n_cols=12
+            waf, tabname, items_per_page, n_pages=1, n_header_cols=8, n_cols=12
         )
 
         # TODO: test column header names

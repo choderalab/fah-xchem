@@ -15,30 +15,39 @@ from pymbar import BAR
 from typing import Generator, Iterable, List, Optional
 from ..schema import (
     CompoundSeriesAnalysis,
+    CompoundAnalysis,
     GenAnalysis,
     PhaseAnalysis,
     TransformationAnalysis,
 )
 from .constants import KT_KCALMOL
-from .filters import Racemic
 from openff.arsenic import plotting
 
 
-def plot_retrospective(
+def plot_retrospective_transformations(
     transformations: List[TransformationAnalysis],
     output_dir: str,
-    filename: str = "retrospective",
+    filename: str = "retrospective-transformations",
 ):
+    logging.info("Generating retrospective transformations plot...")
 
     graph = nx.DiGraph()
 
     # TODO this loop can be sped up
+    number_of_edges_with_experimental_data = 0
     for analysis in transformations:
         transformation = analysis.transformation
+        print(
+            f"{transformation.initial_microstate.compound_id} -> {transformation.final_microstate.compound_id} : calc {analysis.binding_free_energy} : exp {analysis.exp_ddg}"
+        )
 
         # Only interested if the compounds have an experimental DDG
-        if analysis.binding_free_energy is None or analysis.exp_ddg.point is None:
+        if (analysis.binding_free_energy is None) or (analysis.exp_ddg.point is None):
             continue
+
+        logging.info(
+            f"{analysis.transformation.initial_microstate.microstate_id} -> {analysis.transformation.final_microstate.microstate_id} : {analysis.exp_ddg}"
+        )  # DEBUG
 
         graph.add_edge(
             transformation.initial_microstate,
@@ -48,10 +57,79 @@ def plot_retrospective(
             calc_DDG=analysis.binding_free_energy.point * KT_KCALMOL,
             calc_dDDG=analysis.binding_free_energy.stderr * KT_KCALMOL,
         )
+        number_of_edges_with_experimental_data += 1
 
-    filename_png = filename + ".png"
+    print(
+        f"Number of edges with experimental data: {number_of_edges_with_experimental_data}"
+    )
 
-    plotting.plot_DDGs(graph, filename=os.path.join(output_dir, filename_png))
+    if number_of_edges_with_experimental_data > 1:
+        filename_png = filename + ".png"
+        print(
+            f"Plotting DDGs with {number_of_edges_with_experimental_data} experimental measurements to {filename_png}"
+        )
+        plotting.plot_DDGs(
+            graph,
+            title="Enantiomerically-pure transformations",
+            filename=os.path.join(output_dir, filename_png),
+        )
+
+
+def plot_retrospective_compounds(
+    compounds: List[CompoundAnalysis],
+    output_dir: str,
+    filename: str = "retrospective-compounds",
+):
+    """
+    Plot retrospective compound free energies for racemates
+
+    """
+    logging.info("Generating retrospective compounds plot...")
+    graph = nx.DiGraph()
+
+    # TODO this loop can be sped up
+    number_of_compounds_with_experimental_data = 0
+    for compound in compounds:
+
+        # Only interested if the compounds have an experimental DDG
+        if (
+            ("g_exp" not in compound.metadata.experimental_data)
+            or (compound.free_energy is None)
+            or (compound.free_energy.point is None)
+        ):
+            continue
+
+        # Only plot racemates
+        if not "racemate" in compound.metadata.experimental_data:
+            continue
+
+        logging.info(f"{compound.metadata.compound_id}")  # DEBUG
+
+        graph.add_node(
+            compound.metadata.compound_id,
+            exp_DG=compound.metadata.experimental_data["g_exp"] * KT_KCALMOL,
+            exp_dDG=compound.metadata.experimental_data["g_dexp"] * KT_KCALMOL,
+            calc_DG=compound.free_energy.point * KT_KCALMOL,
+            calc_dDG=compound.free_energy.stderr * KT_KCALMOL,
+        )
+        number_of_compounds_with_experimental_data += 1
+
+    print(
+        f"Number of compounds with experimental data: {number_of_compounds_with_experimental_data}"
+    )
+
+    if number_of_compounds_with_experimental_data > 1:
+        filename_png = filename + ".png"
+        print(
+            f"Plotting DGs with {number_of_compounds_with_experimental_data} experimental measurements to {filename_png}"
+        )
+        plotting.plot_DGs(
+            graph,
+            title="Racemic compounds",
+            filename=os.path.join(output_dir, filename_png),
+            centralizing=False,
+            shift=0.0,
+        )
 
 
 def plot_work_distributions(
@@ -521,12 +599,15 @@ def _save_table_pdf(path: str, name: str):
     os.makedirs(path, exist_ok=True)
     file_name = os.path.join(path, os.extsep.join([name, "pdf"]))
 
+    import traceback
+
     with PdfPages(file_name) as pdf_plt:
         yield
         try:
             pdf_plt.savefig(bbox_inches="tight")
         except ValueError:
             logging.warning("Failed to save pdf table")
+            traceback.print_exc()
 
 
 def save_plot(
@@ -769,8 +850,9 @@ def generate_plots(
     )
 
     # Summary plots
-
     # we always regenerate these, since they concern all data
+    logging.info("Regenerating summary plots")
+
     fig = plot_relative_distribution(binding_delta_fs)
     plt.title("Relative free energy")
     save_summary_plot(name="relative_fe_dist", fig=fig)
@@ -783,6 +865,7 @@ def generate_plots(
         plot_poor_convergence_fe_table(series.transformations)
 
     # Transformation-level plots
+    logging.info("Generating transformation plots via multiprocessing")
 
     generate_transformation_plots_partial = partial(
         generate_transformation_plots,
@@ -803,26 +886,22 @@ def generate_plots(
     #
     # Retrospective plots
     #
+    logging.info("Generating retrospective plots...")
 
     # NOTE this is handled by Arsenic
     # this needs to be plotted last as the figure isn't cleared by default in Arsenic
     # TODO generate time stamp
 
-    racemic_filter = Racemic(series)
-
-    plot_retrospective(
+    # Plot retrospective transformations, which compare enanomerically-resolved compounds only
+    plot_retrospective_transformations(
         output_dir=output_dir,
-        transformations=[
-            transformation
-            for transformation in series.transformations
-            if (
-                not racemic_filter.compound_microstate(
-                    transformation.transformation.initial_microstate
-                )
-                and not racemic_filter.compound_microstate(
-                    transformation.transformation.final_microstate
-                )
-            )
-        ],
-        filename="retrospective-transformations-noracemates",
+        transformations=series.transformations,
+        filename="retrospective-transformations",
+    )
+
+    # Plot retrospective compounds, comparing racemates only
+    plot_retrospective_compounds(
+        output_dir=output_dir,
+        compounds=series.compounds,
+        filename="retrospective-compounds",
     )
