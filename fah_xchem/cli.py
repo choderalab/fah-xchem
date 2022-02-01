@@ -598,7 +598,7 @@ def artifacts():
     type=Path,
     help="Path to Folding@home data directory",
 )
-@click.option("--fah-api-url", type=Path, help="URL to Folding@home work server API")
+@click.option("--fah-api-url", type=str, help="URL to Folding@home work server API")
 @click.option(
     "-n",
     "--nprocs",
