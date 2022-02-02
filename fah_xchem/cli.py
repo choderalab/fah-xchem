@@ -622,12 +622,12 @@ def artifacts():
     help="If given, cache intermediate results in a local directory with this name",
 )
 @click.option(
-    "--snapshots", is_flag=True, help="Whether to generate representative snapshots"
+    "--snapshots/--no-snapshots", default=True, help="Whether to generate representative snapshots"
 )
-@click.option("--plots", is_flag=True, help="Whether to generate plots")
-@click.option("--report", is_flag=True, help="Whether to generate PDF report")
+@click.option("--plots/--no-plots", default=True, help="Whether to generate plots")
+@click.option("--report/--no-report", default=True, help="Whether to generate PDF report")
 @click.option(
-    "--website", is_flag=True, help="Whether to generate HTML for static site"
+    "--website/--no-website", default=True, help="Whether to generate HTML for static site"
 )
 @click.option(
     "-l",
