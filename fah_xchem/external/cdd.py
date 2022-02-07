@@ -15,7 +15,7 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from .base import ExternalData
-from ..schema import CompoundMetadata, ExperimentalCompoundData
+from ..schema import ExperimentalCompoundData, ExperimentalCompoundDataUpdate
 
 
 class FailedExportError(Exception):
@@ -270,23 +270,11 @@ class CDDData(ExternalData):
         if return_raw:
             return datadict
 
-    def generate_experimental_compound_data(
-        self, protocol_ids: List[str]
-    ) -> ExperimentalCompoundData:
-        """Generate `ExperimentalCompoundData` from current molecule and selected protocol data.
+    def _generate_experimental_compound_data_molten(self, protocol_ids: List[str]):
 
-        Parameters
-        ----------
-        protocol_ids
-            List of protocol ids to retrieve definitions and data records for.
-
-        Returns
-        -------
-        experimental_compound_data
-            A data structure giving a list of compound metadata, each having at least a compound id
-            and if present among the given protocol data a dictionary of experimental data
-
-        """
+        # create a dictionary of all selected protocol data, each a dict of
+        # keyed by (molecule id, batch id), with values giving raw readout data
+        # with definitions merged in
         protocol_data_ns = {}
         for protocol_id in protocol_ids:
             protocol_dir = self.protocols_dir.joinpath(protocol_id)
@@ -311,44 +299,38 @@ class CDDData(ExternalData):
                 if "molecule" not in record:
                     continue
 
+                record_n = dict()
                 for readout in record["readouts"]:
-                    record["readouts"][readout]["name"] = readout_definitions[
-                        int(readout)
-                    ]["name"]
+                    readout_definition = readout_definitions[int(readout)]
+                    readout_def_data = {key: readout_definition.get(key)
+                            for key in ('name', 'unit_label', 'aggregation', 'precision_type', 'precision_number')}
 
-                # there can be more than one record for a given molecule,batch
-                protocol_data_n[(record["molecule"], record["batch"])].append(record)
+                    record_n[readout_def_data['name']] = record["readouts"][readout].copy()
+
+                    # add readout definition information to record
+                    record_n[readout_def_data['name']].update(readout_def_data)
+
+                protocol_data_n[(record["molecule"], record["batch"])].append(record_n)
 
             protocol_data_ns[protocol_name] = protocol_data_n
 
+        # create experimental data object that merges protocol data with
+        # molecule data into a molten object that can be transformed further
+        # downstream
         compound_metadatas = []
         for mol in molecules["objects"]:
             for batch in mol["batches"]:
                 experimental_data = {}
                 for protocol_name, protocol_data_n in protocol_data_ns.items():
                     if (mol["id"], batch["id"]) in protocol_data_n:
-                        rec_readouts = [
-                            rec["readouts"]
-                            for rec in protocol_data_n[(mol["id"], batch["id"])]
-                        ]
-
-                        # we want a single key for each readout, with a list of records as values
-                        readouts_n = defaultdict(list)
-                        for readouts in rec_readouts:
-                            for key, value in readouts.items():
-                                # remove redundant 'name' field from each readout
-                                readouts_n[value["name"]].append(value)
-                                value.pop("name")
-
+                        rec_readouts = protocol_data_n[(mol["id"], batch["id"])]
                     else:
                         continue
 
-                    experimental_data.update({protocol_name: readouts_n})
+                    experimental_data.update({protocol_name: rec_readouts})
 
-                # TODO: we are losing readouts by using a dict
-                # TODO: drop compounds that have no experimental data completely
                 if experimental_data:
-                    compound_metadata = CompoundMetadata(
+                    compound_metadata = dict(
                         compound_id=batch["batch_fields"]["External ID"],
                         smiles=batch["batch_fields"].get("suspected_SMILES"),
                         experimental_data=experimental_data,
@@ -356,9 +338,32 @@ class CDDData(ExternalData):
 
                     compound_metadatas.append(compound_metadata)
 
-        ecd = ExperimentalCompoundData(compounds=compound_metadatas)
+        ecd = dict(compounds=compound_metadatas)
 
         return ecd
+
+    def generate_experimental_compound_data(
+        self, protocol_ids: List[str]
+    ) -> ExperimentalCompoundDataUpdate:
+        """Generate `ExperimentalCompoundData` from current molecule and selected protocol data.
+
+        Parameters
+        ----------
+        protocol_ids
+            List of protocol ids to retrieve definitions and data records for.
+
+        Returns
+        -------
+        experimental_compound_data
+            A data structure giving a list of compound metadata, each having at least a compound id
+            and if present among the given protocol data a dictionary of experimental data
+
+        """
+        exp_data_molten = self._generate_experimental_compound_data_molten(protocol_ids)
+
+        exp_data = exp_data_molten
+
+        return exp_data
 
     def clear(self, protocols: bool = True, molecules: bool = True):
         """Clear local data.

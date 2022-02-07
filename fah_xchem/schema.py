@@ -128,7 +128,7 @@ class ExperimentalCompoundData(Model):
     )
 
     experimental_data: Dict[str, float] = Field(
-        dict(),
+        ...,
         description='Experimental data fields, including "pIC50" and uncertainty (either "pIC50_stderr" or  "pIC50_{lower|upper}"',
     )
 
