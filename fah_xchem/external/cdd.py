@@ -275,9 +275,8 @@ class CDDData(ExternalData):
             return datadict
 
     def _generate_experimental_compound_data_molten(
-            self,
-            protocol_ids: List[str],
-            return_map=False):
+        self, protocol_ids: List[str], return_map=False
+    ):
 
         # create a dictionary of all selected protocol data, each a dict of
         # keyed by (molecule id, batch id), with values giving raw readout data
@@ -311,13 +310,23 @@ class CDDData(ExternalData):
                 record_n = dict()
                 for readout in record["readouts"]:
                     readout_definition = readout_definitions[int(readout)]
-                    readout_def_data = {key: readout_definition.get(key)
-                            for key in ('name', 'unit_label', 'aggregation', 'precision_type', 'precision_number')}
+                    readout_def_data = {
+                        key: readout_definition.get(key)
+                        for key in (
+                            "name",
+                            "unit_label",
+                            "aggregation",
+                            "precision_type",
+                            "precision_number",
+                        )
+                    }
 
-                    record_n[readout_def_data['name']] = record["readouts"][readout].copy()
+                    record_n[readout_def_data["name"]] = record["readouts"][
+                        readout
+                    ].copy()
 
                     # add readout definition information to record
-                    record_n[readout_def_data['name']].update(readout_def_data)
+                    record_n[readout_def_data["name"]].update(readout_def_data)
 
                 protocol_data_n[(record["molecule"], record["batch"])].append(record_n)
 
@@ -371,41 +380,45 @@ class CDDData(ExternalData):
             and if present among the given protocol data a dictionary of experimental data
 
         """
-        exp_data_molten, protocol_name_id_map = self._generate_experimental_compound_data_molten(protocol_ids, return_map=True)
+        (
+            exp_data_molten,
+            protocol_name_id_map,
+        ) = self._generate_experimental_compound_data_molten(
+            protocol_ids, return_map=True
+        )
         ecds = list()
-        
-        for compound_data in exp_data_molten['compounds']:
+
+        for compound_data in exp_data_molten["compounds"]:
             ecd = dict()
 
-            ecd['compound_id'] = compound_data['compound_id']
+            ecd["compound_id"] = compound_data["compound_id"]
 
-            suspected_smiles = compound_data['suspected_smiles']
+            suspected_smiles = compound_data["suspected_smiles"]
             if suspected_smiles is None:
-                ecd['smiles'] = None
+                ecd["smiles"] = None
             else:
                 smiles = suspected_smiles.split()[0]
-                ecd['smiles'] = self._canonicalize_smiles(smiles)
+                ecd["smiles"] = self._canonicalize_smiles(smiles)
 
                 achiral = self._achiral(smiles)
 
                 if achiral:
-                    ecd['achiral'] = True
+                    ecd["achiral"] = True
                 else:
                     stereochemistry_certain = self._stereochemistry_is_certain(smiles)
                     if len(suspected_smiles.split()) > 1 and stereochemistry_certain:
-                        ecd['relative_stereochemistry_enantiomerically_pure'] = True
+                        ecd["relative_stereochemistry_enantiomerically_pure"] = True
                     elif stereochemistry_certain:
-                        ecd['relative_stereochemistry_enantiomerically_pure'] = True
+                        ecd["relative_stereochemistry_enantiomerically_pure"] = True
                     else:
-                        ecd['racemic'] = True
+                        ecd["racemic"] = True
 
             # extract and add in experimental data
-            ecd['experimental_data'] = self._experimental_data_from_molten(
-                    compound_data['experimental_data'], protocol_name_id_map, protocol_ids)
-
-            ecds.append(
-                ExperimentalCompoundData(**ecd)
+            ecd["experimental_data"] = self._experimental_data_from_molten(
+                compound_data["experimental_data"], protocol_name_id_map, protocol_ids
             )
+
+            ecds.append(ExperimentalCompoundData(**ecd))
 
         return ExperimentalCompoundDataUpdate(compounds=ecds)
 
@@ -419,20 +432,20 @@ class CDDData(ExternalData):
         return canonicalized_smiles
 
     def _achiral(self, smiles):
-        """Return True of compound is achiral.
-
-        """
+        """Return True of compound is achiral."""
         from rdkit import Chem
 
         rdmol = Chem.MolFromSmiles(smiles)
-        chiral_centers = Chem.FindMolChiralCenters(rdmol, includeUnassigned=True, useLegacyImplementation=False)
-        
+        chiral_centers = Chem.FindMolChiralCenters(
+            rdmol, includeUnassigned=True, useLegacyImplementation=False
+        )
+
         return len(chiral_centers) == 0
 
     def _stereochemistry_is_certain(self, smiles):
         """
         Return True if `smiles` resolves to only a single isomer.
-    
+
         Examples:
         "CNC(=O)CN1Cc2ccc(Cl)cc2[C@@]2(CCN(c3cncc4c3CCCC4)C2=O)C1 |o1:14|" : compound is enantiopure, but stereochemistry is uncertain
         "CNC(=O)CN1Cc2ccc(Cl)cc2[C@@]2(CCN(c3cncc4c3CCCC4)C2=O)C1" : compound is enantiopure, stereochemistry is certain
@@ -441,31 +454,38 @@ class CDDData(ExternalData):
         """
         from rdkit import Chem
         from rdkit.Chem import AllChem
-        from rdkit.Chem.EnumerateStereoisomers import EnumerateStereoisomers, StereoEnumerationOptions
-    
+        from rdkit.Chem.EnumerateStereoisomers import (
+            EnumerateStereoisomers,
+            StereoEnumerationOptions,
+        )
+
         rdmol = Chem.MolFromSmiles(smiles)
         smi_list = []
         opts = StereoEnumerationOptions(unique=True)
         isomers = tuple(EnumerateStereoisomers(rdmol, options=opts))
-        for smi in sorted(Chem.MolToSmiles(isomer, isomericSmiles=True) for isomer in isomers):
+        for smi in sorted(
+            Chem.MolToSmiles(isomer, isomericSmiles=True) for isomer in isomers
+        ):
             smi_list.append(smi)
-    
+
         return len(smi_list) == 1
 
-    def _experimental_data_from_molten(self, experimental_data, protocol_name_id_map, protocol_ids):
+    def _experimental_data_from_molten(
+        self, experimental_data, protocol_name_id_map, protocol_ids
+    ):
         processed = {}
         for protocol_id in protocol_ids:
             protocol_name = protocol_name_id_map[protocol_id]
 
             records = experimental_data[protocol_name]
-            processed.update(getattr(self, self._protocol_processing_map[protocol_id])(records))
+            processed.update(
+                getattr(self, self._protocol_processing_map[protocol_id])(records)
+            )
 
         return processed
 
     def _process_fluorescence_IC50(self, records):
-        """Hardcodes and readout processing specific to IC50 protocol data.
-
-        """
+        """Hardcodes and readout processing specific to IC50 protocol data."""
         processed = {}
 
         # we can do this because IC50 is a batch aggregation over all the
@@ -476,20 +496,20 @@ class CDDData(ExternalData):
         # convert to pIC50
         # some records lack CI bounds entirely
         # some records have no value for IC50, with 'note: could not be calculated'
-        if 'IC50' in record:
-            IC50 = record['IC50'].get('value')
+        if "IC50" in record:
+            IC50 = record["IC50"].get("value")
             if IC50:
-                processed['pIC50'] = - np.log10(IC50)
+                processed["pIC50"] = -np.log10(IC50)
 
-        if 'IC50 CI (Lower)' in record:
-            IC50_lower = record['IC50 CI (Lower)'].get('value')
+        if "IC50 CI (Lower)" in record:
+            IC50_lower = record["IC50 CI (Lower)"].get("value")
             if IC50_lower:
-                processed['pIC50_lower'] = - np.log10(IC50_lower)
+                processed["pIC50_lower"] = -np.log10(IC50_lower)
 
-        if 'IC50 CI (Upper)' in record:
-            IC50_upper = record['IC50 CI (Upper)'].get('value')
+        if "IC50 CI (Upper)" in record:
+            IC50_upper = record["IC50 CI (Upper)"].get("value")
             if IC50_upper:
-                processed['pIC50_upper'] = - np.log10(IC50_upper)
+                processed["pIC50_upper"] = -np.log10(IC50_upper)
 
         return processed
 
