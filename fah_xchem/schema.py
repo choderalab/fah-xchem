@@ -127,19 +127,16 @@ class ExperimentalCompoundData(Model):
         description="If True, this experiment was performed on a racemate; if False, the compound was enantiopure.",
     )
 
-    achiral: bool = Field(
-        False,
-        description=""
-    )
+    achiral: bool = Field(False, description="")
 
     absolute_stereochemistry_enantiomerically_pure: bool = Field(
         False,
-        description="If True, the compound was enantiopure and stereochemistry recorded in SMILES is correct"
+        description="If True, the compound was enantiopure and stereochemistry recorded in SMILES is correct",
     )
 
     relative_stereochemistry_enantiomerically_pure: bool = Field(
         False,
-        description="If True, the compound was enantiopure, but unknown if stereochemistry recorded in SMILES is correct"
+        description="If True, the compound was enantiopure, but unknown if stereochemistry recorded in SMILES is correct",
     )
 
     experimental_data: Dict[str, float] = Field(
