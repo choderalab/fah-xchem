@@ -35,6 +35,10 @@ jobs:
           - ubuntu-latest
           #- windows-latest
         python-version: [3.7, 3.8, 3.9]
+    env:
+      OE_LICENSE: ${{ github.workspace }}/oe_license.txt
+      CDD_VAULT_TOKEN: ${{ secrets.CDD_VAULT_TOKEN }}
+      CDD_VAULT_NUM: ${{ secrets.CDD_VAULT_NUM }}
 
     steps:
     - uses: actions/checkout@v1
@@ -69,6 +73,14 @@ jobs:
         use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
         mamba-version: "*"
         use-mamba: true
+
+    - name: Decrypt OpenEye license
+      shell: bash -l {0}
+      env:
+        OE_LICENSE_TEXT: ${{ secrets.OE_LICENSE }}
+      run: |
+        echo "${OE_LICENSE_TEXT}" > ${OE_LICENSE}
+        python -c "import openeye; assert openeye.oechem.OEChemIsLicensed(), 'OpenEye license checks failed!'"
 
     - name: Install package
 
