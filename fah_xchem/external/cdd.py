@@ -22,6 +22,36 @@ class FailedExportError(Exception):
     """Export failed to finish within timeout."""
 
 
+class ProtocolData:
+
+    def __init__(self, cdddata):
+        self.cdddata = cdddata
+
+    def __repr__(self):
+        protocol_ids = [i.parent.name for i in self.cdddata.protocols_dir.glob(f'*/{self._filename}')]
+        return f"<protocol ids: {protocol_ids}>"
+
+    def __getitem__(self, protocol_id):
+        protocol_dir = self.cdddata.protocols_dir.joinpath(protocol_id)
+        filepath = protocol_dir.joinpath(self._filename)
+
+        if not filepath.exists():
+            raise FileNotFoundError(f"Could not find protocol data at '{filepath}'")
+
+        with open(filepath, "r") as f:
+            filedata = json.load(f)
+
+        return filedata
+
+
+class ProtocolDefs(ProtocolData):
+    _filename = 'protocol-defs.json'
+
+
+class ProtocolRecords(ProtocolData):
+    _filename = 'protocol-records.json'
+
+
 class CDDData(ExternalData):
     """Collaborative Drug Discovery (CDD) data interface.
 
@@ -40,6 +70,13 @@ class CDDData(ExternalData):
     )
 
     _protocol_processing_map = {"49439": "_process_fluorescence_IC50"}
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._protocol_defs = ProtocolDefs(self)
+        self._protocol_records = ProtocolRecords(self)
 
     @property
     def protocols_dir(self):
@@ -64,87 +101,87 @@ class CDDData(ExternalData):
             "protocols"
         ]
 
-        protocol_data = response.json()
+        protocols = response.json()
 
-        return protocol_data
+        return protocols
 
     def _get_async_exports(
         self, async_urls: Dict[str, str], headers: Dict[str, str], timeout: int = 3600
     ):
-        from rich.live import Live
-        from rich.text import Text
-        from rich.console import Console
+        #from rich.live import Live
+        #from rich.text import Text
+        #from rich.console import Console
 
         responses = {}
         for name, async_url in async_urls.items():
             responses[name] = requests.get(async_url, headers=headers)
 
-        console = Console()
-        text = Text("Retrieving urls...")
-        for async_url in async_urls.values():
-            text.append(f"\n: {async_url}")
+        #console = Console()
+        #text = Text("Retrieving urls...")
+        #for async_url in async_urls.values():
+        #    text.append(f"\n: {async_url}")
 
-        console.print(text)
+        #console.print(text)
 
         logging.info("CDDData : Beginning export(s)")
-        text = Text(
-            "CDDData : Beginning export(s)",
-            style="bold red",
-        )
+        #text = Text(
+        #    "CDDData : Beginning export(s)",
+        #    style="bold red",
+        #)
 
-        with Live(text, refresh_per_second=4) as live:
+        #with Live(text, refresh_per_second=4) as live:
 
-            export_ids = {}
-            for name, response in responses.items():
-                export_info = response.json()
-                export_ids[name] = export_info["id"]
+        export_ids = {}
+        for name, response in responses.items():
+            export_info = response.json()
+            export_ids[name] = export_info["id"]
 
-            # CHECK STATUS of Export
-            statuses = {name: None for name in async_urls}
-            seconds_waiting = 0
+        # CHECK STATUS of Export
+        statuses = {name: None for name in async_urls}
+        seconds_waiting = 0
 
-            first = True
-            while any([status != "finished" for status in statuses.values()]):
-                text.remove_suffix(" --> Checking status of export(s)")
+        first = True
+        while any([status != "finished" for status in statuses.values()]):
+            #text.remove_suffix(" --> Checking status of export(s)")
 
-                for name, export_id in export_ids.items():
-                    url = (
-                        f"{self.base_url}/{self.vault_num}/export_progress/{export_id}"
-                    )
-                    response = requests.get(url, headers=headers)
-
-                    # to view the status, use:
-                    statuses[name] = response.json()["status"]
-
-                if first:
-                    logging.info("CDDData : Checking status of export(s)")
-                text.append(" --> Checking status of export(s)", style="bold yellow")
-
-                time.sleep(5)
-                seconds_waiting += 5
-                if seconds_waiting > timeout:
-                    logging.info("Export Never Finished")
-                    break
-
-                first = False
-
-            failed = []
-            for name, status in statuses.items():
-                if status != "finished":
-                    failed.append(async_urls[name])
-            if failed:
-                raise FailedExportError(
-                    f"The following urls failed to deliver an export within the timeout: {failed}"
-                )
-
-            logging.info("CDDData : Retrieving finished export(s)")
-            text.append(" --> Retrieving finished export(s)", style="bold green")
-            exports = {}
             for name, export_id in export_ids.items():
-                url = f"{self.base_url}/{self.vault_num}/exports/{export_id}"
-                exports[name] = requests.get(url, headers=headers)
+                url = (
+                    f"{self.base_url}/{self.vault_num}/export_progress/{export_id}"
+                )
+                response = requests.get(url, headers=headers)
 
-            text.append(" --> Done", style="bold blue")
+                # to view the status, use:
+                statuses[name] = response.json()["status"]
+
+            if first:
+                logging.info("CDDData : Checking status of export(s)")
+            #text.append(" --> Checking status of export(s)", style="bold yellow")
+
+            time.sleep(5)
+            seconds_waiting += 5
+            if seconds_waiting > timeout:
+                logging.info("Export Never Finished")
+                break
+
+            first = False
+
+        failed = []
+        for name, status in statuses.items():
+            if status != "finished":
+                failed.append(async_urls[name])
+        if failed:
+            raise FailedExportError(
+                f"The following urls failed to deliver an export within the timeout: {failed}"
+            )
+
+        logging.info("CDDData : Retrieving finished export(s)")
+        #text.append(" --> Retrieving finished export(s)", style="bold green")
+        exports = {}
+        for name, export_id in export_ids.items():
+            url = f"{self.base_url}/{self.vault_num}/exports/{export_id}"
+            exports[name] = requests.get(url, headers=headers)
+
+        #text.append(" --> Done", style="bold blue")
 
         return exports
 
@@ -152,7 +189,7 @@ class CDDData(ExternalData):
 
         urls = {}
         protocol_defs = {}
-        protocol_datas = {}
+        protocol_records = {}
         for protocol_id in protocol_ids:
             # retrieve protocol definitions
             headers = {"X-CDD-token": self.vault_token}
@@ -173,10 +210,10 @@ class CDDData(ExternalData):
             molecule_data = responses.pop("molecules").json()
 
         for protocol_id, response in responses.items():
-            protocol_datas[protocol_id] = response.json()
+            protocol_records[protocol_id] = response.json()
 
         protocol_results = {
-            protocol_id: (protocol_defs[protocol_id], protocol_datas[protocol_id])
+            protocol_id: (protocol_defs[protocol_id], protocol_records[protocol_id])
             for protocol_id in protocol_ids
         }
 
@@ -221,7 +258,7 @@ class CDDData(ExternalData):
             protocol_results, _ = results
 
         for protocol_id, protocol_result in protocol_results.items():
-            protocol_defs, protocol_data = protocol_result
+            protocol_defs, protocol_records = protocol_result
 
             protocol_dir = self.protocols_dir.joinpath(protocol_id)
             protocol_dir.mkdir(parents=True, exist_ok=True)
@@ -230,8 +267,8 @@ class CDDData(ExternalData):
             with open(protocol_dir.joinpath("protocol-defs.json"), "w") as f:
                 json.dump(protocol_defs, f)
 
-            with open(protocol_dir.joinpath("protocol-data.json"), "w") as f:
-                json.dump(protocol_data, f)
+            with open(protocol_dir.joinpath("protocol-records.json"), "w") as f:
+                json.dump(protocol_records, f)
 
         if return_raw and molecules:
             return protocol_results, molecule_data
@@ -274,6 +311,26 @@ class CDDData(ExternalData):
         if return_raw:
             return datadict
 
+    @property
+    def molecule_data(self):
+        filepath = self.data_dir.joinpath("molecules.json")
+
+        if not filepath.exists():
+            raise FileNotFoundError(f"Could not find molecule data at '{filepath}'")
+
+        with open(filepath, "r") as f:
+            molecules = json.load(f)
+
+        return molecules
+
+    @property
+    def protocol_defs(self):
+        return self._protocol_defs
+
+    @property
+    def protocol_records(self):
+        return self._protocol_records
+
     def _generate_experimental_compound_data_molten(
         self, protocol_ids: List[str], return_map=False
     ):
@@ -281,19 +338,15 @@ class CDDData(ExternalData):
         # create a dictionary of all selected protocol data, each a dict of
         # keyed by (molecule id, batch id), with values giving raw readout data
         # with definitions merged in
+
+        molecules = self.molecule_data
+
         protocol_data_ns = {}
         protocol_name_id_map = {}
         for protocol_id in protocol_ids:
-            protocol_dir = self.protocols_dir.joinpath(protocol_id)
 
-            with open(self.data_dir.joinpath("molecules.json"), "r") as f:
-                molecules = json.load(f)
-
-            with open(protocol_dir.joinpath("protocol-defs.json"), "r") as f:
-                protocol_defs = json.load(f)
-
-            with open(protocol_dir.joinpath("protocol-data.json"), "r") as f:
-                protocol_data = json.load(f)
+            protocol_defs = self.protocol_defs[protocol_id]
+            protocol_records = self.protocol_records[protocol_id]
 
             readout_definitions = {
                 rdef["id"]: rdef for rdef in protocol_defs["readout_definitions"]
@@ -303,7 +356,7 @@ class CDDData(ExternalData):
 
             protocol_data_n = defaultdict(list)
 
-            for record in protocol_data["objects"]:
+            for record in protocol_records["objects"]:
                 if "molecule" not in record:
                     continue
 
@@ -494,22 +547,23 @@ class CDDData(ExternalData):
         record = records[0]
 
         # convert to pIC50
+        # all IC50 values in uM, so must convert to M first, hence 1.0e-6
         # some records lack CI bounds entirely
         # some records have no value for IC50, with 'note: could not be calculated'
         if "IC50" in record:
             IC50 = record["IC50"].get("value")
             if IC50:
-                processed["pIC50"] = -np.log10(IC50)
+                processed["pIC50"] = -np.log10(IC50 * 1.0e-6)
 
         if "IC50 CI (Lower)" in record:
             IC50_lower = record["IC50 CI (Lower)"].get("value")
             if IC50_lower:
-                processed["pIC50_lower"] = -np.log10(IC50_lower)
+                processed["pIC50_lower"] = -np.log10(IC50_lower * 1.0e-6)
 
         if "IC50 CI (Upper)" in record:
             IC50_upper = record["IC50 CI (Upper)"].get("value")
             if IC50_upper:
-                processed["pIC50_upper"] = -np.log10(IC50_upper)
+                processed["pIC50_upper"] = -np.log10(IC50_upper * 1.0e-6)
 
         return processed
 
