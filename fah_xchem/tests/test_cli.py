@@ -17,7 +17,7 @@ runner = CliRunner()
 )
 class TestCDD:
 
-    protocol_ids = ("5549",)
+    protocol_ids = ("49439",)
 
     # @pytest.fixture(scope='class')
     # def cdddata_dir(self, tmpdir_factory):
@@ -36,6 +36,8 @@ class TestCDD:
                     "retrieve-molecule-data",
                 ],
             )
+
+            assert result.exit_code == 0
 
             # check for file presence
             assert os.path.exists("cdd-data/molecules.json")
@@ -60,6 +62,8 @@ class TestCDD:
                 ]
                 + protocols,
             )
+
+            assert result.exit_code == 0
 
             # check for file presence
             assert not os.path.exists("cdd-data/molecules.json")
@@ -89,6 +93,8 @@ class TestCDD:
                 ]
                 + protocols,
             )
+
+            assert result.exit_code == 0
 
             # check for file presence
             assert os.path.exists("cdd-data/molecules.json")
