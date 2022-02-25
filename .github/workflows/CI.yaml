@@ -98,7 +98,7 @@ jobs:
       shell: bash -l {0}
 
       run: |
-        TRIGGER = "${{ github.event.action }}"
+        TRIGGER="${{ github.event.action }}"
 
         # UNCOMMENT AFTER MERGE OF 172, remove force of --runslow below
         #if [ "${TRIGGER}" != "synchronize"]
