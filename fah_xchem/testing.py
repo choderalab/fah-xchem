@@ -1,13 +1,18 @@
 import pytest
 
+
 def pytest_addoption(parser):
     """
     Additional PyTest CLI flags to add
 
     See `pytest_collection_modifyitems` for handling and `pytest_configure` for adding known in-line marks.
     """
-    parser.addoption("--runslow", action="store_true", default=False, help="run slow tests")
-    parser.addoption("--runexamples", action="store_true", default=False, help="run example tests")
+    parser.addoption(
+        "--runslow", action="store_true", default=False, help="run slow tests"
+    )
+    parser.addoption(
+        "--runexamples", action="store_true", default=False, help="run example tests"
+    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -33,7 +38,11 @@ def pytest_configure(config):
     import sys
 
     sys._called_from_test = True
-    config.addinivalue_line("markers", "example: Mark a given test as an example which can be run")
     config.addinivalue_line(
-        "markers", "slow: Mark a given test as slower than most other tests, needing a special " "flag to run."
+        "markers", "example: Mark a given test as an example which can be run"
+    )
+    config.addinivalue_line(
+        "markers",
+        "slow: Mark a given test as slower than most other tests, needing a special "
+        "flag to run.",
     )

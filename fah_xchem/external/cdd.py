@@ -24,12 +24,14 @@ class FailedExportError(Exception):
 
 
 class ProtocolData(abc.ABC):
-
     def __init__(self, cdddata):
         self.cdddata = cdddata
 
     def __repr__(self):
-        protocol_ids = [i.parent.name for i in self.cdddata.protocols_dir.glob(f'*/{self._filename}')]
+        protocol_ids = [
+            i.parent.name
+            for i in self.cdddata.protocols_dir.glob(f"*/{self._filename}")
+        ]
         return f"<protocol ids: {protocol_ids}>"
 
     def __getitem__(self, protocol_id):
@@ -46,11 +48,11 @@ class ProtocolData(abc.ABC):
 
 
 class ProtocolDefs(ProtocolData):
-    _filename = 'protocol-defs.json'
+    _filename = "protocol-defs.json"
 
 
 class ProtocolRecords(ProtocolData):
-    _filename = 'protocol-records.json'
+    _filename = "protocol-records.json"
 
 
 class CDDData(ExternalData):
@@ -72,7 +74,6 @@ class CDDData(ExternalData):
 
     _protocol_processing_map = {"49439": "_process_fluorescence_IC50"}
 
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -93,7 +94,9 @@ class CDDData(ExternalData):
 
         """
         if (self.vault_num is None) or (self.vault_token is None):
-            raise ValueError("Both `vault_num` and `vault_token` attributes must be set to use this method")
+            raise ValueError(
+                "Both `vault_num` and `vault_token` attributes must be set to use this method"
+            )
 
         # retrieve protocol definitions
         headers = {"X-CDD-token": self.vault_token}
@@ -133,9 +136,7 @@ class CDDData(ExternalData):
         first = True
         while any([status != "finished" for status in statuses.values()]):
             for name, export_id in export_ids.items():
-                url = (
-                    f"{self.base_url}/{self.vault_num}/export_progress/{export_id}"
-                )
+                url = f"{self.base_url}/{self.vault_num}/export_progress/{export_id}"
                 response = requests.get(url, headers=headers)
 
                 # to view the status, use:
@@ -162,13 +163,13 @@ class CDDData(ExternalData):
             )
 
         logging.info("CDDData : Retrieving finished export(s)")
-        #text.append(" --> Retrieving finished export(s)", style="bold green")
+        # text.append(" --> Retrieving finished export(s)", style="bold green")
         exports = {}
         for name, export_id in export_ids.items():
             url = f"{self.base_url}/{self.vault_num}/exports/{export_id}"
             exports[name] = requests.get(url, headers=headers)
 
-        #text.append(" --> Done", style="bold blue")
+        # text.append(" --> Done", style="bold blue")
 
         return exports
 
@@ -236,7 +237,9 @@ class CDDData(ExternalData):
         """
 
         if (self.vault_num is None) or (self.vault_token is None):
-            raise ValueError("Both `vault_num` and `vault_token` attributes must be set to use this method")
+            raise ValueError(
+                "Both `vault_num` and `vault_token` attributes must be set to use this method"
+            )
 
         results = self._get_protocol_data(protocol_ids, molecules=molecules)
 
@@ -293,7 +296,9 @@ class CDDData(ExternalData):
 
         """
         if (self.vault_num is None) or (self.vault_token is None):
-            raise ValueError("Both `vault_num` and `vault_token` attributes must be set to use this method")
+            raise ValueError(
+                "Both `vault_num` and `vault_token` attributes must be set to use this method"
+            )
 
         self.data_dir.mkdir(parents=True, exist_ok=True)
 

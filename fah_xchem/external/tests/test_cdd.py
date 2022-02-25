@@ -16,22 +16,28 @@ from fah_xchem.external.cdd import CDDData
     reason="require both CDD_VAULT_TOKEN and CDD_VAULT_NUM to run CDD tests",
 )
 class TestCDDData:
-    @pytest.fixture(scope='class')
+    @pytest.fixture(scope="class")
     def cdddata(self, tmpdir_factory):
 
-        data_dir = tmpdir_factory.mktemp('cdd-data')
+        data_dir = tmpdir_factory.mktemp("cdd-data")
 
         vault_token = os.environ["CDD_VAULT_TOKEN"]
         vault_num = os.environ["CDD_VAULT_NUM"]
 
-        cdd = CDDData(data_dir=os.path.abspath(data_dir), vault_num=vault_num, vault_token=vault_token)
+        cdd = CDDData(
+            data_dir=os.path.abspath(data_dir),
+            vault_num=vault_num,
+            vault_token=vault_token,
+        )
 
         protocol_ids = [cdd.fluorescence_IC50_protocol_id]
         cdd.retrieve_protocol_data(protocol_ids, molecules=True)
 
         return cdd
 
-    @pytest.mark.skip("not testing for now as this adds substantial wait time to test suite")
+    @pytest.mark.skip(
+        "not testing for now as this adds substantial wait time to test suite"
+    )
     def test_retrieve_molecule_data(self, cdddata):
         cdddata.retrieve_molecule_data()
 
@@ -42,7 +48,9 @@ class TestCDDData:
 
         assert all([mol["class"] == "molecule" for mol in molecules["objects"]])
 
-    @pytest.mark.skip("not testing for now as this adds substantial wait time to test suite")
+    @pytest.mark.skip(
+        "not testing for now as this adds substantial wait time to test suite"
+    )
     def test_retrieve_protocol_data(self, cdddata):
         protocol_ids = [cdddata.fluorescence_IC50_protocol_id]
         cdddata.retrieve_protocol_data(protocol_ids)
@@ -86,8 +94,8 @@ class TestCDDData:
 
     def test_retrieve_protocol_data_with_molecules(self, cdddata):
         # already performed in fixture
-        #protocol_ids = [cdddata.fluorescence_IC50_protocol_id]
-        #cdddata.retrieve_protocol_data(protocol_ids, molecules=True)
+        # protocol_ids = [cdddata.fluorescence_IC50_protocol_id]
+        # cdddata.retrieve_protocol_data(protocol_ids, molecules=True)
 
         assert (cdddata.data_dir / "molecules.json").exists()
 
@@ -137,16 +145,18 @@ class TestCDDData:
         protocol_ids = [cdddata.fluorescence_IC50_protocol_id]
 
         # already performed in fixture
-        #cdddata.retrieve_protocol_data(protocol_ids, molecules=True)
+        # cdddata.retrieve_protocol_data(protocol_ids, molecules=True)
 
         ec = cdddata.generate_experimental_compound_data(protocol_ids)
 
         # test that the fields indicating variety of compound are mutually exclusive in the data
         for compound in ec.compounds:
-            compound_varieties = [compound.racemic,
-                                  compound.achiral,
-                                  compound.absolute_stereochemistry_enantiomerically_pure,
-                                  compound.relative_stereochemistry_enantiomerically_pure]
+            compound_varieties = [
+                compound.racemic,
+                compound.achiral,
+                compound.absolute_stereochemistry_enantiomerically_pure,
+                compound.relative_stereochemistry_enantiomerically_pure,
+            ]
 
             if compound.smiles is not None:
                 assert sum(compound_varieties) == 1
@@ -154,7 +164,7 @@ class TestCDDData:
                 assert sum(compound_varieties) == 0
 
             # here we check that pIC50s are within a typical range
-            pIC50 = compound.experimental_data.get('pIC50')
+            pIC50 = compound.experimental_data.get("pIC50")
             if pIC50:
                 assert 3.0 < pIC50 < 8.0
 
