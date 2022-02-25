@@ -50,6 +50,8 @@ jobs:
         df -h
         ulimit -a
 
+        echo "Trigger: ${{ github.event.action }}"
+
     - name: Cache conda
       uses: actions/cache@v2
       env:
@@ -96,6 +98,7 @@ jobs:
       shell: bash -l {0}
 
       run: |
+        echo "${{ github.event.action }}"
         pytest -v --cov=fah_xchem --cov-report=xml --color=yes fah_xchem
 
     - name: CodeCov

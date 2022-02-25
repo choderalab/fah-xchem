@@ -252,8 +252,8 @@ def retrieve_molecule_data(ctx):
 
 
 @cdd.command()
-@click.option("-i", "--protocol-id", type=str, multiple=True)
-@click.option("-m", "--molecules", is_flag=True)
+@click.option("-i", "--protocol-id", type=str, multiple=True, help="Protocol IDs from given CDD vault to retrieve")
+@click.option("-m", "--molecules", is_flag=True, help="If included, also retrieve molecule data at the same time as protocols")
 @click.pass_context
 def retrieve_protocol_data(ctx, protocol_id, molecules):
     """Get protocol data from CDD and place in DATA-DIR.
@@ -269,7 +269,7 @@ def retrieve_protocol_data(ctx, protocol_id, molecules):
 
 
 @cdd.command()
-@click.option("-i", "--protocol-id", type=str, multiple=True)
+@click.option("-i", "--protocol-id", type=str, multiple=True, required=True, help="Protocol IDs from given CDD vault to include")
 @click.argument("experimental_compound_data_file", type=Path)
 @click.pass_context
 def generate_experimental_compound_data(

@@ -2,6 +2,7 @@
 
 """
 import os
+import abc
 import time
 import logging
 import json
@@ -22,7 +23,7 @@ class FailedExportError(Exception):
     """Export failed to finish within timeout."""
 
 
-class ProtocolData:
+class ProtocolData(abc.ABC):
 
     def __init__(self, cdddata):
         self.cdddata = cdddata
@@ -63,8 +64,8 @@ class CDDData(ExternalData):
         "https://app.collaborativedrug.com/api/v1/vaults",
         description="Base URL for CCD Vault API",
     )
-    vault_token: str = Field(..., description="API token for access to CDD Vault")
-    vault_num: str = Field("5549", description="CDD Vault number")
+    vault_token: str = Field(None, description="API token for access to CDD Vault")
+    vault_num: str = Field(None, description="CDD Vault number")
     fluorescence_IC50_protocol_id: str = Field(
         "49439", description="Protocol ID for fluorescence measurements"
     )
@@ -91,6 +92,9 @@ class CDDData(ExternalData):
             Full response from CDD on available protocols, definitions for all readouts.
 
         """
+        if (self.vault_num is None) or (self.vault_token is None):
+            raise ValueError("Both `vault_num` and `vault_token` attributes must be set to use this method")
+
         # retrieve protocol definitions
         headers = {"X-CDD-token": self.vault_token}
 
@@ -108,28 +112,14 @@ class CDDData(ExternalData):
     def _get_async_exports(
         self, async_urls: Dict[str, str], headers: Dict[str, str], timeout: int = 3600
     ):
-        #from rich.live import Live
-        #from rich.text import Text
-        #from rich.console import Console
-
         responses = {}
         for name, async_url in async_urls.items():
             responses[name] = requests.get(async_url, headers=headers)
 
-        #console = Console()
-        #text = Text("Retrieving urls...")
-        #for async_url in async_urls.values():
-        #    text.append(f"\n: {async_url}")
-
-        #console.print(text)
+        for async_url in async_urls.values():
+            logging.info(f"CDDData : Retrieving url '{async_url}'")
 
         logging.info("CDDData : Beginning export(s)")
-        #text = Text(
-        #    "CDDData : Beginning export(s)",
-        #    style="bold red",
-        #)
-
-        #with Live(text, refresh_per_second=4) as live:
 
         export_ids = {}
         for name, response in responses.items():
@@ -142,8 +132,6 @@ class CDDData(ExternalData):
 
         first = True
         while any([status != "finished" for status in statuses.values()]):
-            #text.remove_suffix(" --> Checking status of export(s)")
-
             for name, export_id in export_ids.items():
                 url = (
                     f"{self.base_url}/{self.vault_num}/export_progress/{export_id}"
@@ -155,12 +143,11 @@ class CDDData(ExternalData):
 
             if first:
                 logging.info("CDDData : Checking status of export(s)")
-            #text.append(" --> Checking status of export(s)", style="bold yellow")
 
             time.sleep(5)
             seconds_waiting += 5
             if seconds_waiting > timeout:
-                logging.info("Export Never Finished")
+                logging.info("CDDData : Export Never Finished")
                 break
 
             first = False
@@ -247,6 +234,10 @@ class CDDData(ExternalData):
             Otherwise, `None` is returned.
 
         """
+
+        if (self.vault_num is None) or (self.vault_token is None):
+            raise ValueError("Both `vault_num` and `vault_token` attributes must be set to use this method")
+
         results = self._get_protocol_data(protocol_ids, molecules=molecules)
 
         if molecules:
@@ -301,6 +292,9 @@ class CDDData(ExternalData):
             Otherwise, `None` is returned.
 
         """
+        if (self.vault_num is None) or (self.vault_token is None):
+            raise ValueError("Both `vault_num` and `vault_token` attributes must be set to use this method")
+
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
         # TODO: add timestamp as metadata layer
@@ -334,7 +328,6 @@ class CDDData(ExternalData):
     def _generate_experimental_compound_data_molten(
         self, protocol_ids: List[str], return_map=False
     ):
-
         # create a dictionary of all selected protocol data, each a dict of
         # keyed by (molecule id, batch id), with values giving raw readout data
         # with definitions merged in
@@ -462,7 +455,7 @@ class CDDData(ExternalData):
                     if len(suspected_smiles.split()) > 1 and stereochemistry_certain:
                         ecd["relative_stereochemistry_enantiomerically_pure"] = True
                     elif stereochemistry_certain:
-                        ecd["relative_stereochemistry_enantiomerically_pure"] = True
+                        ecd["absolute_stereochemistry_enantiomerically_pure"] = True
                     else:
                         ecd["racemic"] = True
 

@@ -10,6 +10,7 @@ import pytest
 from fah_xchem.external.cdd import CDDData
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(
     (("CDD_VAULT_TOKEN" not in os.environ) and ("CDD_VAULT_NUM" not in os.environ)),
     reason="require both CDD_VAULT_TOKEN and CDD_VAULT_NUM to run CDD tests",
@@ -23,7 +24,7 @@ class TestCDDData:
         vault_token = os.environ["CDD_VAULT_TOKEN"]
         vault_num = os.environ["CDD_VAULT_NUM"]
 
-        cdd = CDDData(data_dir=os.path.abspath(data_dir), vault_token=vault_token)
+        cdd = CDDData(data_dir=os.path.abspath(data_dir), vault_num=vault_num, vault_token=vault_token)
 
         protocol_ids = [cdd.fluorescence_IC50_protocol_id]
         cdd.retrieve_protocol_data(protocol_ids, molecules=True)

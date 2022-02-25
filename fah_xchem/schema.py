@@ -113,6 +113,7 @@ class CompoundMetadata(Model):
 
 
 class ExperimentalCompoundData(Model):
+
     compound_id: str = Field(
         None, description="The unique compound identifier (PostEra or enumerated ID)"
     )
@@ -127,7 +128,7 @@ class ExperimentalCompoundData(Model):
         description="If True, this experiment was performed on a racemate; if False, the compound was enantiopure.",
     )
 
-    achiral: bool = Field(False, description="")
+    achiral: bool = Field(False, description="If True, this compound has no chiral centers or bonds, by definition enantiopure")
 
     absolute_stereochemistry_enantiomerically_pure: bool = Field(
         False,
