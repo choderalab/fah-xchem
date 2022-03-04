@@ -271,10 +271,6 @@ def combine_free_energies(
         if "g_exp" not in compound.metadata.experimental_data:
             continue
 
-        # DEBUG: Use only one reference compound
-        if compound.metadata.compound_id != "VLA-UCB-50c39ae8-2":
-            continue
-
         # Retrieve experimental dimensionless free energy and uncertainty
         g_exp_compound = compound.metadata.experimental_data["g_exp"]
         g_dexp_compound = compound.metadata.experimental_data["g_dexp"]
@@ -349,15 +345,13 @@ def combine_free_energies(
 
     for graph in valid_subgraphs:
         gs, C = stats.mle(graph, factor="g_ij", node_factor="g_exp")
-        print(gs)
-        print(gs.min(), gs.max())
 
         errs = np.sqrt(np.diag(C))
         for node, g, g_err in zip(graph.nodes, gs, errs):
             graph.nodes[node]["g"] = g
             graph.nodes[node]["g_err"] = g_err
             if "g_exp" in graph.nodes[node]:
-                print(
+                logging.debug(
                     f"{node} : exp {graph.nodes[node]['g_exp']} +- {graph.nodes[node]['g_dexp']} : calc {g} +- {g_err}"
                 )
 

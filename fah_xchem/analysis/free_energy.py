@@ -141,7 +141,7 @@ def _get_bar_overlap(works: np.ndarray) -> float:
     N_k = np.array([n, n])
 
     mbar = MBAR(u_kn, N_k)
-    overlap_scalar, eigenval, O = mbar.computeOverlap()
+    overlap_scalar, eigenval, O = mbar.computeOverlap(return_dict=False)
     return float(overlap_scalar)
 
 

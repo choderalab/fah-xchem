@@ -178,8 +178,15 @@ def update_experimental_data(
 
 
 @click.group()
-def cli():
-    ...
+@click.option(
+    "-l",
+    "--loglevel",
+    type=str,
+    default="WARN",
+    help="Logging level to use for execution",
+)
+def cli(loglevel):
+    logging.basicConfig(level=getattr(logging, loglevel.upper()))
 
 
 @cli.group()
@@ -252,8 +259,19 @@ def retrieve_molecule_data(ctx):
 
 
 @cdd.command()
-@click.option("-i", "--protocol-id", type=str, multiple=True)
-@click.option("-m", "--molecules", is_flag=True)
+@click.option(
+    "-i",
+    "--protocol-id",
+    type=str,
+    multiple=True,
+    help="Protocol IDs from given CDD vault to retrieve",
+)
+@click.option(
+    "-m",
+    "--molecules",
+    is_flag=True,
+    help="If included, also retrieve molecule data at the same time as protocols",
+)
 @click.pass_context
 def retrieve_protocol_data(ctx, protocol_id, molecules):
     """Get protocol data from CDD and place in DATA-DIR.
@@ -269,7 +287,14 @@ def retrieve_protocol_data(ctx, protocol_id, molecules):
 
 
 @cdd.command()
-@click.option("-i", "--protocol-id", type=str, multiple=True)
+@click.option(
+    "-i",
+    "--protocol-id",
+    type=str,
+    multiple=True,
+    required=True,
+    help="Protocol IDs from given CDD vault to include",
+)
 @click.argument("experimental_compound_data_file", type=Path)
 @click.pass_context
 def generate_experimental_compound_data(
@@ -497,13 +522,6 @@ def compound_series_generate():
     type=Path,
     help="If given, load experimental compound data and update compound `experimental_data` dictionaries",
 )
-@click.option(
-    "-l",
-    "--loglevel",
-    type=str,
-    default="WARN",
-    help="Logging level to use for execution",
-)
 def compound_series_analyze(
     compound_series_file,
     compound_series_analysis_file,
@@ -513,7 +531,6 @@ def compound_series_analyze(
     nprocs,
     max_transformations,
     experimental_data_file,
-    loglevel,
 ):
     """
     Run free energy analysis on COMPOUND-SERIES-FILE with `CompoundSeries` data
@@ -522,8 +539,6 @@ def compound_series_analyze(
 
     """
     from .analysis import analyze_compound_series
-
-    logging.basicConfig(level=getattr(logging, loglevel.upper()))
 
     compound_series = _get_config(
         CompoundSeries, compound_series_file, "compound series"
@@ -562,10 +577,8 @@ def compound_series_analyze(
     timestamp = dt.datetime.now(dt.timezone.utc)
     output = TimestampedAnalysis(as_of=timestamp, series=series_analysis)
 
-    os.makedirs(compound_series, exist_ok=True)
-    with open(
-        os.path.join(compound_series_analysis_file, "analysis.json"), "w"
-    ) as output_file:
+    os.makedirs(compound_series_analysis_file.parent, exist_ok=True)
+    with open(compound_series_analysis_file, "w") as output_file:
         output_file.write(output.json(indent=3))
 
 
@@ -600,7 +613,7 @@ def artifacts():
     type=Path,
     help="Path to Folding@home data directory",
 )
-@click.option("--fah-api-url", type=Path, help="URL to Folding@home work server API")
+@click.option("--fah-api-url", type=str, help="URL to Folding@home work server API")
 @click.option(
     "-n",
     "--nprocs",
@@ -624,19 +637,18 @@ def artifacts():
     help="If given, cache intermediate results in a local directory with this name",
 )
 @click.option(
-    "--snapshots", is_flag=True, help="Whether to generate representative snapshots"
+    "--snapshots/--no-snapshots",
+    default=True,
+    help="Whether to generate representative snapshots",
 )
-@click.option("--plots", is_flag=True, help="Whether to generate plots")
-@click.option("--report", is_flag=True, help="Whether to generate PDF report")
+@click.option("--plots/--no-plots", default=True, help="Whether to generate plots")
 @click.option(
-    "--website", is_flag=True, help="Whether to generate HTML for static site"
+    "--report/--no-report", default=True, help="Whether to generate PDF report"
 )
 @click.option(
-    "-l",
-    "--loglevel",
-    type=str,
-    default="WARN",
-    help="Logging level to use for execution",
+    "--website/--no-website",
+    default=True,
+    help="Whether to generate HTML for static site",
 )
 @click.option(
     "--overwrite",
@@ -652,6 +664,7 @@ def artifacts_generate(
     compound_series_analysis_file,
     output_directory,
     config_file,
+    fragalysis_config_file,
     fah_projects_dir,
     fah_data_dir,
     fah_api_url,
@@ -662,8 +675,6 @@ def artifacts_generate(
     plots,
     report,
     website,
-    loglevel,
-    fragalysis_config,
     overwrite,
 ):
     """
@@ -680,12 +691,10 @@ def artifacts_generate(
     """
     from .analysis import generate_artifacts
 
-    logging.basicConfig(level=getattr(logging, loglevel.upper()))
-
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
 
     fragalysis_config = _get_config(
-        FragalysisConfig, fragalysis_config, "fragalysis configuration"
+        FragalysisConfig, fragalysis_config_file, "fragalysis configuration"
     )
 
     with open(compound_series_analysis_file, "r") as infile:

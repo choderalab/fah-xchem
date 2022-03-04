@@ -511,6 +511,7 @@ class WebsiteArtifactory(BaseModel):
         os.makedirs(os.path.join(self.path, subdir), exist_ok=True)
 
         # TODO: This could be streamlined by extending the schema to include experimental free energies and error with experiment
+        #       If CompoundSeriesAnalysis also had fields for error to experiment, this code could be simplified.
 
         compounds_sorted = sorted(
             [

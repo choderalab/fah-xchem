@@ -79,10 +79,9 @@ class SnapshotArtifactory(BaseModel):
         # Load hybrid topology factory
         htf_path = os.path.join(project_dir, "RUNS", f"RUN{run}", "htf.npz")
         if not os.path.exists(htf_path):
-            logging.warning(
-                f"{pdbfile_path} does not exist. {htf_path} not found, so unable to regenerate hybrid_atom_mappings.npz"
-            )
-            raise ValueError(f"Failed to load PDB file: {e}")
+            message = f"{htf_path} not found, so unable to regenerate hybrid_atom_mappings.npz"
+            logging.warning(message)
+            raise ValueError(f"Failed to load HTF file: {message}")
 
         logging.warning(f"Regenerating {hybrid_atom_mappings_path} from {htf_path}")
         # TODO: This is very fragile because it requres *exactly* the same versions of tools that generated the pickle to be installed
@@ -352,7 +351,7 @@ class SnapshotArtifactory(BaseModel):
         #    f"/home/server/server2/projects/available/covid-moonshot/receptors/monomer/Mpro-{fragment_id}_0A_bound-protein.pdb"
         # )
         fragment = md.load(
-            f"{structure_path}/{target_name}-{fragment_id}{annotations}_bound-{component}.pdb"
+            f"{structure_path}/{target_name}-{fragment_id}{annotations}-{component}.pdb"
         )
 
         return fragment
@@ -535,6 +534,9 @@ class SnapshotArtifactory(BaseModel):
         new         \[1]---[2]/
 
         TODO: Can we use a more general scheme for extracting representative snapshots or snapshot ensembles?
+              For SAMS, repex, or even alternative formulations of nonequilibrium switching,
+              this scheme may not be relevant for extracting snapshots.
+              Instead, we can potentially come up with a way to generalize which snapshot(s) to extract.
 
         Parameters
         ----------
