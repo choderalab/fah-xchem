@@ -35,44 +35,62 @@ Tools and infrastructure for automated compound discovery using Folding@home.
 
 ### Example usage
 
+Download molecule and experimental data from CDD and generate an experimental data file for analysis use:
+
+```sh
+export CDD_VAULT_NUM=<vault-num>
+export CDD_VAULT_TOKEN=<vault-token>
+
+FLUORESCENCE_IC50_PROTOCOL_ID=49439
+
+# will take some time; pulls full data export from CDD
+fah-xchem -l INFO cdd --data-dir cdd-data/ retrieve-protocol-data --molecules -i $FLUORESCENCE_IC50_PROTOCOL_ID
+
+# merges and transforms data elements pulled from CDD into usable form for downstream analysis
+fah-xchem -l INFO cdd --data-dir cdd-data/ generate-experimental-compound-data -i 49439 experimental_compound_data.json
+
+```
+
 Run transformation and compound free energy analysis, producing `results/analysis.json`:
 
-``` sh
-fah-xchem run-analysis \
-        --compound-series-file compound-series.json \
+```sh
+fah-xchem --loglevel INFO \
+        compound-series analyze \
+        --experimental-data-file experimental_compound_data.json \
         --config-file config.json \
         --fah-projects-dir /path/to/projects/ \
         --fah-data-dir /path/to/data/SVR314342810/ \
-        --output-dir results \
-        --log INFO \
-        --num-procs 8
+        --loglevel INFO \
+        --nprocs 8
+        compound-series.json \
+        /path/to/output-dir/analysis.json
 ```
 
 
-Generate representative snapshots, plots, PDF report, and static site HTML in `results` directory:
-``` sh
-fah-xchem generate-artifacts \
-        --compound-series-analysis-file results/analysis.json \
+Generate representative snapshots, plots, PDF report, and static site HTML in output directory:
+```sh
+fah-xchem --loglevel INFO \
+        artifacts generate \
         --config-file config.json \
         --fragalysis-config fragalysis_config.json \
         --fah-projects-dir /path/to/projects/ \
         --fah-data-dir /path/to/data/SVR314342810/ \
-        --output-dir results \
-        --base-url https://my-bucket.s3.amazonaws.com/site/prefix/ \
+        --website-base-url https://my-bucket.s3.amazonaws.com/site/prefix/ \
         --cache-dir results/cache/ \
-        --num-procs 8
+        --nprocs 8 \
+        /path/to/output-dir/analysis.json \
+        /path/to/output-dir/
 ```
 
 ### Unit conventions
 
-Energies are represented in configuration and internally in units of `k T`, except when otherwise indicated. For energies in kilocalories per mole, the function or variable name should be suffixed with `_kcal`.
+Energies are represented in configuration and internally in units of `k T`, except when otherwise indicated.
+For energies in kilocalories per mole, the function or variable name should be suffixed with `_kcal`.
 
 ### Configuration
 
 #### Compound series
 The compound series is specified as JSON with schema given by the `CompoundSeriesAnalysis` model (see [fah_xchem.schema](fah_xchem/schema.py).
-
-The JSON file is passed on the command line using the `--compound-series-file` option
 
 #### Analysis configuration
 Some analysis options can be configured in a separate JSON file with schema given by the `AnalysisConfig` model. For example,
@@ -142,7 +160,9 @@ Paths to Folding@home project and data directories are passed on the command lin
 
 #### Conda
 
-This project uses [conda](https://github.com/conda/conda) to manage the environment. To set up a conda environment named `fah-xchem` with the required dependencies, create the conda environment as described above. To install `fah-xchem` as `dev` run:
+This project uses [conda](https://github.com/conda/conda) to manage the environment.
+To set up a conda environment named `fah-xchem` with the required dependencies, create the conda environment as described above.
+To install `fah-xchem` as `dev` run:
 
 ```sh
 pip install -e .
@@ -156,7 +176,8 @@ pytest
 
 #### Formatting
 
-Code formatting with [black](https://github.com/psf/black) is enforced via a CI check. To install `black` with `conda`, use
+Code formatting with [black](https://github.com/psf/black) is enforced via a CI check.
+To install `black` with `conda`, use
 
 ``` sh
 conda install black
