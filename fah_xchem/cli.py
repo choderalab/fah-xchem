@@ -178,8 +178,15 @@ def update_experimental_data(
 
 
 @click.group()
-def cli():
-    ...
+@click.option(
+    "-l",
+    "--loglevel",
+    type=str,
+    default="WARN",
+    help="Logging level to use for execution",
+)
+def cli(loglevel):
+    logging.basicConfig(level=getattr(logging, loglevel.upper()))
 
 
 @cli.group()
@@ -515,13 +522,6 @@ def compound_series_generate():
     type=Path,
     help="If given, load experimental compound data and update compound `experimental_data` dictionaries",
 )
-@click.option(
-    "-l",
-    "--loglevel",
-    type=str,
-    default="WARN",
-    help="Logging level to use for execution",
-)
 def compound_series_analyze(
     compound_series_file,
     compound_series_analysis_file,
@@ -531,7 +531,6 @@ def compound_series_analyze(
     nprocs,
     max_transformations,
     experimental_data_file,
-    loglevel,
 ):
     """
     Run free energy analysis on COMPOUND-SERIES-FILE with `CompoundSeries` data
@@ -540,8 +539,6 @@ def compound_series_analyze(
 
     """
     from .analysis import analyze_compound_series
-
-    logging.basicConfig(level=getattr(logging, loglevel.upper()))
 
     compound_series = _get_config(
         CompoundSeries, compound_series_file, "compound series"
@@ -654,13 +651,6 @@ def artifacts():
     help="Whether to generate HTML for static site",
 )
 @click.option(
-    "-l",
-    "--loglevel",
-    type=str,
-    default="WARN",
-    help="Logging level to use for execution",
-)
-@click.option(
     "--overwrite",
     is_flag=True,
     help=(
@@ -685,7 +675,6 @@ def artifacts_generate(
     plots,
     report,
     website,
-    loglevel,
     overwrite,
 ):
     """
@@ -701,8 +690,6 @@ def artifacts_generate(
 
     """
     from .analysis import generate_artifacts
-
-    logging.basicConfig(level=getattr(logging, loglevel.upper()))
 
     config = _get_config(AnalysisConfig, config_file, "analysis configuration")
 
