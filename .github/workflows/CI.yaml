@@ -100,12 +100,11 @@ jobs:
       run: |
         TRIGGER="${{ github.event.action }}"
 
-        # UNCOMMENT AFTER MERGE OF 172, remove force of --runslow below
-        #if [ "${TRIGGER}" != "synchronize"]
-        #then
-        #  ADDITIONAL_ARGS="--runslow ${ADDITIONAL_ARGS}"
-        #fi
-        ADDITIONAL_ARGS="--runslow ${ADDITIONAL_ARGS}"
+        # we don't want to run slow tests for pushes to pull requests
+        if [ "${TRIGGER}" != "synchronize"]
+        then
+          ADDITIONAL_ARGS="--runslow ${ADDITIONAL_ARGS}"
+        fi
 
         pytest -v --cov=fah_xchem --cov-report=xml --color=yes ${ADDITIONAL_ARGS} fah_xchem
 
