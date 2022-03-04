@@ -46,6 +46,9 @@ FLUORESCENCE_IC50_PROTOCOL_ID=49439
 # will take some time; pulls full data export from CDD
 fah-xchem -l INFO cdd --data-dir cdd-data/ retrieve-protocol-data --molecules -i $FLUORESCENCE_IC50_PROTOCOL_ID
 
+# next step REQUIRES OpenEye license
+export OE_LICENSE=/path/to/oe_license.txt
+
 # merges and transforms data elements pulled from CDD into usable form for downstream analysis
 fah-xchem -l INFO cdd --data-dir cdd-data/ generate-experimental-compound-data -i 49439 experimental_compound_data.json
 
