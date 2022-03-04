@@ -9,6 +9,9 @@ from rich.progress import track
 class ExternalData(BaseModel):
     """Mixin class for external data interfaces."""
 
+    class Config:
+        extra = "allow"
+
     data_dir: Path = Field(
         ...,
         description="Data directory; retrieved data will be deposited here, can be pre-existing",
