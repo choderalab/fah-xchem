@@ -34,7 +34,7 @@ jobs:
           #- macOS-latest
           - ubuntu-latest
           #- windows-latest
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10"]
     env:
       OE_LICENSE: ${{ github.workspace }}/oe_license.txt
       CDD_VAULT_TOKEN: ${{ secrets.CDD_VAULT_TOKEN }}
